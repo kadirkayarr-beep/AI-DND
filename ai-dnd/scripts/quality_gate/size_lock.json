@@ -3,7 +3,7 @@
  "slack": 50,
  "long_function_min": 151,
  "files": {
-  "api/main.py": 2594,
+  "api/main.py": 2309,
   "api/tests/live_playable_living_world_v1_smoke.py": 2706,
   "api/tests/test_campaign_api.py": 15508,
   "api/tests/test_campaign_time_edges.py": 4220,
@@ -19,7 +19,7 @@
   "api/campaign_journal.py::update_campaign_journal": 254,
   "api/campaign_journal.py::validate_campaign_journal": 241,
   "api/character_creation.py::configure_character": 729,
-  "api/main.py::create_app": 2006,
+  "api/main.py::create_app": 1711,
   "api/narrative_memory.py::build_narrative_context": 166,
   "api/narrative_memory.py::update_narrative_memory": 241,
   "api/serializers.py::serialize_session_state": 235,

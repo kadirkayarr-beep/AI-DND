@@ -9,6 +9,7 @@ import inspect
 import json
 import logging
 import os
+import sys
 
 import front_proposal
 import game
@@ -48,7 +49,6 @@ from api.campaign_journal import (
     update_campaign_journal,
 )
 from api.character_creation import CharacterCreationError
-from api.history_view import UNDO_HISTORY_MARKER, undo_narration
 from api.identity_suggestion import (
     IdentitySuggestionJob,
     IdentitySuggestionRequest,
@@ -92,12 +92,14 @@ from api.persistence.campaign_models import (
 from api.local_play import LocalPlayAuthenticator
 from api.persistence.campaign_store import CampaignStore, StartupCampaignStore
 from api.routes_catalog import register_catalog_routes
+from api.routes_economic import economic_step
 from api.routes_quests import register_quest_routes
 from api.routes_species import register_species_routes
 from api.routes_spells_write import register_spell_prepare_routes
 from api.routes_level_up_apply import register_level_up_apply_routes
 from api.routes_level_up import register_level_up_read_routes
 from api.routes_spells_read import register_spell_read_routes
+from api.routes_undo import register_undo_routes
 from api.schemas import (
     AmbientEventActionRequest,
     AmbientEventCommandResult,
@@ -108,13 +110,10 @@ from api.schemas import (
     CampaignSummary,
     HealthResponse,
     LevelUpResult,
-    PublicEconomicResolution,
     SessionResponse,
     TurnOutcome,
     TurnRequest,
     TurnResponse,
-    TurnUndoRequest,
-    TurnUndoResponse,
 )
 from api.serializers import (
     CombatResultSerializationError,
@@ -263,6 +262,17 @@ def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> No
             failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "quarantined", RuntimeError("restore not verified"),
         )
         raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
+
+
+def _put_back_turn(record: Any, session: Any, snapshot: dict[str, Any], lore: Any, metadata: Any, journal: Any,
+                   memory: Any) -> None:
+    """A play-turn refusal before commit: the verified session rollback, then every turn-owned field, in this order."""
+    _rollback_session(record, session, snapshot)
+    session.campaign_lore_state = lore
+    session.world_metadata = metadata
+    record.journal = journal
+    record.narrative_memory = memory
+    record.lore_authority = lore
 
 
 def _turn_outcome(action_result: Any) -> TurnOutcome | None:
@@ -1080,149 +1090,6 @@ def create_app(
             record.turn_lock.release()
         return payload
 
-    def economic_step(record: Any, session: Any, session_id: str, request: TurnRequest, action_id: str,
-                      request_hash: str, refuse_before_commit: Any) -> dict[str, Any]:
-        """Prepare, cancel or confirm a card under the turn lock, committed once with this action's receipt (A3).
-
-        Prepare and cancel are not turns: the undo checkpoint stays. A confirm is a turn only when it consumes the
-        card (applied, or refused on money, tender or the check): then the turn counter moves and the checkpoint is
-        this action. A confirm that consumes nothing (not prepared, wrong digest, stale) writes only the receipt
-        and, when stale, the card's own cancelled status, which the undo fingerprint leaves out (C11).
-        """
-        import dataclasses
-        import bold_acts
-        import economic_actions
-        if not isinstance(session, game.GameSession):
-            raise refuse_before_commit(409, "economic_unavailable", "Economic actions need a game session.")
-        action = request.economic_action.root
-        world = session.world_state
-        snapshot = _capture_session(session)
-        journal_snapshot = copy.deepcopy(record.journal)
-        memory_snapshot = copy.deepcopy(record.narrative_memory)
-        metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
-        lore_snapshot = record.lore_authority
-        checkpoint = getattr(record, "undo_checkpoint", None)
-        protect = checkpoint.get("action_id") if isinstance(checkpoint, dict) else None
-        state = economic_actions.EconomicState(world=world, character=session.character)
-        consumed = False
-        resolution = None
-        outcome: dict[str, Any] = {"action": f"economic_{action.kind}"}
-
-        def put_back() -> None:
-            _rollback_session(record, session, snapshot)
-
-        if action.kind in {"prepare", "confirm"}:
-            # The same guard the free-text turn uses: a dead or unconscious player opens and pays nothing.
-            try:
-                session.require_player_can_act()
-            except game.PlayerCannotAct as error:
-                put_back()
-                raise refuse_before_commit(409, "player_cannot_act", str(error)) from None
-            except Exception as error:
-                put_back()
-                _logger.error("Economic action could not check the player (error_type=%s)", type(error).__name__)
-                raise refuse_before_commit(500, "engine_error", "The economic action could not be completed.") from None
-        try:
-            if action.kind == "prepare":
-                fields = action.proposal
-                proposal = economic_actions.EconomicProposal(
-                    purpose=fields.purpose, recipient_id=fields.recipient_id, source_id=fields.source_id,
-                    item_id=fields.item_id, count=fields.count, amount_cp=fields.amount_cp, tip_cp=fields.tip_cp,
-                    tender_cp=fields.tender_cp, dependency=fields.dependency, source_action_id=action_id,
-                    text_span=(economic_actions.TextSpan(start=fields.text_span.start, end=fields.text_span.end)
-                               if fields.text_span is not None else None))
-                prepared = economic_actions.prepare_from_panel(
-                    state, proposal, campaign_id=str(record.campaign_id or session_id), actor_id="player",
-                    turn_index=world.get("flags", {}).get("turn_index", 0), protect_action_id=protect)
-                narration = prepared.public_message
-                outcome.update(status=prepared.status, reason=prepared.reason_code)
-            elif action.kind == "cancel":
-                closed = economic_actions.cancel_offer(world, offer_id=action.offer_id)
-                economic_actions.prune_offer_records(world, protect_action_id=protect)
-                narration = "Teklif iptal edildi; hiçbir şey ödenmedi." if closed else "İptal edilecek açık bir teklif yok."
-                outcome.update(status="cancelled" if closed else "not_open")
-            else:
-                operation_id = f"offer:{action_id}"
-                resolution = economic_actions.confirm_offer(
-                    state, offer_id=action.offer_id, confirmation_digest=action.confirmation_digest,
-                    operation_id=operation_id,
-                    check=lambda skill, dc: bold_acts._check(session, skill, dc)["result"])
-                stored = economic_actions.offer_records(world).get(action.offer_id)
-                consumed = (isinstance(stored, dict) and stored.get("status") == "consumed"
-                            and stored.get("operation_id") == operation_id)
-                if consumed:
-                    stored["consumed_action_id"] = action_id
-                    flags = world.setdefault("flags", {})
-                    flags["turn_index"] = flags.get("turn_index", 0) + 1  # the same counter every turn moves
-                    economic_actions.prune_offer_records(world, protect_action_id=action_id)
-                narration = resolution.public_summary
-                outcome.update(status=resolution.status, reason=resolution.reason_code)
-        except economic_actions.EconomicReceiptError as error:
-            put_back()
-            _logger.error("Economic receipt refused the confirm (reason=%s)", error.reason)
-            raise refuse_before_commit(409, "economic_receipt_refused",
-                                       "The economic result did not match its offer; nothing was applied.") from None
-        except HTTPException:
-            raise
-        except Exception as error:
-            put_back()
-            _logger.error("Economic action failed (error_type=%s)", type(error).__name__)
-            raise refuse_before_commit(500, "engine_error", "The economic action could not be completed.") from None
-        try:
-            public = (economic_actions.public_resolution(state, resolution) if resolution is not None else None)
-            response = TurnResponse(
-                session_id=session_id, action_id=action_id, narration=narration,
-                state=serialize_session_state(session, record.journal, record.lore_authority),
-                turn_outcome=TurnOutcome(**outcome),
-                economic_resolution=(PublicEconomicResolution.model_validate(dataclasses.asdict(public))
-                                     if public is not None else None),
-            )
-            response_payload = redact_sensitive_values(response.model_dump(mode="json"))
-        except Exception as error:
-            put_back()
-            _logger.error("Economic response could not be built (error_type=%s)", type(error).__name__)
-            raise refuse_before_commit(500, "engine_error", "The economic response could not be built safely.") from None
-
-        def undo_point() -> dict[str, Any]:
-            return {
-                "action_id": action_id,
-                "player_message": request.message,
-                "turn_label": narration,  # the card's fixed words name nothing; the undo quotes the engine's summary
-                "snapshot": snapshot,
-                "journal": journal_snapshot,
-                "narrative_memory": memory_snapshot,
-                "lore_authority": lore_snapshot,
-                "world_metadata": metadata_snapshot,
-                "post_turn_fingerprint": _state_fingerprint(session),
-            }
-
-        def adopt_committed_payment() -> None:
-            manager.adopt_committed_turn(record, None, None)
-            if consumed:  # D-110: a committed payment keeps its one-step undo when its acknowledgement was lost
-                _adopt_undo_checkpoint(record, undo_point)
-
-        try:
-            manager.autosave_turn(
-                record, request.message, narration,
-                turn_action_receipt={"action_id": action_id, "request_hash": request_hash,
-                                     "response": response_payload},
-                narration_source="deterministic_system",  # every card line is economic_actions' own text
-            )
-        except Exception as error:
-            _raise_if_commit_unconfirmed(
-                manager, record, action_id, request_hash, response_payload, error,
-                adopt=adopt_committed_payment,
-            )
-            put_back()
-            _logger.error("Economic autosave failed (error_type=%s)", type(error).__name__)
-            decision = failure_policy.classify_failure(
-                failure_policy.ActionPhase.RESOLVED_UNCOMMITTED, "rolled_back", error,
-            )
-            raise HTTPException(status_code=decision.status_code, detail=decision.detail()) from None
-        if consumed:
-            record.undo_checkpoint = undo_point()
-        return response_payload
-
     @application.post(
         "/api/game/sessions/{session_id}/turn",
         response_model=TurnResponse,
@@ -1376,7 +1243,7 @@ def create_app(
             if request.economic_action is not None:
                 # The card's own path: no free-text turn, no model, one commit with this action's receipt.
                 return economic_step(record, session, session_id, request, action_id, request_hash,
-                                     refuse_before_commit)
+                                     refuse_before_commit, manager=manager, api_main=sys.modules[__name__])
             if isinstance(session, game.GameSession):
                 try:
                     opening = combat_lifecycle.validate_request(
@@ -1794,12 +1661,8 @@ def create_app(
                     )
                 )
             except Exception as error:
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error(
                     "Engine lore evidence failed validation (error_type=%s)",
                     type(error).__name__,
@@ -1826,12 +1689,8 @@ def create_app(
                     )
                 )
             except Exception as error:
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error(
                     "Narrative continuity update failed (error_type=%s)",
                     type(error).__name__,
@@ -1886,12 +1745,8 @@ def create_app(
                     staged_lore_authority,
                 )
             except Exception as error:
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 if isinstance(error, SkillCheckResultSerializationError):
                     _logger.error(
                         "Engine returned an invalid skill-check result."
@@ -1933,12 +1788,8 @@ def create_app(
                 )
             except Exception as error:
                 # Nothing is saved yet: the answer could not be built, so the turn is put back whole (B1).
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error("Turn response could not be built (error_type=%s)", type(error).__name__)
                 raise refuse_before_commit(500, "engine_error", "The turn response could not be built safely.") from None
             record.lore_authority = staged_lore_authority
@@ -2078,153 +1929,17 @@ def create_app(
                 record.undo_checkpoint = undo_point()
             return response_payload
 
-    @application.post(
-        "/api/game/sessions/{session_id}/undo",
-        response_model=TurnUndoResponse,
+    register_undo_routes(
+        application,
+        get_record=get_record,
+        ensure_usable=ensure_usable,
+        manager=manager,
+        campaign_http_exception=campaign_http_exception,
+        replay_action_response=replay_action_response,
+        refuse_while_action_open=refuse_while_action_open,
+        require_current=require_current,
+        api_main=sys.modules[__name__],
     )
-    @application.post(
-        "/api/sessions/{session_id}/undo",
-        response_model=TurnUndoResponse,
-    )
-    def undo_last_turn(session_id: str, request: TurnUndoRequest) -> dict[str, Any]:
-        """Undo the last completed turn and its effects; keep it as history evidence."""
-        record = get_record(session_id)
-        action_id = str(request.action_id)
-        target_action_id = str(request.target_action_id)
-        request_hash = hashlib.sha256(json.dumps(
-            {"undo": target_action_id}, sort_keys=True, separators=(",", ":"),
-        ).encode("utf-8")).hexdigest()
-        with record.turn_lock:
-            if record.revoked:
-                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
-            # A request that queued behind a failing one must not run on a runtime that failure just quarantined (R05).
-            ensure_usable(record)
-            try:
-                previous = manager.get_turn_action(record, action_id)
-            except CampaignError as error:
-                raise campaign_http_exception(error) from None
-            if previous is not None:
-                if previous["request_hash"] != request_hash:
-                    raise HTTPException(status_code=409, detail={
-                        "code": "action_id_conflict",
-                        "message": "This action ID was already used for a different action.",
-                    })
-                return replay_action_response(previous["response"], TurnUndoResponse, session_id)
-            # D-127: an id closed for good (abandon or an earlier refusal) never undoes anything later.
-            try:
-                refused = manager.get_refused_action(record, action_id)
-            except CampaignError as error:
-                raise campaign_http_exception(error) from None
-            if refused is not None:
-                if refused["request_hash"] not in (request_hash, CampaignStore.ABANDONED_REQUEST_HASH):
-                    raise HTTPException(status_code=409, detail={
-                        "code": "action_id_conflict",
-                        "message": "This action ID was already used for a different action.",
-                    })
-                raise HTTPException(status_code=refused["status_code"], detail=refused["detail"])
-            refuse_while_action_open(record)
-            require_current(record)
-            session = record.game_session
-            checkpoint = getattr(record, "undo_checkpoint", None)
-            if not isinstance(checkpoint, dict) or checkpoint.get("action_id") != target_action_id:
-                raise HTTPException(status_code=409, detail={
-                    "code": "undo_unavailable",
-                    "message": "Geri alınabilecek bir son tur yok.",
-                })
-            if _final_death(session):
-                raise HTTPException(status_code=409, detail={
-                    "code": "undo_final_death",
-                    "message": "Ironman ölümü kesindir; geri alınamaz."
-                    if session.world_state["death_state"].get("mode") == "IRONMAN"
-                    else "Gerçek ölüm kesindir; geri alınamaz.",
-                })
-            if _state_fingerprint(session) != checkpoint["post_turn_fingerprint"]:
-                record.undo_checkpoint = None
-                raise HTTPException(status_code=409, detail={
-                    "code": "undo_stale",
-                    "message": "Son turdan sonra başka bir değişiklik oldu; o tur artık geri alınamaz.",
-                })
-            current = _capture_session(session)
-            current_metadata = copy.deepcopy(getattr(session, "world_metadata", None))
-            current_journal = copy.deepcopy(record.journal)
-            current_memory = copy.deepcopy(record.narrative_memory)
-            current_lore = record.lore_authority
-            payload = None
-            import economic_actions
-            # C11/D2: the cards as they are now; only the one the undone action consumed opens again.
-            current_offers = copy.deepcopy(economic_actions.offer_records(session.world_state))
-            # Read only, for the sentence: the purse the player sees before and after the very same restore.
-            purse_now = economic_actions.wallet_total_cp(session.world_state)
-            try:
-                _restore_session(session, checkpoint["snapshot"])
-                # D-211: the undone turn answered (or dropped) the surrendered-foe question; Undo never reopens it, so
-                # the same blow sent again is asked about again, never struck unasked.
-                session._surrender_strike_asked = None
-                # D-211 review: the same for "kavga mı başlatıyorsun?" (its flags ride the same snapshot).
-                session._attack_asked, session._blow_asked, session._blow_asked_line = False, None, None
-                session._heavy_asked = session._heavy_confirmed = None  # D-109: and the crime/threat question and its yes
-                if isinstance(session, game.GameSession):
-                    economic_actions.reconcile_offers_after_undo(
-                        session.world_state, current_offers, undone_action_id=target_action_id,
-                    )
-                session.world_metadata = copy.deepcopy(checkpoint["world_metadata"])
-                record.journal = copy.deepcopy(checkpoint["journal"])
-                record.narrative_memory = copy.deepcopy(checkpoint["narrative_memory"])
-                record.lore_authority = checkpoint["lore_authority"]
-                session.campaign_lore_state = checkpoint["lore_authority"]
-                narration = undo_narration(
-                    str(checkpoint.get("player_message") or ""),
-                    purse_delta_cp=economic_actions.wallet_total_cp(session.world_state) - purse_now,
-                    turn_label=checkpoint.get("turn_label"),
-                )
-                state = serialize_session_state(session, record.journal, record.lore_authority)
-                response = TurnUndoResponse(
-                    session_id=session_id,
-                    action_id=action_id,
-                    undone_action_id=target_action_id,
-                    narration=narration,
-                    state=state,
-                )
-                payload = redact_sensitive_values(response.model_dump(mode="json"))
-                manager.autosave_turn(
-                    record,
-                    UNDO_HISTORY_MARKER,
-                    narration,
-                    narrative_memory=record.narrative_memory,
-                    turn_action_receipt={
-                        "action_id": action_id,
-                        "request_hash": request_hash,
-                        "response": payload,
-                    },
-                    narration_source="deterministic_system",  # undo_narration is a fixed Python sentence
-                )
-            except CampaignError as error:
-                _raise_if_commit_unconfirmed(
-                    manager, record, action_id, request_hash, payload, error,
-                    adopt=lambda: setattr(record, "undo_checkpoint", None),
-                )
-                _rollback_session(record, session, current)
-                session.world_metadata = current_metadata
-                record.journal = current_journal
-                record.narrative_memory = current_memory
-                record.lore_authority = current_lore
-                session.campaign_lore_state = current_lore
-                raise campaign_http_exception(error) from None
-            except Exception as error:
-                _raise_if_commit_unconfirmed(
-                    manager, record, action_id, request_hash, payload, error,
-                    adopt=lambda: setattr(record, "undo_checkpoint", None),
-                )
-                _rollback_session(record, session, current)
-                session.world_metadata = current_metadata
-                record.journal = current_journal
-                record.narrative_memory = current_memory
-                record.lore_authority = current_lore
-                session.campaign_lore_state = current_lore
-                raise
-            # One step only: a second undo needs a new completed turn first.
-            record.undo_checkpoint = None
-            return payload
 
     register_quest_routes(
         application,
