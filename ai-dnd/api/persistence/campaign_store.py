@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import sqlite3
@@ -41,6 +42,7 @@ from api.persistence.campaign_validation import (
 )
 
 
+_LOGGER = logging.getLogger(__name__)
 _DATABASE_SCHEMA_VERSION = 6
 MAX_COMBAT_HISTORY_ENTRIES = 50
 
@@ -190,7 +192,7 @@ def _has_receipt(connection: sqlite3.Connection, campaign_id: str, action_id: st
         if table == "campaign_turn_actions_archive" and not _has_archive(connection):
             return False
         if connection.execute(
-            f"SELECT 1 FROM {table} WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),
+            f"SELECT 1 FROM {table} WHERE campaign_id = ? AND action_id = ?", (campaign_id, action_id),  # nosec B608 - table/clause are module constants, values are bound parameters
         ).fetchone() is not None:
             return True
     return False
@@ -473,7 +475,7 @@ class CampaignStore:
                     try:
                         payload = json.loads(row["payload_json"])
                     except (json.JSONDecodeError, TypeError):
-                        # A corrupt campaign must not prevent unrelated ones opening.
+                        _LOGGER.warning("Corrupt campaign %s skipped at open; unrelated campaigns still open.", row["campaign_id"])
                         continue
                     journal = payload.get("journal", {}) if isinstance(payload, dict) else {}
                     if isinstance(journal, dict) and isinstance(journal.get("notable_events", []), list):
@@ -649,7 +651,7 @@ class CampaignStore:
         connection = connection or self._connect()
         try:
             row = connection.execute(
-                f"SELECT revision FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                f"SELECT revision FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                 (campaign_id, issuer, subject),
             ).fetchone()
             if row is None:
@@ -717,7 +719,7 @@ class CampaignStore:
                     ),
                 )
                 row = connection.execute(
-                    f"SELECT * FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    f"SELECT * FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                     (campaign_id, issuer, subject),
                 ).fetchone()
                 metadata = self._metadata(row)
@@ -812,7 +814,7 @@ class CampaignStore:
         try:
             with self._transaction() as connection:
                 existing = connection.execute(
-                    f"SELECT name FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    f"SELECT name FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                     (campaign_id, issuer, subject),
                 ).fetchone()
                 if existing is None:
@@ -1033,14 +1035,14 @@ class CampaignStore:
         try:
             with self._transaction() as connection:
                 owned = connection.execute(
-                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                     (row["campaign_id"], *self._owner_pair(None)),
                 ).fetchone()
                 if owned is None:
                     raise CampaignNotFoundError("Campaign not found.")
                 try:
                     connection.execute(
-                        f"INSERT INTO campaign_emergence_attempts ({', '.join(_EMERGENCE_ATTEMPT_COLUMNS)}) "
+                        f"INSERT INTO campaign_emergence_attempts ({', '.join(_EMERGENCE_ATTEMPT_COLUMNS)}) "  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                         f"VALUES ({', '.join('?' for _ in _EMERGENCE_ATTEMPT_COLUMNS)})",
                         tuple(values[key] for key in _EMERGENCE_ATTEMPT_COLUMNS),
                     )
@@ -1074,13 +1076,13 @@ class CampaignStore:
         try:
             with self._transaction() as connection:
                 owned = connection.execute(
-                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - table/clause are module constants, values are bound parameters
                     (campaign_id, issuer, subject),
                 ).fetchone()
                 if owned is None:
                     raise CampaignNotFoundError("Campaign not found.")
                 cursor = connection.execute(
-                    f"UPDATE campaign_emergence_attempts SET {assignments} "
+                    f"UPDATE campaign_emergence_attempts SET {assignments} "  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                     f"WHERE campaign_id = ? AND trigger_id = ? AND owner_token = ? "
                     f"AND status IN ({', '.join('?' for _ in expected)})",
                     (*fields.values(), campaign_id, trigger_id, owner_token, *expected),
@@ -1132,13 +1134,13 @@ class CampaignStore:
         try:
             with self._transaction() as connection:
                 owned = connection.execute(
-                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - table/clause are module constants, values are bound parameters
                     (campaign_id, issuer, subject),
                 ).fetchone()
                 if owned is None:
                     raise CampaignNotFoundError("Campaign not found.")
                 cursor = connection.execute(
-                    f"UPDATE campaign_emergence_attempts SET proposal_json = NULL "
+                    f"UPDATE campaign_emergence_attempts SET proposal_json = NULL "  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                     f"WHERE campaign_id = ? AND proposal_json IS NOT NULL AND proposal_hash IS NOT NULL "
                     f"AND status IN ({', '.join('?' for _ in _EMERGENCE_TERMINAL)})",
                     (campaign_id, *_EMERGENCE_TERMINAL),
@@ -1649,7 +1651,7 @@ class CampaignStore:
         try:
             with self._transaction() as connection:
                 cursor = connection.execute(
-                    f"UPDATE campaigns SET last_played_at = ? WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    f"UPDATE campaigns SET last_played_at = ? WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                     (now, campaign_id, issuer, subject),
                 )
                 if cursor.rowcount != 1:
@@ -1669,11 +1671,8 @@ class CampaignStore:
         connection = self._connect()
         try:
             rows = connection.execute(
-                f"""
-                SELECT * FROM campaigns
-                WHERE {_OWNED_SQL}
-                ORDER BY last_played_at DESC, created_at DESC
-                """,
+                f"SELECT * FROM campaigns WHERE {_OWNED_SQL} "  # nosec B608 - SQL text from module constants; values are bound parameters
+                "ORDER BY last_played_at DESC, created_at DESC",
                 (issuer, subject),
             ).fetchall()
             return [self._metadata(row) for row in rows]
@@ -1688,7 +1687,7 @@ class CampaignStore:
         connection = self._connect()
         try:
             return connection.execute(
-                f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                 (campaign_id, issuer, subject),
             ).fetchone() is not None
         except sqlite3.Error:
@@ -1703,7 +1702,7 @@ class CampaignStore:
         try:
             with self._transaction() as connection:
                 cursor = connection.execute(
-                    f"DELETE FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    f"DELETE FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                     (campaign_id, issuer, subject),
                 )
                 return cursor.rowcount == 1
@@ -1718,7 +1717,7 @@ class CampaignStore:
             # Payload and dependent history must come from one committed snapshot.
             connection.execute("BEGIN")
             row = connection.execute(
-                f"SELECT * FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                f"SELECT * FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",  # nosec B608 - SQL text from module constants or allowlisted column names; values are bound parameters
                 (campaign_id, issuer, subject),
             ).fetchone()
             if row is None:

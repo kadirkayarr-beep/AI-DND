@@ -278,6 +278,23 @@ class CampaignPersistenceTests(unittest.TestCase):
             self.store.get_campaign(corrupt_id)
         self.assertEqual(self.store.get_campaign(good_id).metadata["name"], "Good")
 
+    def test_corrupt_campaign_skipped_at_open_is_logged(self):
+        # Opening the store still skips a corrupt payload, but leaves a warning naming the campaign.
+        corrupt_id, _, _, _ = self.create_campaign("Corrupt")
+        connection = sqlite3.connect(self.database_path)
+        try:
+            connection.execute(
+                "UPDATE campaigns SET payload_json = ? WHERE campaign_id = ?",
+                ("{not-json", corrupt_id),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        with self.assertLogs("api.persistence.campaign_store", "WARNING") as logs:
+            CampaignStore(self.store.path, bound_principal=TEST_PRINCIPAL)
+        self.assertTrue(any(corrupt_id in line for line in logs.output), logs.output)
+
     def test_unsupported_campaign_version_is_rejected(self):
         campaign_id, _, _, _ = self.create_campaign()
         stored = self.store.get_campaign(campaign_id)
