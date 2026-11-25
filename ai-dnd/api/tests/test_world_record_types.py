@@ -6,7 +6,9 @@ there. The shapes are annotations only, so this is what keeps them from drifting
 
 from __future__ import annotations
 
+import re
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
@@ -73,6 +75,20 @@ class ThreadShapes(ShapeCheck):
         world, _seen, states = thread_snapshots()
         for state in (*states, world[world_threads.KEY]):
             self.check(shapes.ThreadState, state, "thread state")
+
+
+class ThreadKeysUsedByCallers(unittest.TestCase):
+    """A key a caller writes or reads on a thread is declared; the producer census alone cannot see it."""
+
+    FILES = ("adventure/dialogue_jobs.py", "pocket.py", "quest_log.py", "town_knowledge.py", "world_happenings.py",
+             "world_reactions.py", "world_threads.py")
+    USE = re.compile(r"\b(?:thread|trouble|errand)(?:\.get\(|\[)[\"'](\w+)[\"']")
+
+    def test_every_thread_key_the_callers_touch_is_declared(self):
+        root = Path(__file__).resolve().parents[2]
+        used = {name for path in self.FILES for name in self.USE.findall((root / path).read_text(encoding="utf8"))}
+        self.assertGreater(len(used), 20)
+        self.assertEqual(used - declared(shapes.Thread), set(), "thread keys the shape does not declare")
 
 
 class DeedAndFireShapes(ShapeCheck):
