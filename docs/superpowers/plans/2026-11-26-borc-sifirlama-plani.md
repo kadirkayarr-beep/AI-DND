@@ -4,7 +4,7 @@
 
 **Goal:** Borç defterindeki 281 açık/kısmi satırın her biri kapanır (düzelten commit sha'sı ya da Kadir'in "wontfix" cevabı) ve bu iş yeni borç ya da yeni sorun açmaz.
 
-**Architecture:** Satırlar 53 göreve dağıtıldı (48'i satır taşır, 5'i araç/kapı görevidir). Görevler 5 dalgada koşar: Dalga 0 (sorular, kapanış kanıtı, araç), Dalga 1 (KRİTİK/YÜKSEK), Dalga 2 (ORTA), Dalga 3 (DÜŞÜK), Dalga 4 (kapıları sıkılaştırma ve son ölçüm). Her dalgada iki kulvar paralel çalışır (A: yuva 9, B: yuva 2); aynı anda koşan iki görevin dosya listesi kesişmez. Her dalga "dalga kapısı" ile biter: ölçüm `baseline.json` ile karşılaştırılır, dokunulan dosyada büyüyen sayı aynı dalgada düzeltilir.
+**Architecture:** Satırlar 53 göreve dağıtıldı (51'i satır taşır; G0.5 ve G4.3 satırsız araç/kapı görevidir). Görevler 5 dalgada koşar: Dalga 0 (sorular, kapanış kanıtı, araç), Dalga 1 (KRİTİK/YÜKSEK), Dalga 2 (ORTA), Dalga 3 (DÜŞÜK), Dalga 4 (kapıları sıkılaştırma ve son ölçüm). Her dalgada iki kulvar paralel çalışır (A: yuva 9, B: yuva 2); aynı anda koşan iki görevin dosya listesi kesişmez. Her dalga "dalga kapısı" ile biter: ölçüm `baseline.json` ile karşılaştırılır, dokunulan dosyada büyüyen sayı aynı dalgada düzeltilir.
 
 **Tech Stack:** Python 3.13 (CI) motoru ve FastAPI (`ai-dnd/`), React/TypeScript arayüz (`artifacts/ai-dnd-experience`), pnpm, GitHub Actions; ölçüm araçları `AI-DND-TOOLS/gate-venv-20261125` içinde (ruff 0.17.5, vulture 2.14, pyright 1.1.414, radon 6.0.1, import-linter 2.17, deptry 0.25.1, bandit 1.9.4, pip-audit 2.10.1, skylos 5.8.0, knip 6.48.0, fallow 3.45.0, gitleaks 8.30.1).
 
