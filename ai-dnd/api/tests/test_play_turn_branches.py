@@ -287,10 +287,23 @@ class PlayTurnBranches(unittest.IsolatedAsyncioTestCase):
             update.assert_called_once()
 
     async def test_plain_turn_writes_journal_and_memory(self):
-        """The other side of the death test: the same turn without a death rollback does write both."""
+        """The other side of the death test: the same turn without a death rollback does write both.
+
+        This fixture turn leaves the journal's content as it was, so the journal side is pinned on the update call
+        and on the record holding the journal that call returned.
+        """
         before = self.before()
-        result = await self.post()
+        written = []
+        real = main_module.update_campaign_journal
+
+        def update_campaign_journal(*args, **kwargs):
+            written.append(real(*args, **kwargs))
+            return written[-1]
+        with patch.object(main_module, "update_campaign_journal", side_effect=update_campaign_journal):
+            result = await self.post()
         self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(len(written), 1)
+        self.assertIs(self.record.journal, written[0], "the turn keeps the journal the update returned")
         self.assertNotEqual(self.record.narrative_memory, before["memory"])
 
 
