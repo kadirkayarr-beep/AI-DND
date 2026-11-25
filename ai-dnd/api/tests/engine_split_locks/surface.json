@@ -4548,7 +4548,7 @@
  },
  "resolution_action_scope": {
   "kind": "function",
-  "module": "api.core_resolution",
+  "module": "core_resolution",
   "session_bound": false,
   "signature": "(action_id: 'str', session_id: 'str | None' = None) -> 'Iterator[None]'"
  },
@@ -4560,7 +4560,7 @@
  },
  "resolve_attack_roll": {
   "kind": "function",
-  "module": "api.core_resolution",
+  "module": "core_resolution",
   "session_bound": false,
   "signature": "(*, roll_fn: 'Callable[[], int]', attack_bonus: 'int', target_ac: 'int', advantage: 'bool' = False, disadvantage: 'bool' = False, action_id: 'str | None' = None, resolution_id: 'str | None' = None, actor_id: 'str | None' = None, target_id: 'str | None' = None) -> 'dict[str, Any]'"
  },
@@ -4572,7 +4572,7 @@
  },
  "resolve_death_save": {
   "kind": "function",
-  "module": "api.core_resolution",
+  "module": "core_resolution",
   "session_bound": false,
   "signature": "(*, roll_fn: 'Callable[[], int]', action_id: 'str | None' = None, resolution_id: 'str | None' = None) -> 'dict[str, Any]'"
  },
@@ -4602,7 +4602,7 @@
  },
  "resolve_saving_throw": {
   "kind": "function",
-  "module": "api.core_resolution",
+  "module": "core_resolution",
   "session_bound": false,
   "signature": "(*, roll_fn: 'Callable[[], int]', ability: 'str', dc: 'int', ability_modifier: 'int', proficiency_modifier: 'int' = 0, circumstantial_modifier: 'int' = 0, advantage: 'bool' = False, disadvantage: 'bool' = False, action_id: 'str | None' = None, resolution_id: 'str | None' = None) -> 'dict[str, Any]'"
  },
@@ -4614,7 +4614,7 @@
  },
  "resolve_skill_check": {
   "kind": "function",
-  "module": "api.core_resolution",
+  "module": "core_resolution",
   "session_bound": false,
   "signature": "(*, roll_fn: 'Callable[[], int]', skill: 'str', ability: 'str', dc: 'int', ability_modifier: 'int', proficiency_modifier: 'int' = 0, circumstantial_modifier: 'int' = 0, proficient: 'bool' = False, expertise: 'bool' = False, advantage: 'bool' = False, disadvantage: 'bool' = False, action_id: 'str | None' = None, resolution_id: 'str | None' = None) -> 'dict[str, Any]'"
  },

@@ -16,7 +16,7 @@ from unittest.mock import patch
 import campaign_time
 import economic_actions as ea
 import game
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 
 DAY = 86400
 

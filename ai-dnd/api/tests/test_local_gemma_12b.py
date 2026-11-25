@@ -18,7 +18,7 @@ from api.local_model_config import (
     validate_local_model,
 )
 from api.main import create_app
-from api.model_phase import classifier_call, front_call
+from model_phase import classifier_call, front_call
 from api.ollama_adapter import (
     CLOUD_STYLE_RULES,
     CONTEXT_WINDOW_TOKENS,

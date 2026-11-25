@@ -47,7 +47,7 @@ def _ability_modifier(case):
 
 
 def _advantage_disadvantage(case):
-    from api.core_resolution import roll_d20
+    from core_resolution import roll_d20
     values = iter(case["input"]["rolls"])
     result = roll_d20(lambda: next(values), advantage=case["input"]["advantage"], disadvantage=case["input"]["disadvantage"])
     return {"rolled": len(result["raw_rolls"]), "selected": result["selected_roll"]}

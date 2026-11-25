@@ -5,7 +5,7 @@ import copy
 import effect_targeting
 import talk_mode
 import weapon_attack
-from api.core_resolution import (
+from core_resolution import (
     resolve_death_save,
 )
 import campaign_time
@@ -160,7 +160,7 @@ def attempt_player_stabilization(healer_id):
     """Canonical allied NPC Help action, using the existing Medicine resolver."""
     import weapon_attack
     import action_economy
-    from api.core_resolution import resolve_skill_check
+    from core_resolution import resolve_skill_check
     session = game._session()
     healer = next((n for n in session.world_state["npcs"]
                    if n.get("id") == healer_id), None)

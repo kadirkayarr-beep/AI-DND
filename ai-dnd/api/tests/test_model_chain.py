@@ -23,7 +23,7 @@ from api import identity_suggestion, model_chain, ollama_adapter, usage_ledger
 from api.auth import FixedAuthenticator
 from api.local_model_config import SUPPORTED_LOCAL_MODELS
 from api.main import create_app
-from api.model_phase import classifier_call
+from model_phase import classifier_call
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.tests.auth_fixture import TEST_PLAYER, TestPlayerSessionManager
 from api.tests.slot_guard import GUARDED
@@ -603,7 +603,7 @@ class TheSkipCause(unittest.TestCase):
     """D-240: a reply the game cannot use says which check failed: a cut, no JSON, or a schema field. Names only."""
 
     def cause_of(self, gemini):
-        from api import model_phase
+        import model_phase
         model_phase.begin_causes()
         with model_phase.front_call():
             chain_for(FakeCloud(gemini=gemini, haiku=httpx.Response(500))).chat(CALL, LocalModel())

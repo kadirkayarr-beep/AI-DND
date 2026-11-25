@@ -1325,7 +1325,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         addressed = (interaction_context or {}).get("npc_id") or ((interaction_context or {}).get("addressee") or {}).get("npc_id")
         price_targets = [row for row in price_targets if row["npc_id"] == addressed]
     prompt, schema = game._pi_price_schema(price_targets=price_targets, prompt=prompt, schema=schema)
-    from api.model_phase import classifier_call
+    from model_phase import classifier_call
     try:
         with classifier_call():
             response = game.ollama.chat(
@@ -1356,7 +1356,7 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             return data if isinstance(data, dict) else {"intent": "unknown"}
         if isinstance(data, dict) and not game.ollama_reply_was_cut(response):
             return data
-        from api import model_phase
+        import model_phase
         model_phase.note_cause("local", "cut" if game.ollama_reply_was_cut(response) else "not_json")  # D-240: the failed check
         if strict:
             raise game.IntentInfrastructureError("intent_json_invalid")

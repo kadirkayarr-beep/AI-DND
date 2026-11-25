@@ -19,7 +19,7 @@ import economic_actions as ea
 import game
 import money_owner
 import world_reactions
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests import test_last_play_blockers as blockers
 from api.tests.coin_seam import planted, read_as
 from api.tests.test_economic_action_http import EconomicHttpFixture

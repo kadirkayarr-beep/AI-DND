@@ -137,7 +137,7 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = 
             tail: str = "") -> tuple[str, dict[str, Any]]:
     """The whole shown arrival (lead, scene, facts, tail; capped) and {source, reason_code, calls}. The only world change is `scene_state.arrival_text` (the shown text, BM T6)."""
     import grounded_action
-    from api.model_phase import resolved_narration_scope
+    from model_phase import resolved_narration_scope
     from api.ollama_adapter import model_calls_left
     session = game._session()
     limit = LIMITS["first" if scene["visit"] == "first" else "return"]

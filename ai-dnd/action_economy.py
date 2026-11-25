@@ -908,7 +908,7 @@ def execute(session, command, action_id=None, session_id=None):
 
 def _execute(session, command, action_id=None, session_id=None):
     """Structured/NL commands share the same mechanics and receipt transaction."""
-    from api.core_resolution import resolution_action_scope
+    from core_resolution import resolution_action_scope
     steps = command.get("steps", [])
     if any(step.get("kind") == "convert_spell_slot" for step in steps if isinstance(step, dict)):
         import sorcery_points

@@ -9,7 +9,7 @@ from unittest.mock import patch
 import arrival_narration
 import game
 import local_places
-from api import model_phase
+import model_phase
 from api.ollama_adapter import _MODEL_CALLS
 from api.tests.test_interaction_adventure import session as adventure_session
 

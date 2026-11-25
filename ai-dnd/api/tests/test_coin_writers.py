@@ -18,7 +18,7 @@ from unittest.mock import patch
 import bold_acts
 import economic_actions as ea
 import game
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests.coin_seam import planted, read_as
 from money_owner import CoinDecision
 

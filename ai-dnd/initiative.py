@@ -7,7 +7,7 @@ import copy
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-from api.core_resolution import roll_d20 as resolve_d20
+from core_resolution import roll_d20 as resolve_d20
 
 EVENTS = {"ON_INITIATIVE_ROLL", "AFTER_INITIATIVE_ROLL", "AFTER_INITIATIVE_ORDER_INITIALIZED"}
 INCAPACITATING = {"incapacitated", "unconscious", "paralyzed", "stunned", "petrified"}

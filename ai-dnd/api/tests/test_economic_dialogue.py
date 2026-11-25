@@ -21,7 +21,7 @@ import shop_trade
 import town_knowledge
 import world_reactions
 import world_threads
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests import test_thread_hiring as hiring
 from api.tests.coin_seam import planted
 from api.tests.test_economic_action_http import EconomicHttpFixture
