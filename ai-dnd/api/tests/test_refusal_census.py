@@ -39,11 +39,13 @@ class RefusalCensus(unittest.TestCase):
         for path in sorted(ROOT.rglob("*.py")):
             rel = path.relative_to(ROOT).as_posix()
             if ("/tests/" in f"/{rel}" or rel.startswith(("legacy_debug/", "docs/", "reports/")) or "__pycache__" in rel
-                    or ("/" not in rel and rel.startswith("test_")) or rel in {"refusals.py", "api/main.py", "api/routes_turn.py"}):
+                    or ("/" not in rel and rel.startswith("test_")) or rel in {"refusals.py", "api/main.py"}):
                 continue
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8-sig"))):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
+                if rel == "api/routes_turn.py" and node.name == "refuse_before_commit":
+                    continue  # the HTTP panel text of the turn route, moved here from api/main.py (D-531 stage 4)
                 called = {sub.func.attr for sub in ast.walk(node) if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute)
                           and isinstance(sub.func.value, ast.Name) and sub.func.value.id == "refusals"}
                 if "text_for" in called and "note" not in called:

@@ -557,5 +557,5 @@ Not (Opus, Minor): `InvalidDeathModeError` artık `CampaignError` olduğu için 
 
 | Test / kilit | Değişiklik | İşaret |
 |---|---|---|
-| `test_refusal_census.test_every_text_for_caller_also_notes` | muaf dosya kümesine `api/routes_turn.py` eklendi. Muaf olan kod aynı: `refuse_before_commit` (HTTP panel metni, kuralın tek istisnası) api/main.py'den bu dosyaya taşındı. Kaçabilecek: bu dosyaya ileride eklenen ve `note` çağırmayan yeni bir `text_for` çağıranı artık yakalanmaz | gevşetme olabilir |
+| `test_refusal_census.test_every_text_for_caller_also_notes` | yalnız `api/routes_turn.py` içindeki `refuse_before_commit` işlevi atlanır (HTTP panel metni, kuralın tek istisnası; api/main.py'den buraya taşındı). Dosyanın geri kalanı kurala bağlı: `note` çağırmayan yeni bir `text_for` çağıranı yakalanır (bozma koşusu pt4f-mut-census kırmızı). api/main.py'nin dosya muafiyeti eskisi gibi | sıkılaşma (işlev düzeyinde muafiyet) |
 | `scripts/quality_gate/size_lock.json` | `api/main.py` 2309 -> 1473, `api/main.py::create_app` 1711 -> 883; yeni uzun işlev anahtarı yok (routes_turn'deki en uzun işlev 98 satır) | sıkılaşma |
