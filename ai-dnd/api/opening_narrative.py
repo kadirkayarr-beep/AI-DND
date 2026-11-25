@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import campaign_time
 import living_world
@@ -16,6 +16,9 @@ import tr_case
 import name_catalog
 import world_threads
 from api.world_metadata import world_metadata_for_state
+
+if TYPE_CHECKING:
+    from world_record_types import SceneOpening
 
 _LOG = logging.getLogger(__name__)
 
@@ -133,7 +136,7 @@ def opening_hook(world: dict[str, Any], settlement_id: str) -> list[str]:
 def initialize_campaign_opening(
     session: Any,
     campaign_id: str,
-) -> dict[str, Any] | None:
+) -> SceneOpening | None:
     """Create one opening for a registered location; never call the model."""
     world_state = session.world_state
     character = session.character

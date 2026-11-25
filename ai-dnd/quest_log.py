@@ -8,11 +8,16 @@ from __future__ import annotations
 
 import copy
 import hashlib
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import living_world
 import world_happenings
 import world_threads
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from world_record_types import Thread
 
 MAX_CARD_LINES = 2
 MAX_RUMORS = 6
@@ -41,14 +46,14 @@ def _name(world: dict[str, Any], npc_id: Any) -> str | None:
     return living_world.public_npc_name(npc) if npc is not None else None
 
 
-def _thread_of(world: dict[str, Any], quest_id: Any) -> dict[str, Any] | None:
+def _thread_of(world: dict[str, Any], quest_id: Any) -> Thread | None:
     state = world_threads.view(world)
     if state is None or not isinstance(quest_id, str):
         return None
     return next((t for t in (*state["threads"], *state["history"]) if t.get("quest_id") == quest_id), None)
 
 
-def _result(thread: dict[str, Any] | None) -> str | None:
+def _result(thread: Mapping[str, Any] | None) -> str | None:
     """What the engine wrote when the job ended: its own paid line, the broken-seal half pay, or the late hand-over."""
     if thread is None:
         return None
@@ -60,7 +65,7 @@ def _result(thread: dict[str, Any] | None) -> str | None:
     return f"mühür kırıktı: {paid} bakır" if thread.get("seal_broken") is True else f"{paid} bakır ödendi"
 
 
-def _promised(thread: dict[str, Any] | None) -> int | None:
+def _promised(thread: Mapping[str, Any] | None) -> int | None:
     """The pay the job's own terms promise (D-232), shown on the offered and the running card; no terms, no figure."""
     pay = ((thread or {}).get("terms") or {}).get("pay")
     return pay if type(pay) is int else None
@@ -147,7 +152,7 @@ def _rumors(world: dict[str, Any], lore_state: Any) -> list[dict[str, str]]:
     return found[:MAX_RUMORS]
 
 
-def _live(world: dict[str, Any], record_id: Any) -> dict[str, Any] | None:
+def _live(world: dict[str, Any], record_id: Any) -> Mapping[str, Any] | None:
     """A job or a link still open: a trail to anything closed or gone is no trail."""
     state = world_threads.view(world)
     if state is None:
@@ -156,7 +161,7 @@ def _live(world: dict[str, Any], record_id: Any) -> dict[str, Any] | None:
                  if r.get("thread_id") == record_id), None)
 
 
-def _followed(world: dict[str, Any], record: dict[str, Any]) -> bool:
+def _followed(world: dict[str, Any], record: Mapping[str, Any]) -> bool:
     """The record the trail points at has come before the player: put to them or taken on, its own line shown, or they
     walked up to its place after it began (the place's ``seen_at``, written by every arrival). Computed, never kept."""
     if record.get("status") in {"offered", "accepted", "done"}:
@@ -169,7 +174,7 @@ def _followed(world: dict[str, Any], record: dict[str, Any]) -> bool:
     return type(seen) is int and type(opened) is int and seen > opened
 
 
-def _trail(world: dict[str, Any], *, key: str, at: int, what: Any, record: dict[str, Any], source: str,
+def _trail(world: dict[str, Any], *, key: str, at: int, what: Any, record: Mapping[str, Any], source: str,
            from_id: Any) -> dict[str, Any] | None:
     place = (world.get("locations") or {}).get(record.get("place_id"))
     if not isinstance(what, str) or not what or not isinstance(place, dict) or not place.get("name"):
