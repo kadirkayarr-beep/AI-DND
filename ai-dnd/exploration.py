@@ -806,7 +806,6 @@ def resolve_command(session, message):
 def describe(world):
     if not active(world):
         return "Taş patikanın yerel macerasını seçebilirsin."
-    current = world["location"]
     names = [e["name"] for e in public_projection(world)["exits"]]
     return "Buradan görünen geçitler: " + (", ".join(names) if names else "henüz bilinen bir geçit yok.")
 
