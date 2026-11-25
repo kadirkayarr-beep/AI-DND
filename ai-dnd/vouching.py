@@ -12,13 +12,16 @@ from __future__ import annotations
 import json
 import logging
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import living_world
 import local_places
 import name_catalog
 import relationships
 import world_threads
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 SPEAKERS = 2  # how many kinds of place can speak for you in one campaign
 _LOG = logging.getLogger(__name__)
@@ -33,18 +36,18 @@ def _table() -> dict[str, Any]:
         return {}
 
 
-def _kind_of(world: dict[str, Any], thread: dict[str, Any]) -> Any:
+def _kind_of(world: dict[str, Any], thread: Mapping[str, Any]) -> Any:
     return (world.get("locations", {}).get(thread.get("place_id")) or {}).get("place_kind")
 
 
-def chosen_kinds(world: dict[str, Any], thread: dict[str, Any], kind: Any = None) -> list[str]:
+def chosen_kinds(world: dict[str, Any], thread: Mapping[str, Any], kind: Any = None) -> list[str]:
     """The kinds of place whose people can speak for you at this kind of door, the same all campaign."""
     kind = kind or _kind_of(world, thread)
     seed = living_world._campaign_seed(world)
     return sorted(_table().get(kind) or (), key=lambda each: world_threads._rank(seed, "vouch", kind, each))[:SPEAKERS]
 
 
-def _places(world: dict[str, Any], thread: dict[str, Any]) -> list[dict[str, Any]]:
+def _places(world: dict[str, Any], thread: Mapping[str, Any]) -> list[dict[str, Any]]:
     kinds = chosen_kinds(world, thread)
     return [record for record in world.get("locations", {}).values() if isinstance(record, dict)
             and record.get("parent_location_id") == thread.get("settlement_id") and record.get("place_kind") in kinds]
@@ -56,7 +59,7 @@ def _with_work(world: dict[str, Any], places: list[dict[str, Any]]) -> list[dict
     return [record for record in places if record["id"] in busy]
 
 
-def needs_word(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any]) -> bool:
+def needs_word(world: dict[str, Any], thread: Mapping[str, Any], npc: dict[str, Any]) -> bool:
     """Nobody here has said anything for the player yet, and somebody could."""
     places = _places(world, thread)
     if not places or relationships.score(world, npc.get("id")) >= 1:
@@ -159,7 +162,7 @@ def house_note(world: dict[str, Any], npc: Any) -> str:
                                      how=_ways(world, place))
 
 
-def wary_line(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
+def wary_line(world: dict[str, Any], thread: Mapping[str, Any]) -> str | None:
     places = _with_work(world, _places(world, thread))
     if not places:
         return None

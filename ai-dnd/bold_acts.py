@@ -10,12 +10,17 @@ from __future__ import annotations
 import logging
 import re
 import shlex
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import living_world
 import tr_case
 import relationships
 import shop_trade
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from world_record_types import Deed, Fire
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +181,7 @@ def is_arson(session, text: Any) -> bool:
     return isinstance(text, str) and "?" not in text and bool(_ARSON.search(fold(session, text)))
 
 
-def ensure_deeds(world: dict[str, Any]) -> list[dict[str, Any]]:
+def ensure_deeds(world: dict[str, Any]) -> list[Deed]:
     """The deed ledger itself (made empty on first use), so callers may append to it."""
     return world.setdefault("flags", {}).setdefault("deeds", [])
 
@@ -185,7 +190,7 @@ def _now(world: dict[str, Any]) -> int:
     return int((world.get("campaign_time") or {}).get("elapsed_seconds", 0) or 0)
 
 
-def remember(session, kind: str, text: str, *, victim_id: str | None = None, seen: bool = True) -> dict[str, Any]:
+def remember(session, kind: str, text: str, *, victim_id: str | None = None, seen: bool = True) -> Deed:
     """What was done, and who was standing there to see it.
 
     `witnesses` saw the player do it and `told` heard it from the player's own mouth: both
@@ -194,7 +199,7 @@ def remember(session, kind: str, text: str, *, victim_id: str | None = None, see
     world = session.world_state
     witnesses = [npc["id"] for npc in session.active_npcs() if isinstance(npc.get("id"), str)] if seen else []
     ledger = ensure_deeds(world)
-    deed = {
+    deed: Deed = {
         "kind": kind, "text": text[:160], "location": world.get("location"), "victim_id": victim_id,
         "witnesses": witnesses, "turn": int(world.get("flags", {}).get("turn_index", 0) or 0),
         "at": _now(world), "heard": [], "told": [],
@@ -209,12 +214,12 @@ def _is_armed(npc: dict[str, Any]) -> bool:
     return bool(game._ARMED_ROLE.search(game._normalize_turkish_typos(str(npc.get("role", "")))))
 
 
-def identifies(deed: dict[str, Any], npc_id: Any) -> bool:
+def identifies(deed: Mapping[str, Any], npc_id: Any) -> bool:
     """This person can point at the player for it: they saw it or were told by the player."""
     return npc_id in deed.get("witnesses", []) or npc_id in deed.get("told", [])
 
 
-def knows(deed: dict[str, Any], npc_id: Any) -> bool:
+def knows(deed: Mapping[str, Any], npc_id: Any) -> bool:
     return identifies(deed, npc_id) or npc_id in deed.get("heard", [])
 
 
@@ -882,8 +887,8 @@ def _burn(session) -> dict[str, Any]:
         if not isinstance(feature, dict):
             return _reply(session, "Kıvılcım tutacak gibi oluyor ama alev bir yere tutunamadan sönüyor.",
                           "arson", "failed", check, [])
-        world.setdefault("flags", {}).setdefault("fires", []).append(
-            {"location": here, "lit_at": _now(world), "stage": 0, "feature_id": feature.get("id")})
+        fire: Fire = {"location": here, "lit_at": _now(world), "stage": 0, "feature_id": feature.get("id")}
+        world.setdefault("flags", {}).setdefault("fires", []).append(fire)
     remember(session, "arson", f"{_place_name(world, here)} içinde ateş yaktı")
     narration = "Kıvılcım tutuyor; duman yükselmeye, ardından alev yalamaya başlıyor."
     if present:

@@ -4,7 +4,7 @@ import copy
 import hashlib
 import re
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 import equipment_economy
 import living_world
 import tr_case
@@ -13,6 +13,8 @@ import local_places
 import relationships
 import scheduled_events
 from adventure import templates, director
+if TYPE_CHECKING:
+    from world_record_types import Thread
 
 
 
@@ -68,7 +70,7 @@ def already_in_hand(world,thread):
 class WordMatch:
     """Which accepted job a word names: one, none, or many (many means it is not told which)."""
     status: Literal['one','none','many']
-    thread: dict|None
+    thread: Thread|None
 
 
 def parcel_for_word(world,word):

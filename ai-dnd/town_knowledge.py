@@ -20,7 +20,7 @@ import json
 import logging
 import re
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import living_world
 import local_places
@@ -31,6 +31,11 @@ import town_rumours
 import vouching
 import world_happenings
 import world_threads
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from world_record_types import Thread
 
 MAX_ITEMS = 10
 MAX_BYTES = 1500
@@ -68,7 +73,7 @@ def _coverage(npc: dict[str, Any]) -> int:
     return coverage.get("default", 35)
 
 
-def owned_threads(world: dict[str, Any], npc: dict[str, Any]) -> list[dict[str, Any]]:
+def owned_threads(world: dict[str, Any], npc: dict[str, Any]) -> list[Thread]:
     place_id = npc.get("place_role_of")
     return [t for t in world_threads.owned(world) if place_id and t.get("place_id") == place_id]
 
@@ -151,14 +156,14 @@ def _news_first(world: dict[str, Any], thread_id: Any) -> tuple[bool, bool]:
     return thread.get("heard_turn") is not None, thread.get("type") == "trouble"
 
 
-def posted_work(world: dict[str, Any]) -> list[dict[str, Any]]:
+def posted_work(world: dict[str, Any]) -> list[Thread]:
     """Paid work nobody has taken in this town, what is new to the player first."""
     settlement = _settlement(world)
     jobs = [t for t in world_threads.active(world, settlement) if t["type"] != "trouble"] if settlement else []
     return sorted(jobs, key=lambda thread: thread.get("heard_turn") is not None)
 
 
-def hear_of(world: dict[str, Any], thread: dict[str, Any]) -> None:
+def hear_of(world: dict[str, Any], thread: Thread) -> None:
     """The player now knows this public matter and where it is, however the words reached them."""
     world_threads.mark_heard(thread, int((world.get("flags") or {}).get("turn_index", 0) or 0))
     world_threads.note_heard_names(world, thread["public_line"])
@@ -814,7 +819,7 @@ def settle_reply(world: dict[str, Any], npc: dict[str, Any], player_text: Any, r
     return {"spoken": spoken, "note": note, "allowed": allowed, "moved": moved, "check": check, "stage": stage}
 
 
-def asks_about_work(player_text: Any, thread: dict[str, Any]) -> bool:
+def asks_about_work(player_text: Any, thread: Mapping[str, Any]) -> bool:
     """'Bana iş ver', 'adam arıyormuşsun': the player brought up work, however they put it."""
     import local_dialogue
     if local_dialogue.personal_question_kind(player_text) == "local_work":

@@ -8,11 +8,16 @@ model only voices it.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import local_places
 import talk_mode
 import world_threads
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from world_record_types import Thread, ThreadState
 
 KEY = "happenings"
 MAX_HAPPENINGS = 16
@@ -42,7 +47,7 @@ LET_GO = ("abandoned", "expired", "failed")
 HAPPENED = "happened"  # in the clock's list of effects: the ledger gained a row for this thread
 
 
-def ledger(state: dict[str, Any]) -> list[dict[str, Any]]:
+def ledger(state: ThreadState) -> list[dict[str, Any]]:
     """An old save simply gains the list."""
     return state.setdefault(KEY, [])
 
@@ -51,7 +56,7 @@ def fits(line: str) -> bool:
     return len(line.encode("utf-8")) <= MAX_LINE_BYTES
 
 
-def write(state: dict[str, Any], thread: dict[str, Any], kind: str, at: int, line: str, *,
+def write(state: ThreadState, thread: Mapping[str, Any], kind: str, at: int, line: str, *,
           known: bool = False, next_thread_id: str | None = None) -> dict[str, Any]:
     row = {"thread_id": thread["thread_id"], "kind": kind, "at": at, "place_id": thread["place_id"],
            "line": line, "known_to_player": known, "next_thread_id": next_thread_id}
@@ -94,7 +99,7 @@ def _line_for(world: dict[str, Any], seed: str, thread: dict[str, Any], lines: A
     return world_threads.job_lines("trouble", "fired_short") or ""
 
 
-def links(state: dict[str, Any]) -> list[dict[str, Any]]:
+def links(state: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Reading writes nothing: an old save gains the list with its first link."""
     return state.get(LINKS) or []
 
@@ -114,7 +119,7 @@ def _validate_links(rows: Any) -> None:
             raise ValueError("World thread record is invalid.")
 
 
-def _make_room(state: dict[str, Any]) -> bool:
+def _make_room(state: Mapping[str, Any]) -> bool:
     """The oldest link already played out goes; a town full of live ones takes no more."""
     rows = links(state)
     if len(rows) < MAX_LINKS:
@@ -193,7 +198,7 @@ def threatened(world: dict[str, Any], npc: dict[str, Any]) -> dict[str, Any] | N
     return link
 
 
-def _fire_links(world: dict[str, Any], state: dict[str, Any], now: int, seed: str) -> list[tuple[str, str]]:
+def _fire_links(world: dict[str, Any], state: ThreadState, now: int, seed: str) -> list[tuple[str, str]]:
     effects = []
     due = sorted((row for row in links(state) if type(row.get("fires_at")) is int and row["fires_at"] <= now),
                  key=lambda row: row["fires_at"])
@@ -209,7 +214,7 @@ def _fire_links(world: dict[str, Any], state: dict[str, Any], now: int, seed: st
     return effects
 
 
-def fire_due(world: dict[str, Any], state: dict[str, Any], now: int) -> list[tuple[str, str]]:
+def fire_due(world: dict[str, Any], state: ThreadState, now: int) -> list[tuple[str, str]]:
     """Every closed trouble whose moment has come. Called with the state in hand, inside the clock's step."""
     seed = world_threads.living_world._campaign_seed(world)
     due = sorted((t for t in state["history"] if (world_threads.fires_at(t) or now + 1) <= now),
@@ -231,7 +236,7 @@ def barred(state: dict[str, Any], place_id: str, kind: str, now: int) -> bool:
                                     for row in state.get(KEY) or [])
 
 
-def _follow_on(world: dict[str, Any], state: dict[str, Any], seed: str, thread: dict[str, Any], kind: str, now: int) -> str | None:
+def _follow_on(world: dict[str, Any], state: ThreadState, seed: str, thread: Mapping[str, Any], kind: str, now: int) -> str | None:
     """What this ending starts: one rule, read from the ending, and it may find nothing to start."""
     settlement = thread["settlement_id"]
     if len(state["threads"]) >= world_threads.MAX_ACTIVE or settlement not in state["seeded"]:
@@ -252,7 +257,7 @@ def _follow_on(world: dict[str, Any], state: dict[str, Any], seed: str, thread: 
     return None
 
 
-def seal_broken(world: dict[str, Any], thread: dict[str, Any]) -> None:
+def seal_broken(world: dict[str, Any], thread: Mapping[str, Any]) -> None:
     """Whoever sealed it hears of it, and sends someone: the clock starts with the seal, no threat needed."""
     tie(world, CALLER, "opened", world_threads.owner_of(world, thread), thread["place_id"], about=thread["thread_id"])
 
@@ -291,14 +296,14 @@ def on_close(world: dict[str, Any], thread: dict[str, Any], status: str) -> None
         thread["fires_at"] = closed + SECOND_CHANCE_SECONDS
 
 
-def put_forward(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any], shown: str) -> None:
+def put_forward(world: dict[str, Any], thread: Thread, npc: dict[str, Any], shown: str) -> None:
     """A public trouble someone just stepped into: the offer is made by the taking."""
     turn = int((world.get("flags") or {}).get("turn_index", 0) or 0)
     if thread.get("status") in world_threads.PUBLIC:
         world_threads.mark_offered(world, thread, npc, shown, turn)
 
 
-def _trouble_at_end_of(world: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | None:
+def _trouble_at_end_of(world: dict[str, Any], thread: Mapping[str, Any]) -> Thread | None:
     return next((t for t in world_threads.active(world) if t["type"] == "trouble"
                  and t["place_id"] == thread.get("target_place_id")), None)
 
@@ -311,7 +316,7 @@ def letter_matter(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
     return next((line for line in (trouble["owner_line"], trouble["public_line"]) if fits(line)), None)
 
 
-def letter_read(world: dict[str, Any], thread: dict[str, Any], words: str, turn: int) -> None:
+def letter_read(world: dict[str, Any], thread: Thread, words: str, turn: int) -> None:
     """The words stay what they were, and whoever read them now knows of the trouble they tell."""
     trouble = _trouble_at_end_of(world, thread)
     if trouble is not None and any(line in words for line in (trouble["owner_line"], trouble["public_line"])):
@@ -319,16 +324,16 @@ def letter_read(world: dict[str, Any], thread: dict[str, Any], words: str, turn:
     thread["letter_line"] = words
 
 
-def _row_of(state: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | None:
+def _row_of(state: Mapping[str, Any], thread: Mapping[str, Any]) -> dict[str, Any] | None:
     return next((row for row in reversed(state.get(KEY) or []) if row["thread_id"] == thread.get("thread_id")), None)
 
 
-def line_of(state: dict[str, Any], thread: dict[str, Any]) -> str | None:
+def line_of(state: Mapping[str, Any], thread: Mapping[str, Any]) -> str | None:
     row = _row_of(state, thread)
     return row["line"] if row else None
 
 
-def show(world: dict[str, Any], thread: dict[str, Any]) -> None:
+def show(world: dict[str, Any], thread: Mapping[str, Any]) -> None:
     """The player was standing there: it is simply what they see next."""
     import world_reactions
     state = world_threads.view(world)
@@ -345,7 +350,7 @@ def unseen(world: dict[str, Any], line: Any) -> None:
             row["known_to_player"] = False
 
 
-def learned(world: dict[str, Any], thread: dict[str, Any]) -> None:
+def learned(world: dict[str, Any], thread: Mapping[str, Any]) -> None:
     """Someone has just said this very line to the player."""
     state = world_threads.view(world)
     row = _row_of(state, thread) if state else None
@@ -353,7 +358,7 @@ def learned(world: dict[str, Any], thread: dict[str, Any]) -> None:
         row["known_to_player"] = True
 
 
-def first_sight(world: dict[str, Any], thread: dict[str, Any]) -> str | None:
+def first_sight(world: dict[str, Any], thread: Mapping[str, Any]) -> str | None:
     """Its line, the once, for a screen already saying something else about this thread."""
     state = world_threads.view(world)
     row = _row_of(state, thread) if state else None
