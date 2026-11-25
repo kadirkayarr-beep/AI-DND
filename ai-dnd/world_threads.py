@@ -22,11 +22,16 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import living_world
 import tr_case
 import local_places
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from world_record_types import Thread, ThreadState
 
 KEY = "world_threads_v1"
 SCHEMA_VERSION = 1
@@ -150,13 +155,13 @@ def _now(world: dict[str, Any]) -> int:
     return elapsed if type(elapsed) is int else 0
 
 
-def _new_state() -> dict[str, Any]:
+def _new_state() -> ThreadState:
     return {"version": SCHEMA_VERSION, "seeded": [], "next_number": 1, "last_tick": 0,
             "threads": [], "history": [], "happenings": []}
 
 
-def view(world: dict[str, Any]) -> dict[str, Any] | None:
-    state = world.get(KEY)
+def view(world: dict[str, Any]) -> ThreadState | None:
+    state: ThreadState | None = world.get(KEY)
     return state if isinstance(state, dict) and state.get("version") == SCHEMA_VERSION else None
 
 
@@ -169,21 +174,21 @@ def _with_status(world, statuses, settlement_id):
     ]
 
 
-def active(world: dict[str, Any], settlement_id: str | None = None) -> list[dict[str, Any]]:
+def active(world: dict[str, Any], settlement_id: str | None = None) -> list[Thread]:
     """What is still public: the street's talk, not a job someone has been offered."""
     return _with_status(world, PUBLIC, settlement_id)
 
 
-def owned(world: dict[str, Any], settlement_id: str | None = None) -> list[dict[str, Any]]:
+def owned(world: dict[str, Any], settlement_id: str | None = None) -> list[Thread]:
     """Everything an owner still holds, public or not."""
     return _with_status(world, OWNED, settlement_id)
 
 
-def by_id(world: dict[str, Any], thread_id: Any) -> dict[str, Any] | None:
+def by_id(world: dict[str, Any], thread_id: Any) -> Thread | None:
     """The live record. A clock step replaces the state, so nothing is held across one."""
     state = view(world)
     return next((t for t in (*state["threads"], *state["history"], *state.get("links", ()))
-                 if t.get("thread_id") == thread_id), None) if state else None
+                 if t.get("thread_id") == thread_id), None) if state else None  # pyright: ignore[reportReturnType]  # a link row (world_happenings) has only the trouble keys
 
 
 def job_lines(*path: str) -> Any:
@@ -193,7 +198,7 @@ def job_lines(*path: str) -> Any:
     return found
 
 
-def pay_basis(thread: dict[str, Any]) -> str | None:
+def pay_basis(thread: Thread) -> str | None:
     """How the spoken pay is counted: stored on the thread's terms when it opens."""
     return (thread.get("terms") or {}).get("pay_basis") or None
 
@@ -212,7 +217,7 @@ def _reserve_resident(world: dict[str, Any], record: dict[str, Any]) -> str:
     return record["resident_name"]
 
 
-def _used_places(state: dict[str, Any], settlement_id: str) -> list[str]:
+def _used_places(state: ThreadState, settlement_id: str) -> list[str]:
     found: list[str] = []
     for thread in state["threads"]:
         if thread.get("settlement_id") == settlement_id:
@@ -374,7 +379,7 @@ def _seed_settlement(world, state, settlement_id):
     state["seeded"].append(settlement_id)
 
 
-def ensure(world: dict[str, Any]) -> dict[str, Any] | None:
+def ensure(world: dict[str, Any]) -> ThreadState | None:
     """Seed this settlement's threads once. Old saves gain them here; a failure changes nothing."""
     state = view(world)
     if state is not None:
@@ -410,7 +415,7 @@ def ensure(world: dict[str, Any]) -> dict[str, Any] | None:
         return view(world)
 
 
-def street_talk(world: dict[str, Any], settlement_id: str) -> dict[str, Any] | None:
+def street_talk(world: dict[str, Any], settlement_id: str) -> Thread | None:
     """The next thing a walker could catch wind of: something the player has not heard yet."""
     state = view(world)
     if state is None:
@@ -437,7 +442,7 @@ def note_heard_names(world: dict[str, Any], text: str) -> None:
                 npc["name_known_to_player"] = True
 
 
-def transition(thread: dict[str, Any], status: str) -> bool:
+def transition(thread: Thread, status: str) -> bool:
     """Move a thread only along a listed edge; anything else leaves it as it is."""
     if status not in TRANSITIONS.get(thread.get("status"), ()):
         return False
@@ -445,7 +450,7 @@ def transition(thread: dict[str, Any], status: str) -> bool:
     return True
 
 
-def mark_heard(thread: dict[str, Any], turn: int) -> None:
+def mark_heard(thread: Thread, turn: int) -> None:
     if transition(thread, "heard"):
         thread["heard_turn"] = turn
 
@@ -454,7 +459,7 @@ def _npc(world, npc_id):
     return next((n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("id") == npc_id), None)
 
 
-def owner_of(world: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | None:
+def owner_of(world: dict[str, Any], thread: Thread) -> dict[str, Any] | None:
     """The person behind the work, once they exist; the place's role survives them walking off."""
     return _npc(world, thread.get("owner_npc_id")) or next(
         (n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("place_role_of") == thread.get("place_id")),
@@ -462,7 +467,7 @@ def owner_of(world: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | 
     )
 
 
-def recipient_of(world: dict[str, Any], thread: dict[str, Any]) -> dict[str, Any] | None:
+def recipient_of(world: dict[str, Any], thread: Thread) -> dict[str, Any] | None:
     place_id = thread.get("target_place_id")
     return _npc(world, thread.get("recipient_npc_id")) or (next(
         (n for n in world.get("npcs", []) if isinstance(n, dict) and n.get("place_role_of") == place_id),
@@ -620,7 +625,7 @@ def _trim_history(state, world):
 _QUEST_OUTCOME = {"COMPLETED": "done", "FAILED": "failed", "ABANDONED": "abandoned"}
 
 
-def sync_from_quests(world: dict[str, Any], state: dict[str, Any] | None = None) -> list[tuple[str, str]]:
+def sync_from_quests(world: dict[str, Any], state: ThreadState | None = None) -> list[tuple[str, str]]:
     """A job's journal row decided: the thread follows, once, with no clock needed."""
     state = state or view(world)
     if state is None:
@@ -645,7 +650,7 @@ _CLOSE_SUMMARY = {"done": "İş tamamlandı", "failed": "İş yarım kaldı", "a
                   "expired": "Teklif kapandı", "filled_by_other": "İş başkasına geçti", "fired": "Dert başa geldi"}
 
 
-def note_event(world: dict[str, Any], thread: dict[str, Any], kind: str, summary: str,
+def note_event(world: dict[str, Any], thread: Thread, kind: str, summary: str,
                *, npc: Any = None, player_known: bool = True) -> None:
     """A job's mark in the shared log. The record is the thread; a lost log line loses nothing."""
     import interaction_adventure
@@ -743,7 +748,7 @@ def _stem(word: str) -> str:
     return word[:-1] if word[-1:] in {"p", "c", "t", "k", "g"} and len(word) > 3 else word
 
 
-def _item_stems(thread: dict[str, Any]) -> tuple[str, ...]:
+def _item_stems(thread: Mapping[str, Any]) -> tuple[str, ...]:
     words = _folded(thread.get("item_noun")).split()
     return tuple(_stem(word) for word in words if len(word) > 2 and word != "bir")  # 'bir not': the article is no name
 
@@ -860,7 +865,7 @@ def _read_clause(tokens, asked, table, names, item_stems):
     return "other"
 
 
-def _only_the_real_pay(tokens: list[str], thread: dict[str, Any] | None) -> bool:
+def _only_the_real_pay(tokens: list[str], thread: Thread | None) -> bool:
     """'On bakır' back at someone who said ten is the deal repeated, not a counter-offer."""
     pay = ((thread or {}).get("terms") or {}).get("pay")
     words = [word for word in tokens if not word.isdigit() and word not in _NUMBER_ONES and word not in _NUMBER_TENS]
@@ -927,7 +932,7 @@ def _bare_answer(tokens, table, names):
                or (word in table["fillers"] and word not in table["accept"]) for word in tokens)
 
 
-def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None) -> dict[str, Any]:
+def read_answer(text: Any, npc: Any = None, thread: Thread | None = None) -> dict[str, Any]:
     """What this line says about an offer, by the lists alone. Knows nothing of any offer."""
     reading = {"meaning": None, "terms": False, "question": False, "take": False, "give": False,
                "start": False, "move": False, "reference": False, "pointing": False}
@@ -984,7 +989,7 @@ def read_answer(text: Any, npc: Any = None, thread: dict[str, Any] | None = None
     return reading
 
 
-def holds_a_yes(text: Any, npc: Any, thread: dict[str, Any], *, firm: bool = False) -> bool:
+def holds_a_yes(text: Any, npc: Any, thread: Thread, *, firm: bool = False) -> bool:
     """The player's own words carry a plain yes, with no no or condition beside it.
 
     For a line the lists cannot read whole: the model can point at the agreement, but
@@ -1021,7 +1026,7 @@ def finite_verbs(text: Any) -> list[str]:
 _ACCEPT_VERBS = frozenset({"ediyorum", "ederim", "ettim", "edecegim", "ediom", "ediorum", "ediyoruz", "ederiz"})
 
 
-def says_yes_in_a_longer_line(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+def says_yes_in_a_longer_line(text: Any, npc: Any, thread: Thread) -> bool:
     """D-240, for when no model read the line: 'görevi kabul ediyorum ve eşyayı alıyorum'. The clause reader calls a
     yes that runs on into more of the same clause 'other', so this looks for the yes itself (a listed phrase of two
     words or more, or 'kabul' with its own verb), and only where nothing in the line says no, maybe, later, if or asks.
@@ -1061,7 +1066,7 @@ def says_yes_in_a_longer_line(text: Any, npc: Any, thread: dict[str, Any]) -> bo
 _REFUSED_DOING = re.compile(r"(?:m[aeiu]yor|mam$|mem$|mayacag|meyecek|meyecen|mayacan|amam$|emem$)")
 
 
-def goes_to_the_work(text: Any, thread: dict[str, Any]) -> bool:
+def goes_to_the_work(text: Any, thread: Thread) -> bool:
     """'Dediğin işi yapıyorum': the speaker names the work and is doing it, which is a yes in deed."""
     table = answer_table()
     ends = tuple(table["first_person_ends"])
@@ -1084,7 +1089,7 @@ def says_later(text: Any) -> bool:
     return _says_later(text, answer_table()) or bool(_I_WILL.search(_folded(text)))
 
 
-def does_the_work_now(text: Any, thread: dict[str, Any]) -> bool:
+def does_the_work_now(text: Any, thread: Thread) -> bool:
     """Going to the work and at it this moment: 'yapıyorum', 'yapayım'. 'Yarın yaparım' is a promise, and so is 'hallederim'."""
     table = answer_table()
     now = tuple(table["now_ends"])
@@ -1122,7 +1127,7 @@ def _last_exchange(world, npc):
     return log[-1] if isinstance(log, list) and log and isinstance(log[-1], dict) else None
 
 
-def _names_the_work(text: Any, thread: dict[str, Any], table) -> bool:
+def _names_the_work(text: Any, thread: Thread, table) -> bool:
     """The line's own words are about this job, with no reading of what it decides."""
     words = _folded(text).split()
     stems = _item_stems(thread)
@@ -1130,7 +1135,7 @@ def _names_the_work(text: Any, thread: dict[str, Any], table) -> bool:
         word.startswith(stem) for stem in stems for word in words)
 
 
-def _closes_on_the_job(line: str, thread: dict[str, Any], table) -> bool:
+def _closes_on_the_job(line: str, thread: Thread, table) -> bool:
     """The last words put the job to the player: a closer on its own, or a question naming the work."""
     sentence = re.split(r"[.!…?]+", line.rstrip(" .!…?"))[-1]
     words = _folded(re.split(r"[,;:]", sentence)[-1]).split()
@@ -1140,17 +1145,17 @@ def _closes_on_the_job(line: str, thread: dict[str, Any], table) -> bool:
             or figure_before(sentence, (thread.get("terms") or {}).get("pay"), "bakir"))
 
 
-def stays_on_the_offer(line: str, thread: dict[str, Any]) -> bool:
+def stays_on_the_offer(line: str, thread: Thread) -> bool:
     """A reply that keeps the job on the table: 'Ee, yapacak mısın?', not 'Akşam yemeğe gel.'"""
     return _closes_on_the_job(line, thread, answer_table())
 
 
-def _asks_something_else(line: str, thread: dict[str, Any], table) -> bool:
+def _asks_something_else(line: str, thread: Thread, table) -> bool:
     """The line ended on another question: 'olur' answers that one, not the job."""
     return line.rstrip().endswith("?") and not _closes_on_the_job(line, thread, table)
 
 
-def answers_the_offer(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+def answers_the_offer(world: dict[str, Any], thread: Thread, npc: Any) -> bool:
     """This person's last line to the player was this very offer, no turn has passed since, and it asked nothing else."""
     last = _last_exchange(world, npc)
     line = thread.get("offer_line")
@@ -1160,7 +1165,7 @@ def answers_the_offer(world: dict[str, Any], thread: dict[str, Any], npc: Any) -
             and not _asks_something_else(line, thread, answer_table()))
 
 
-def _last_line_is_the_job(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+def _last_line_is_the_job(world: dict[str, Any], thread: Thread, npc: Any) -> bool:
     """A bare 'vazgeçtim' means the job only while the job is what this person was last talking about."""
     last = _last_exchange(world, npc)
     line = last.get("npc") if last else None
@@ -1168,14 +1173,14 @@ def _last_line_is_the_job(world: dict[str, Any], thread: dict[str, Any], npc: An
         _names_the_work(line, thread, answer_table()))
 
 
-def lapsed_yes(world: dict[str, Any], thread: dict[str, Any], text: Any, npc: Any) -> bool:
+def lapsed_yes(world: dict[str, Any], thread: Thread, text: Any, npc: Any) -> bool:
     """A yes to an offer the clock took back, read as the very yes the open offer would have heard. Writes nothing."""
     if thread.get("status") != "expired" or thread.get("accepted_at") is not None:
         return False
     return bind_player_decision(world, {**thread, "status": "offered"}, text, npc) == "accepted"
 
 
-def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: Any, npc: Any) -> str | None:
+def bind_player_decision(world: dict[str, Any], thread: Thread, text: Any, npc: Any) -> str | None:
     """Python's reading of the player's own words on this thread. Writes nothing."""
     status = thread.get("status")
     if status not in {"offered", "declined", "accepted"}:
@@ -1206,11 +1211,11 @@ def bind_player_decision(world: dict[str, Any], thread: dict[str, Any], text: An
     return None
 
 
-def _log(thread: dict[str, Any], at: int, kind: str) -> None:
+def _log(thread: Thread, at: int, kind: str) -> None:
     thread["log"] = [*thread.get("log", []), {"at": at, "kind": kind}][-MAX_LOG:]
 
 
-def owner_mood(world: dict[str, Any], thread: dict[str, Any], npc: Any, *, this_exchange: int = 0) -> str:
+def owner_mood(world: dict[str, Any], thread: Thread, npc: Any, *, this_exchange: int = 0) -> str:
     """Will this person offer the work to this stranger: 'yes', 'wary' or 'no'. Python's call.
 
     this_exchange: statements already recorded for the reply being judged, which are not
@@ -1235,7 +1240,7 @@ def owner_mood(world: dict[str, Any], thread: dict[str, Any], npc: Any, *, this_
     return "yes"
 
 
-def mark_offered(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any], shown: str, turn: int) -> bool:
+def mark_offered(world: dict[str, Any], thread: Thread, npc: dict[str, Any], shown: str, turn: int) -> bool:
     """The terms were really spoken: only now is there an offer to answer."""
     if not transition(thread, "offered"):
         return False
@@ -1250,7 +1255,7 @@ def mark_offered(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, A
     return True
 
 
-def learn_outcome(world: dict[str, Any], thread: dict[str, Any]) -> None:
+def learn_outcome(world: dict[str, Any], thread: Thread) -> None:
     """The player has now heard how this ended; only from here does it exist for them."""
     if thread.get("outcome_known_turn") is None:
         thread["outcome_known_turn"] = int((world.get("flags") or {}).get("turn_index", 0) or 0)
@@ -1282,7 +1287,7 @@ def arrival_line(world: dict[str, Any], place_id: Any) -> str | None:
     return world_happenings.arrival_line(world, place_id) or town_knowledge.notice_at(world, place_id)
 
 
-def accept_hired(world: dict[str, Any], thread: dict[str, Any], turn: int | None = None) -> bool:
+def accept_hired(world: dict[str, Any], thread: Thread, turn: int | None = None) -> bool:
     if not transition(thread, "accepted"):
         return False
     now = _now(world)
@@ -1298,7 +1303,7 @@ def accept_hired(world: dict[str, Any], thread: dict[str, Any], turn: int | None
     return True
 
 
-def decline(world: dict[str, Any], thread: dict[str, Any], turn: int) -> bool:
+def decline(world: dict[str, Any], thread: Thread, turn: int) -> bool:
     if not transition(thread, "declined"):
         return False
     now = _now(world)
@@ -1316,7 +1321,7 @@ def _speaks_of_work(text, reading, thread, table):
     return _names_the_work(text, thread, table) or reading["meaning"] is not None
 
 
-def recent_closed(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+def recent_closed(world: dict[str, Any], npc: Any) -> list[Thread]:
     """Jobs of this person that ended in the last two days, newest first; a trouble that came down on them counts unasked."""
     state = view(world)
     place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
@@ -1328,7 +1333,7 @@ def recent_closed(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
             and now - (t.get("closed_at") or 0) < RECENT_CLOSE]
 
 
-def jobs_of(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+def jobs_of(world: dict[str, Any], npc: Any) -> list[Thread]:
     """This person's own work, the one in hand first."""
     place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
     order = {"accepted": 0, "offered": 1, "declined": 2}
@@ -1336,13 +1341,13 @@ def jobs_of(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
                   key=lambda t: (order.get(t["status"], 3), t.get("type") == "trouble"))
 
 
-def deliveries_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+def deliveries_to(world: dict[str, Any], npc: Any) -> list[Thread]:
     """Accepted errands that end with this person."""
     return [t for t in owned(world) if t.get("status") == "accepted" and t.get("type") == "errand"
             and isinstance(npc, dict) and t.get("recipient_npc_id") == npc.get("id")]
 
 
-def delivered_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+def delivered_to(world: dict[str, Any], npc: Any) -> list[Thread]:
     """Errands that really ended in this person's hands."""
     state = view(world)
     if state is None or not isinstance(npc, dict):
@@ -1351,7 +1356,7 @@ def delivered_to(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
             and t.get("type") == "errand" and t.get("recipient_npc_id") == npc.get("id")]
 
 
-def late_parcels(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+def late_parcels(world: dict[str, Any], npc: Any) -> list[Thread]:
     """Errands that closed with the parcel still in the player's hand, where this person is who it belongs with."""
     from adventure import dialogue_jobs
     import world_happenings
@@ -1365,7 +1370,7 @@ def late_parcels(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
             and dialogue_jobs.holds_parcel(world, t)]
 
 
-def parcel_thread(world: dict[str, Any], item_id: Any) -> dict[str, Any] | None:
+def parcel_thread(world: dict[str, Any], item_id: Any) -> Thread | None:
     """The job a parcel in the bag belongs to, open or closed."""
     state = view(world)
     return next((t for t in (*state["threads"], *state["history"])
@@ -1433,7 +1438,7 @@ def refuses_hand_over(text: Any, names_a_parcel: Any) -> bool:
         for clause in refused))
 
 
-def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+def gives_item(text: Any, npc: Any, thread: Thread) -> bool:
     """'Paketi getirdim', 'buyur paketini', 'teslim': a handing-over, said now and not asked about."""
     table = answer_table()
     text = _own_line(text, table) if isinstance(text, str) and text.strip() else None
@@ -1457,14 +1462,14 @@ def gives_item(text: Any, npc: Any, thread: dict[str, Any]) -> bool:
     return False
 
 
-def _matter_stems(thread: dict[str, Any], table: dict[str, Any]) -> set[str]:
+def _matter_stems(thread: Thread, table: dict[str, Any]) -> set[str]:
     """The words of this very matter, cut short enough to meet 'borçlu' in 'borcunu'."""
     common = tuple(table.get("matter_common", ()))
     said = _folded(f"{thread.get('owner_line')} {thread.get('public_line')}").split()
     return {word[:4] for word in said if len(word) > 3 and not word.startswith(common)}
 
 
-def speaks_of_the_matter(line: Any, thread: dict[str, Any]) -> bool:
+def speaks_of_the_matter(line: Any, thread: Thread) -> bool:
     """This line is about this trouble: it says so, or it uses the trouble's own words."""
     table = answer_table()
     words = _folded(line).split()
@@ -1473,19 +1478,19 @@ def speaks_of_the_matter(line: Any, thread: dict[str, Any]) -> bool:
         len({word[:4] for word in words} & stems) >= 2)
 
 
-def worked_on_the_spot(thread: dict[str, Any]) -> bool:
+def worked_on_the_spot(thread: Thread) -> bool:
     """Done a shift at a time beside its owner. A trouble that sends the player to someone is not."""
     return thread.get("type") in WORKED and not (thread.get("type") == "trouble" and thread.get("target_place_id"))
 
 
-def matters_with(world: dict[str, Any], npc: Any) -> list[dict[str, Any]]:
+def matters_with(world: dict[str, Any], npc: Any) -> list[Thread]:
     """Troubles the player took on that come down to speaking with this person."""
     place_id = npc.get("place_role_of") if isinstance(npc, dict) else None
     return [t for t in owned(world) if place_id and t.get("status") == "accepted" and t.get("type") == "trouble"
             and t.get("target_place_id") == place_id]
 
 
-def raises_the_matter(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+def raises_the_matter(world: dict[str, Any], text: Any, npc: Any, thread: Thread) -> bool:
     """The player brought it up with them: the owner's name, the trouble, its own words, or a yes to them bringing it up."""
     table = answer_table()
     line = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
@@ -1503,14 +1508,14 @@ def raises_the_matter(world: dict[str, Any], text: Any, npc: Any, thread: dict[s
             or (_just_told(world, thread, npc) and holds_a_yes(text, npc, thread)))
 
 
-def settle_matter(world: dict[str, Any], thread: dict[str, Any], npc: dict[str, Any]) -> None:
+def settle_matter(world: dict[str, Any], thread: Thread, npc: dict[str, Any]) -> None:
     """Spoken with the one it came down to: the trouble is over, with no clock and no coin."""
     thread["recipient_npc_id"] = npc.get("id")
     _close_as_done(world, thread)
     validate(world[KEY])
 
 
-def what_it_takes(world: dict[str, Any], thread: dict[str, Any]) -> str:
+def what_it_takes(world: dict[str, Any], thread: Thread) -> str:
     """Said on the screen as a trouble is taken on, so the player knows what they just agreed to do."""
     words = job_lines("text") or {}
     if worked_on_the_spot(thread):
@@ -1519,12 +1524,12 @@ def what_it_takes(world: dict[str, Any], thread: dict[str, Any]) -> str:
     return _fill(words.get("trouble_goes", ""), recipient=spoken_recipient(world, thread), target=place.get("name", ""))
 
 
-def _just_told(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+def _just_told(world: dict[str, Any], thread: Thread, npc: Any) -> bool:
     last = _last_exchange(world, npc)
     return bool(last and last.get("npc")) and speaks_of_the_matter(last["npc"], thread)
 
 
-def _is_on_the_table(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+def _is_on_the_table(world: dict[str, Any], thread: Thread, npc: Any) -> bool:
     """The player knows of it: put to them, overheard, or just told."""
     return thread.get("status") in {"offered", "declined"} or thread.get("heard_turn") is not None or (
         _just_told(world, thread, npc))
@@ -1545,7 +1550,7 @@ def _plain_help(line: str, table: dict[str, Any]) -> bool:
     return False
 
 
-def offers_to_help(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+def offers_to_help(world: dict[str, Any], text: Any, npc: Any, thread: Thread) -> bool:
     """'Derdini ben hallederim': a trouble needs no spoken terms to be taken on, only the word."""
     table = answer_table()
     line = _own_line(text, table) if isinstance(text, str) and text.strip() and table else None
@@ -1558,12 +1563,12 @@ def offers_to_help(world: dict[str, Any], text: Any, npc: Any, thread: dict[str,
             and owner_mood(world, thread, npc) != "no" and not _door_shut(world, thread, npc))
 
 
-def _door_shut(world: dict[str, Any], thread: dict[str, Any], npc: Any) -> bool:
+def _door_shut(world: dict[str, Any], thread: Thread, npc: Any) -> bool:
     import vouching
     return isinstance(npc, dict) and vouching.needs_word(world, thread, npc)
 
 
-def steps_into(world: dict[str, Any], text: Any, npc: Any, thread: dict[str, Any]) -> bool:
+def steps_into(world: dict[str, Any], text: Any, npc: Any, thread: Thread) -> bool:
     """The model named a trouble nobody offered: only the player's own words, or a yes to it just told, take it on."""
     return not _door_shut(world, thread, npc) and (
         holds_a_yes(text, npc, thread, firm=True) or offers_to_help(world, text, npc, thread)
@@ -1659,7 +1664,7 @@ def reading_gate(world: dict[str, Any], npc: Any, thread_id: str, text: Any, fro
     return {**gate, "decision": decision, "yes_heard": decision == "accepted"} if decision else gate
 
 
-def apply_decision(world: dict[str, Any], thread: dict[str, Any], decision: str, turn: int) -> bool:
+def apply_decision(world: dict[str, Any], thread: Thread, decision: str, turn: int) -> bool:
     """Write what the player said. Money and goods stay with their own owners."""
     if decision == "accepted" and thread.get("type") in WORKED:
         return accept_hired(world, thread, turn)
@@ -1686,7 +1691,7 @@ def _in_the_night(world) -> bool:
     return hour >= 20 or hour < 6
 
 
-def _day_wage(thread: dict[str, Any], *, worked: int | None = None) -> int:
+def _day_wage(thread: Thread, *, worked: int | None = None) -> int:
     """This day's share. A total splits evenly; the last day takes what is left.
 
     worked: the day count including the day being paid; read from the thread when not given.
@@ -1711,7 +1716,7 @@ def _pay_wage(world, thread, amount, day):
         payer_id=f"thread-pool:{thread['thread_id']}:{day}", recipient_id="player", amount_cp=amount)
 
 
-def _credit_day(world: dict[str, Any], thread: dict[str, Any], day: int) -> tuple[int, bool]:
+def _credit_day(world: dict[str, Any], thread: Thread, day: int) -> tuple[int, bool]:
     """One day of the work paid, then counted, and the job closed if that was the last of it.
 
     The wage is worked out for the day being paid (days worked so far plus this one), paid once through the
@@ -1735,7 +1740,7 @@ def _credit_day(world: dict[str, Any], thread: dict[str, Any], day: int) -> tupl
     return amount, _close_as_done(world, thread)
 
 
-def _close_as_done(world: dict[str, Any], thread: dict[str, Any]) -> bool:
+def _close_as_done(world: dict[str, Any], thread: Thread) -> bool:
     if not transition(thread, "done"):
         return False
     now = _now(world)
@@ -1754,7 +1759,7 @@ def _today(world: dict[str, Any]) -> int:
     return campaign_time.public_time(world)["day_index"]
 
 
-def wage_due(world: dict[str, Any], thread: dict[str, Any]) -> tuple[int, str | None]:
+def wage_due(world: dict[str, Any], thread: Thread) -> tuple[int, str | None]:
     """What asking for the money pays right now, or why it pays nothing.
 
     The hired hand's word is taken for one day at a time: the wage only moves once a day,
@@ -1774,7 +1779,7 @@ def wage_due(world: dict[str, Any], thread: dict[str, Any]) -> tuple[int, str | 
     return _day_wage({**thread, "days_worked": thread.get("days_worked", 0) + 1}), None
 
 
-def pay_day(world: dict[str, Any], thread: dict[str, Any]) -> tuple[int, bool]:
+def pay_day(world: dict[str, Any], thread: Thread) -> tuple[int, bool]:
     """Pay what is due through the wallet: the amount, and whether that finished the job."""
     amount, _ = wage_due(world, thread)
     if not amount:
@@ -1798,13 +1803,13 @@ def sentence(text: str) -> str:
     return tr_case.upper_first(text)
 
 
-def spoken_owner(world: dict[str, Any], thread: dict[str, Any]) -> str:
+def spoken_owner(world: dict[str, Any], thread: Thread) -> str:
     """The owner as the player knows them; a name not yet learned stays off the screen."""
     npc = owner_of(world, thread)
     return _mid_sentence(living_world.public_npc_name(npc) if isinstance(npc, dict) else (thread.get("owner_name") or ""))
 
 
-def spoken_recipient(world: dict[str, Any], thread: dict[str, Any]) -> str:
+def spoken_recipient(world: dict[str, Any], thread: Thread) -> str:
     npc = recipient_of(world, thread)
     return _mid_sentence(living_world.public_npc_name(npc) if isinstance(npc, dict) else (thread.get("recipient_name") or ""))
 
@@ -1820,7 +1825,7 @@ def _shift_text(world, thread, *parts, short=False, worked=0):
     return " ".join(p for p in (sentence(_fill(first, owner=spoken_owner(world, thread), place=place.get("name", ""))), *parts) if p)
 
 
-def _shift_plan(world: dict[str, Any], thread: dict[str, Any], text: Any, hours: int) -> tuple[list[int], bool, bool]:
+def _shift_plan(world: dict[str, Any], thread: Thread, text: Any, hours: int) -> tuple[list[int], bool, bool]:
     """(the spans, one a day; cut short; whole days asked for). Never more days than the job has left, never a clock it did not say."""
     import campaign_time
     try:
@@ -1907,7 +1912,7 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     return {"messages": session.messages, "narration": shown, "model_calls": 0, "action_result": action}
 
 
-def pay_text(thread: dict[str, Any]) -> str:
+def pay_text(thread: Thread) -> str:
     words = job_lines("text") or {}
     pay = (thread.get("terms") or {}).get("pay")
     if pay is None:
@@ -1916,12 +1921,12 @@ def pay_text(thread: dict[str, Any]) -> str:
     return _fill(words.get(name, "{pay} bakır"), pay=pay)
 
 
-def timing_text(thread: dict[str, Any]) -> str:
+def timing_text(thread: Thread) -> str:
     words = job_lines("text") or {}
     return words.get(f"timing_{(thread.get('terms') or {}).get('pay_timing')}", "")
 
 
-def start_text(world: dict[str, Any], thread: dict[str, Any]) -> str:
+def start_text(world: dict[str, Any], thread: Thread) -> str:
     """Python's answer to 'when do I start'; the model only repeats it."""
     import campaign_time
     words = job_lines("text") or {}
@@ -1931,11 +1936,11 @@ def start_text(world: dict[str, Any], thread: dict[str, Any]) -> str:
     return words.get("start_today", "") if hour < 16 else words.get("start_tomorrow", "")
 
 
-def can_start_now(world: dict[str, Any], thread: dict[str, Any]) -> bool:
+def can_start_now(world: dict[str, Any], thread: Thread) -> bool:
     return not thread.get("night_only") or _in_the_night(world)
 
 
-def status_line(world: dict[str, Any], thread: dict[str, Any], kind: str) -> str:
+def status_line(world: dict[str, Any], thread: Thread, kind: str) -> str:
     """The plain fact of where this job stands, for this person to say in their own words."""
     own = thread.get("status_lines") if isinstance(thread.get("status_lines"), dict) else {}
     if kind == "accepted" and thread.get("type") == "trouble" and not worked_on_the_spot(thread):
