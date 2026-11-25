@@ -1,0 +1,7 @@
+{
+  "include": ["../../../ai-dnd"],
+  "exclude": ["**/node_modules", "**/__pycache__", "**/.venv"],
+  "extraPaths": ["../../../ai-dnd"],
+  "pythonVersion": "3.13",
+  "typeCheckingMode": "standard"
+}
