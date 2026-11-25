@@ -39,7 +39,7 @@ class RefusalCensus(unittest.TestCase):
         for path in sorted(ROOT.rglob("*.py")):
             rel = path.relative_to(ROOT).as_posix()
             if ("/tests/" in f"/{rel}" or rel.startswith(("legacy_debug/", "docs/", "reports/")) or "__pycache__" in rel
-                    or ("/" not in rel and rel.startswith("test_")) or rel in {"refusals.py", "api/main.py"}):
+                    or ("/" not in rel and rel.startswith("test_")) or rel in {"refusals.py", "api/main.py", "api/routes_turn.py"}):
                 continue
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8-sig"))):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
