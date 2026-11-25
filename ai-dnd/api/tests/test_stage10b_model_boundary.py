@@ -4,7 +4,7 @@ import io
 import uuid
 from unittest.mock import patch
 
-from api.model_phase import ModelFailure, only_resolved_narration_failures, resolved_narration_scope
+from model_phase import ModelFailure, only_resolved_narration_failures, resolved_narration_scope
 from api.tests.journeys.runner import call_kind
 from api.tests.test_explicit_shop_creation import ShopTransactionTests, REQUEST, call_kinds, one_line_calls
 from api.tests.town_seed import fixed_town

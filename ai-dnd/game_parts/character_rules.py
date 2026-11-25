@@ -1,5 +1,5 @@
 import game
-from api.core_resolution import (
+from core_resolution import (
     resolve_skill_check,
 )
 import copy

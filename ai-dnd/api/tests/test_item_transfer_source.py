@@ -17,7 +17,7 @@ import equipment_economy
 import game
 import pocket
 import world_reactions
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests import test_said_is_real as said
 
 

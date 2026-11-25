@@ -12,7 +12,7 @@ from unittest.mock import patch
 import game
 import xp
 import barbarian_rage as rage
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests.test_roadmap_c10_rage import combat
 from api.tests.test_roadmap_c10_berserker_progression import apply
 

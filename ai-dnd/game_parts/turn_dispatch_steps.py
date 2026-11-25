@@ -2,7 +2,7 @@ import living_world
 import interaction_adventure
 import combat_lifecycle
 import equipment_economy
-from api.core_resolution import (
+from core_resolution import (
     resolution_action_scope,
 )
 import contextlib

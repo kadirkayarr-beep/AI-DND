@@ -260,7 +260,7 @@
         "weapon_attack.resolve",
         "initiative.settings",
         "initiative.roll_actor",
-        "api.core_resolution.roll_d20"
+        "core_resolution.roll_d20"
       ],
       "cases": [
         {
@@ -841,7 +841,7 @@
         "game.start_combat",
         "initiative.settings",
         "initiative.roll_actor",
-        "api.core_resolution.roll_d20"
+        "core_resolution.roll_d20"
       ],
       "cases": [
         {
@@ -1148,7 +1148,7 @@
       "leaf_id": "K07.advantage_disadvantage",
       "family": "d20_test",
       "source_ref": {"pdf_page": 11, "text": "both Advantage and Disadvantage: neither, roll one d20 (the boolean engine API cannot express several sources of one kind; that aggregation is a separate OPEN rule)"},
-      "engine_resolvers": ["api.core_resolution.roll_d20"],
+      "engine_resolvers": ["core_resolution.roll_d20"],
       "cases": [
         {"id": "01", "kind": "normal", "input": {"advantage": false, "disadvantage": false, "rolls": [7, 15]}, "expected": {"rolled": 1, "selected": 7}},
         {"id": "02", "kind": "normal", "input": {"advantage": true, "disadvantage": false, "rolls": [7, 15]}, "expected": {"rolled": 2, "selected": 15}},

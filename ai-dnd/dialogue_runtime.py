@@ -426,7 +426,7 @@ def _append_initiative(session,result,player_text,action_id=None):
         telemetry['narration_model_calls']=telemetry.get('narration_model_calls',0)+1
         telemetry['total_model_calls']=result['model_calls']
     try:
-        from api.model_phase import initiative_call,resolved_narration_scope
+        from model_phase import initiative_call,resolved_narration_scope
         with resolved_narration_scope(True),initiative_call():  # it may use the call a front reading took
             raw=_generate_reply(session,chosen,player_text,optional_initiative=True,action_id=action_id)
         reply=validate_reply(raw,chosen['id'])

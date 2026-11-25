@@ -54,7 +54,8 @@ class InitiativeHttpTests(unittest.IsolatedAsyncioTestCase):
 
 import os
 import front_proposal
-from api import model_phase,ollama_adapter
+import model_phase
+from api import ollama_adapter
 def call_kinds(batches):
  # Which call each request was, from its system prompt: the front reading, the narration, the NPC's initiative.
  kinds={'You are a small D&D intent parser':'front','\nSen Dungeons & Dragons':'narration','Seçilen NPC olarak':'initiative'}

@@ -1529,7 +1529,7 @@ def _repair_npc_speech(world, npc, player_input, rejected, reason_code, action_r
     """D-332: the one repair of an answer the safety check rejected. Two fields come back and nothing else is read."""
     import json
     import town_knowledge
-    from api import model_phase
+    import model_phase
     problems = {
         "INVENTED_PLAYER_ACTION": "Oyuncunun yaptığı bir şeyi anlattın; yalnız kendi sözünü ve jestini yaz.",
         "UNSUPPORTED_ITEM_TRANSFER": "Oyuncuya eşya ya da ikram verdiğini söyledin; verilmeyen bir şeyi anlatma.",

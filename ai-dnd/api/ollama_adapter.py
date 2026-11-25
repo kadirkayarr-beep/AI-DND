@@ -18,8 +18,8 @@ import ollama
 import game
 from api import model_chain
 from api.usage_ledger import UsageLedger
-from api import model_phase
-from api.model_phase import ModelCall, ModelFailure, in_classifier_call, in_front_call, in_initiative_call, in_repair_call
+import model_phase
+from model_phase import ModelCall, ModelFailure, in_classifier_call, in_front_call, in_initiative_call, in_repair_call
 from api.local_model_config import (
     DEFAULT_LOCAL_MODEL,
     LOCAL_FALLBACK_MODELS,

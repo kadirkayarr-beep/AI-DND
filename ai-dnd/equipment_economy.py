@@ -398,7 +398,7 @@ def consume_daily_supplies(session, *, day=None):
     # A whole missing daily unit is an environmental deprivation, not damage
     # fabricated by narration. The existing condition owner owns its effect.
     import weapon_attack
-    from api.core_resolution import resolve_saving_throw
+    from core_resolution import resolve_saving_throw
     for kind in missing:
         if kind == "water":
             levels = 2 if weapon_attack.exhaustion(session.character) else 1

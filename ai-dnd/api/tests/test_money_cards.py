@@ -18,7 +18,7 @@ import combat_lifecycle
 import economic_actions as ea
 import game
 import money_owner
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests import test_front_proposal as front_tests
 from money_owner import CoinDecision
 

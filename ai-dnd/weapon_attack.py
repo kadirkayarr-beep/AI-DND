@@ -20,7 +20,7 @@ import item_use
 import initiative
 import spatial_rules
 from combat_lifecycle import CombatRequestError
-from api.core_resolution import resolve_attack_roll, resolve_saving_throw, resolution_identity, resolution_action_scope
+from core_resolution import resolve_attack_roll, resolve_saving_throw, resolution_identity, resolution_action_scope
 from weapon_catalog import lookup
 
 DAMAGE_TYPES = frozenset("acid bludgeoning cold fire force lightning necrotic piercing poison psychic radiant slashing thunder".split())

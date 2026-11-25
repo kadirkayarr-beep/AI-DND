@@ -14,7 +14,7 @@ import character_progression as cp
 import fighter_features as features
 import initiative
 import weapon_attack as attacks
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from combat_lifecycle import CombatRequestError
 from api.tests.test_roadmap_c14_fighter import created, earn, earned, roundtrip
 from api.tests.test_roadmap_c10_extra_attack import attack, follow, start_combat

@@ -276,7 +276,7 @@ def _advance(session, seconds, reason, observation=None):
 def advance_walking(session, seconds, observation=None):
     """Split at clock/day/hour boundaries; only elapsed movement counts."""
     import weapon_attack
-    from api.core_resolution import resolve_saving_throw
+    from core_resolution import resolve_saving_throw
     world = session.world_state
     before = clock.public_time(world)
     elapsed, known, saves, death_results, effect_events = 0, [], [], [], []

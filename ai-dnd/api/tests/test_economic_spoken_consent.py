@@ -75,7 +75,7 @@ class SpokenConsentHttp(JourneyCase):
 
 from api.tests.test_economic_offer import OfferFixture, proposal
 import economic_actions as ea
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 
 class RecordedConsent(OfferFixture):
     def response(self, npc='barman', amount=5, status='unknown'):
