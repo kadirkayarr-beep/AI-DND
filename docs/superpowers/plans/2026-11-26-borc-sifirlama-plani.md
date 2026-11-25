@@ -69,16 +69,16 @@ Kaynak: defter durum sütunu büyük/küçük harf duyarsız `açık`/`kısmen` 
 - Ruling: D-588, D-598, D-599 (ORTA) Dalga 4'te — kapı sıkılaştırma ve desloppify kalanı bütün kod değişikliklerinden sonra ölçülmeli, yoksa iki kez yapılır — yanlışsa maliyeti: ORTA satırlar birkaç gün geç kapanır.
 - Ruling: bir paket en yüksek öncelikli satırının dalgasında koşar (ör. G1.2 içinde DÜŞÜK D-335) — aynı dosyaya iki kez dönmemek için — yanlışsa maliyeti: düşük.
 - Ruling: D-169 G0.1 kapanış listesinde, bağımlısı D-094 G1.1'de — kapanış bir karar, kod değil; G1.1 D-169'u gerektirmez — yanlışsa maliyeti: Kadir "yap" derse D-169 Dalga 2'ye yeni görev olarak girer.
-- Ruling (R-S52): G0.3 ve G0.4'teki repo dışı araç/canlı ölçüm satırları (D-078, D-079, D-304, D-306, D-302) commit sha'sı yerine araç dosyasının sha256 değeri ve koşu çıktısıyla kapanır — repo dışında commit olamaz, defter kuralının amacı (düzeltmenin kanıtı) böyle karşılanır — yanlışsa maliyeti: Kadir itiraz ederse araçlar repoya alınır, beş DÜŞÜK satır yeniden açılır.
+- Ruling (R-D078): G0.3 ve G0.4'teki repo dışı araç/canlı ölçüm satırları (D-078, D-079, D-304, D-306, D-302) commit sha'sı yerine araç dosyasının sha256 değeri ve koşu çıktısıyla kapanır — repo dışında commit olamaz, defter kuralının amacı (düzeltmenin kanıtı) böyle karşılanır — yanlışsa maliyeti: Kadir itiraz ederse araçlar repoya alınır, beş DÜŞÜK satır yeniden açılır.
 - Ruling: G0.1'deki para/kayıt/Geri Al satırları (D-009, D-023, D-048, D-050, D-271, D-312, D-320) kod değişikliği olmadan yalnız Kadir cevabıyla kapanır; bu yüzden inceleme Sonnet (metin ve seçenek doğruluğu) — Opus incelemesi kod değişikliği içindir — yanlışsa maliyeti: düşük; satır "yap" cevabı alırsa kod görevine geçer ve orada Opus incelenir.
-- Ruling (R-S18): D-532 eski /api/sessions takma adları kaldırılır; önce repo geneli arama (arayüz, `lib/api-*` istemcileri, testler, docs/acceptance) kullanan olmadığını gösterir; kullanan varsa o takma ad kalır ve gerekçesi satıra yazılır — ölü yol, Kadir kuralı "ölü kod sil" (2026-11-22) — yanlışsa maliyeti: istemci kırılır; codegen farkı ve CI yakalar.
-- Ruling (R-S19..S17): `artifacts/api-server`, `artifacts/mockup-sandbox`, `artifacts/ai-dnd-web` silinir (D-575, D-585, D-311, D-568, D-569) — kullanılmıyorlar, güvenlik açığı ve açık Vite sunucusu taşıyorlar, git geçmişinde kalırlar; Kadir kuralı "ölü kod sil" — yanlışsa maliyeti: geçmişten geri alınır.
-- Ruling (R-S33): kullanılmayan shadcn dosyaları ve bağlı paketleri aynı PR'da çıkar (D-557) — ayrı tutmak knip tabanını kirletir — yanlışsa maliyeti: düşük.
-- Ruling (R-S37, R-S39): `bind_deadline` (D-512) ve iki ölü kabul işlevi ile yalnız onları sınayan testleri (D-580) silinir — Kadir "ölü kod sil" — yanlışsa maliyeti: geçmişten geri alınır; silinen testler onay listesine.
-- Ruling (R-S40): `ai-dnd/docs/evidence/**` betikleri üretim bölgesinden arşiv klasörüne `git mv` ile taşınır (D-595) — yalnız dışlamak bozuk kodu bırakır — yanlışsa maliyeti: düşük.
-- Ruling (R-S45): kayıt doğrulayıcısındaki ulaşılmaz `spell_mechanic_unavailable` dalı silinir (D-582) — `prepare_ready` zaten reddediyor; ölü kod — yanlışsa maliyeti: gelecekteki büyü motoru dalı yeniden yazar.
-- Ruling (R-S2): D-221 Kadir'in 2026-11-15 (a) kararıyla D-279'a bağlıdır; ikisi G3.12'de birlikte kapanır — karar zaten verilmiş, yeniden sorulmaz — yanlışsa maliyeti: yok.
-- Ruling (R-S30): D-583 bütün 20 motor→api kenarı kaldırılarak kapanır: önce `api.dnd_2024_rules` motora iner (14 kenar), kalan 6 kenar tek tek taşınır ya da çağrı yerinde değer geçirilir; davranış değiştirmeden kaldırılamayan kenar onay listesine "gevşetme olabilir" diye yazılır ve satır `kısmen` kalır — tam port katmanı gereksiz büyük — yanlışsa maliyeti: satır Dalga 4'e kadar kısmen kalır.
+- Ruling (R-D532): D-532 eski /api/sessions takma adları kaldırılır; önce repo geneli arama (arayüz, `lib/api-*` istemcileri, testler, docs/acceptance) kullanan olmadığını gösterir; kullanan varsa o takma ad kalır ve gerekçesi satıra yazılır — ölü yol, Kadir kuralı "ölü kod sil" (2026-11-22) — yanlışsa maliyeti: istemci kırılır; codegen farkı ve CI yakalar.
+- Ruling (R-D575): `artifacts/api-server`, `artifacts/mockup-sandbox`, `artifacts/ai-dnd-web` silinir (D-575, D-585, D-311, D-568, D-569) — kullanılmıyorlar, güvenlik açığı ve açık Vite sunucusu taşıyorlar, git geçmişinde kalırlar; Kadir kuralı "ölü kod sil" — yanlışsa maliyeti: geçmişten geri alınır.
+- Ruling (R-D557): kullanılmayan shadcn dosyaları ve bağlı paketleri aynı PR'da çıkar (D-557) — ayrı tutmak knip tabanını kirletir — yanlışsa maliyeti: düşük.
+- Ruling (R-D512, R-D580): `bind_deadline` (D-512) ve iki ölü kabul işlevi ile yalnız onları sınayan testleri (D-580) silinir — Kadir "ölü kod sil" — yanlışsa maliyeti: geçmişten geri alınır; silinen testler onay listesine.
+- Ruling (R-D595): `ai-dnd/docs/evidence/**` betikleri üretim bölgesinden arşiv klasörüne `git mv` ile taşınır (D-595) — yalnız dışlamak bozuk kodu bırakır — yanlışsa maliyeti: düşük.
+- Ruling (R-D582): kayıt doğrulayıcısındaki ulaşılmaz `spell_mechanic_unavailable` dalı silinir (D-582) — `prepare_ready` zaten reddediyor; ölü kod — yanlışsa maliyeti: gelecekteki büyü motoru dalı yeniden yazar.
+- Ruling (R-D221): D-221 Kadir'in 2026-11-15 (a) kararıyla D-279'a bağlıdır; ikisi G3.12'de birlikte kapanır — karar zaten verilmiş, yeniden sorulmaz — yanlışsa maliyeti: yok.
+- Ruling (R-D583): D-583 bütün 20 motor→api kenarı kaldırılarak kapanır: önce `api.dnd_2024_rules` motora iner (14 kenar), kalan 6 kenar tek tek taşınır ya da çağrı yerinde değer geçirilir; davranış değiştirmeden kaldırılamayan kenar onay listesine "gevşetme olabilir" diye yazılır ve satır `kısmen` kalır — tam port katmanı gereksiz büyük — yanlışsa maliyeti: satır Dalga 4'e kadar kısmen kalır.
 - Ruling: D-592 (109 F-rank işlev) bu planda tamamen sıfırlanamaz; G1.8 üç işlevi böler ve radon cc ratchet kapısını kurar. Satır ancak S18'de Kadir (b) derse `wontfix (kalan F işlevleri ratchet ile yalnız küçülür)` olur ve bu sınır onay listesine "gevşetme olabilir" diye girer; (a) derse ayrı bir plan gerekir ve satır o plana kadar `kısmen` kalır — kapanışı sessizce yeniden tanımlamamak için — yanlışsa maliyeti: borç sıfır hedefi bu satırda Kadir'in kararına bağlı kalır.
 - Ruling: D-279 kayıp kişi kaçıranı yeni görev G3.12 olarak yapılır; eski kayıtlı görevler için göç yapılmaz (Kadir kuralı: eski kayıt önemsiz) — Kadir 2026-11-15 (a) seçti — yanlışsa maliyeti: içerik işi bir dilim sürer.
 - Ruling: eski G4.2 bölündü: D-599 (72 öznel bulgu) G4.2, D-598 (mekanik kümeler, defterde D-599'a bağlı) G4.3; son kapı G4.4 — tek görev inceleme yüzeyi için çok büyük — yanlışsa maliyeti: bir ek inceleme turu.
@@ -126,25 +126,25 @@ Kaynak: defter durum sütunu büyük/küçük harf duyarsız `açık`/`kısmen` 
 - **Kapanış:** doğrulayıcı ajan satırı çürütmeye çalışır; çürütemezse denetleyici `kapandı (kanıt: <sha/test>)` yazar.
 
 ### G0.3 Repo dışı test araçları
-- **Satırlar:** D-078, D-079, D-304, D-306. **Ruling:** R-S52.
+- **Satırlar:** D-078, D-079, D-304, D-306. **Ruling:** R-D078.
 - **Kulvar:** denetleyici, yalnız yuva 9 ve yuva 2 boşken (hiçbir `slot.sh` koşusu açık değilken; bash betiği koşu sırasında satır satır okur). **İnceleme:** Sonnet.
 - **Dosyalar:** `C:/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh`, `slot_web.sh`, `slot_sync.sh` (repo dışı). Önce yedek kopya `*.bak-20261126`; değişiklik `*.new` dosyasına yazılır, `bash -n` ile denetlenir, sonra `mv` ile yerine konur (yarım dosya hiç koşmaz).
 - **Kırmızı kontrol:** `slot.sh x /yok test l 1 m` ve `slot.sh 9 '../kötü' ...` bugün devam ediyor (D-079) → sonra exit 2. `slot_web.sh` ile altı arayüz testi bugün `spawnSync python ENOENT` (D-078) → `PYTHON` dışa aktarılınca geçer. `slot_web.sh` kopyasında `content/names` yok (D-306) → var.
 - **Düzeltme:** `[[ "$N" =~ ^[0-9]+$ ]] || exit 2` ve WT adı denetimi (Kadir 2026-11-16 onaylı); `slot_web.sh` `PYTHON` dışa aktarır ve `content/names` kopyalar; D-304 için paket koşusu bir kez çalıştırılıp çıktısı deftere.
-- **Kapanış:** araç dosyalarının sha256 değeri + koşu çıktısı (R-S52).
+- **Kapanış:** araç dosyalarının sha256 değeri + koşu çıktısı (R-D078).
 
 ### G0.4 Yerel modelle canlı ölçüm (harcama yok)
 - **Satırlar:** D-302. Ayrıca S13-S15 "yerel ölçüm" seçilirse D-177, D-262, D-263 için ölçüm verisini üretir (bu satırlar G1.3'te kapanır). **G1.1'in ön koşuludur** (D-094 kalan dünya önkoşullu denemeler D-177 ölçümüne bağlı).
 - **Kulvar:** denetleyici, yerel `gemma4-12b-dm` ile. **İnceleme:** Sonnet.
 - **Adım:** `_REPLY_TOKEN_CAPS` bugün yalnız `{"gemma4-12b-dm": 300}` (yanıt); varış çağrısının tavanı ayrıca kodda okunur, varsayılmaz. 20 turda `mentions` JSON'unun kesilip kesilmediğini say; `timing` alanının doğru dolma oranını ve "evet" sonrası yeniden okumanın değişme oranını say. Sonuç `.superpowers/sdd/borc-sifirlama/olcum-g04.md`.
-- **Kapanış:** kesilme 0 ise D-302 kanıtla kapanır (R-S52); kesilme varsa tavan yükseltme düzeltmesi aynı görevde kırmızı testle (`test_reply_cap_fits_mentions`: tavan, en uzun örnek `mentions` cevabını kesmez) yapılır.
+- **Kapanış:** kesilme 0 ise D-302 kanıtla kapanır (R-D078); kesilme varsa tavan yükseltme düzeltmesi aynı görevde kırmızı testle (`test_reply_cap_fits_mentions`: tavan, en uzun örnek `mentions` cevabını kesmez) yapılır.
 
 ### G0.5 Taban karşılaştırma aracı
 - **Satırlar:** yok (dalga kapısının aracı). **Kulvar:** A (yuva 9), Dalga 1'den önce. **İnceleme:** Sonnet.
 - **Dosyalar:** yeni `docs/agents/kalite-taramasi-20261125/compare_baseline.py`; test `ai-dnd/api/tests/test_compare_baseline.py` (modülü dosya yolundan `importlib` ile yükler).
 - **Arayüz:** `compare(base: dict, new: dict, touched: set[str]) -> list[str]`; komut satırı `python compare_baseline.py BASE.json NEW.json --touched <dosya listesi>`; herhangi bir toplam büyürse satırları basar ve exit 1.
-- **Kırmızı test:** `test_total_growth_fails`: `ruff_extra` toplamı 10'dan 11'e çıkınca hata; `test_growth_in_untouched_file_fails` (ölü kod silme ya da imza değişikliği dokunulmayan çağıranda vulture60/pyright bulgusu doğurursa yakalanır; `touched` yalnız raporda "kimin yüzünden" sütunu için); `test_deptry_growth_fails` (modül anahtarlı); `test_skylos_total_growth_fails` (yalnız toplamlar); `test_new_engine_api_edge_fails`; `test_new_vuln_id_fails` (pip/pnpm audit'te yeni kimlik); `test_shrink_passes`.
-- **Kural:** her araç için toplam (sözlükte değerler toplamı, listede uzunluk, skylos'ta kategori toplamları) yeni ≤ eski; ayrıca liste araçlarında (`engine_api_edges`, `import_linter_broken_pairs`, audit kimlikleri) yeni girdi her zaman hata. Çıktı büyüyen anahtarları `touched` içinde mi diye işaretler.
+- **Kırmızı test:** `test_key_growth_in_any_file_fails`: `ruff_extra` içinde `B023|ai-dnd/x.py` 2'den 3'e çıkınca hata, dosya `touched` içinde olsun olmasın; `test_masking_fails`: toplam küçülür (ölü kod silme bir dosyada 5 bulgu düşürür) ama başka dosyada bir `kural|dosya` anahtarı büyür → hata; `test_total_growth_fails`; `test_moved_code_growth_allowed_only_when_listed`: taşınan kodun hedef dosyasındaki büyüme yalnız `--moved <kaynak>:<hedef>` listesinde varsa ve aynı anahtarın kaynakta en az o kadar küçüldüğü görülürse geçer, listesizse hata; `test_deptry_growth_fails` (modül anahtarlı); `test_skylos_total_growth_fails` (skylos yalnız toplam verir); `test_new_engine_api_edge_fails`; `test_new_vuln_id_fails` (pip/pnpm audit'te yeni kimlik); `test_shrink_passes`.
+- **Kural:** (1) anahtarlı araçlarda her `kural|dosya` (deptry'de modül) anahtarı için yeni ≤ eski, hangi dosyada olursa olsun; (2) her aracın toplamı için yeni ≤ eski (skylos için yalnız bu); (3) liste araçlarında (`engine_api_edges`, `import_linter_broken_pairs`, audit kimlikleri) yeni girdi her zaman hata. Tek istisna: bir görevin taşıdığı kod; görev ledger girdisine `taşındı: <kaynak> → <hedef>` yazar, denetleyici bunu `--moved` ile verir; taşınan anahtar kaynakta küçülmeli, toplam yine büyümemeli. `touched` yalnız raporda "hangi görev yüzünden" sütunu içindir, kararı değiştirmez.
 
 ---
 
@@ -174,14 +174,14 @@ Kulvar A (yuva 9): G0.5 → (G0.4 bitince) G1.1 → G1.2 → G1.3 → G1.8. G0.4
 - **Kapanış:** sha; oynayış listesi O3.
 
 ### G1.4 create_app kalan bölme ve yinelenen rotalar (YÜKSEK)
-- **Satırlar:** D-531, D-532. **Ruling:** R-S18 (D-532). **Kulvar:** B. **İnceleme:** Opus (Geri Al). **Önce:** G0.3.
+- **Satırlar:** D-531, D-532. **Ruling:** R-D532 (D-532). **Kulvar:** B. **İnceleme:** Opus (Geri Al). **Önce:** G0.3.
 - **Dosyalar:** `ai-dnd/api/main.py`, `ai-dnd/api/routes_turn.py`, `routes_undo.py`, `routes_quests.py`, `routes_species.py`, `routes_level_up.py`; yeni test `ai-dnd/api/tests/test_main_route_aliases.py`; `size_lock.json`.
 - **Kırmızı test:** `test_ambient_event_route_exits` (ortam olayı rotasının çıkışları, bugün testsiz); `test_journal_not_written_on_death_rollback` (ölüm geri sarmasında günlük yazılmaz; defter satırı D-531); `test_no_duplicate_method_path_pairs` (D-532: her takma ad kümesi için yöntem+yol çifti tek). Mevcut rota tablosu ve OpenAPI öncesi/sonrası birebir aynı (`route_dump.py`, `main_openapi_golden.json`).
-- **Düzeltme:** kalan yazma yollarını `register_*_routes(application, *, api_main, ...)` kalıbıyla taşı (aşama 1-3 ile aynı); R-S18 ile eski takma adları sil ve TS/Python istemcilerini yeniden üret.
+- **Düzeltme:** kalan yazma yollarını `register_*_routes(application, *, api_main, ...)` kalıbıyla taşı (aşama 1-3 ile aynı); R-D532 ile eski takma adları sil ve TS/Python istemcilerini yeniden üret.
 - **Kapanış:** sha.
 
 ### G1.5 Kullanılmayan npm paketleri ve açıklar (YÜKSEK)
-- **Satırlar:** D-575, D-585, D-586, D-311, D-568, D-569. **Ruling:** R-S19..S17. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G1.4.
+- **Satırlar:** D-575, D-585, D-586, D-311, D-568, D-569. **Ruling:** R-D575. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G1.4.
 - **Dosyalar:** `artifacts/api-server/`, `artifacts/mockup-sandbox/`, `artifacts/ai-dnd-web/`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `package.json`, `lib/api-zod/package.json`, `lib/db/package.json`, `lib/api-spec/package.json`, `artifacts/ai-dnd-experience/package.json`, `artifacts/ai-dnd-experience/vite.config.ts`.
 - **Kırmızı kontrol:** `pnpm audit --prod --json` bugün 1 kritik, 2 yüksek; `pnpm audit` toplam 23. Silmeden önce repo geneli arama paketin adını hiçbir yerde göstermemeli (workflow, `start_local.ps1`, docs/acceptance dahil).
 - **Düzeltme:** üç paketi `git rm` ile dosya dosya kaldır (`git rm -r` ve diğer yasak komutlar yok); zod'u `>=4.6.6`'ya yükselt; kalan dev açıkları yükselt; `artifacts/ai-dnd-experience/vite.config.ts` Vite sunucusu `127.0.0.1` ve adlı `allowedHosts` (D-311'in kalan kısmı).
@@ -288,9 +288,9 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Kapanış:** sha.
 
 ### G2.11 Katman döngüsü ve motor→api kenarları
-- **Satırlar:** D-590, D-583. **Ruling:** R-S30. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.10.
+- **Satırlar:** D-590, D-583. **Ruling:** R-D583. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.10.
 - **Dosyalar:** `ai-dnd/api/persistence/campaign_store.py`, `ai-dnd/api/auth.py`, `ai-dnd/api/local_play.py`, `ai-dnd/api/main.py`, yeni `ai-dnd/api/deps.py`, `ai-dnd/dnd_2024_rules.py` (taşınan), `ai-dnd/api/dnd_2024_rules.py` (ince yeniden dışa aktarma), `docs/agents/kalite-taramasi-20261125/importlinter.ini`.
-- **Kırmızı test:** import-linter sözleşmeleri (`routes_*` bağımsızlığı ve "motor api'yi içe aktarmaz") bugün kırık; görev sonunda geçer ya da yok sayma listesi yalnız küçülür; `engine_api_edges` 20'den 0'a iner (R-S30; kaldırılamayan kenar onay listesine ve satır `kısmen`).
+- **Kırmızı test:** import-linter sözleşmeleri (`routes_*` bağımsızlığı ve "motor api'yi içe aktarmaz") bugün kırık; görev sonunda geçer ya da yok sayma listesi yalnız küçülür; `engine_api_edges` 20'den 0'a iner (R-D583; kaldırılamayan kenar onay listesine ve satır `kısmen`).
 - **Düzeltme:** `api.main`'deki paylaşılan yardımcılar `api/deps.py`'ye; `dnd_2024_rules` motor katmanına iner, eski yol yama hedefi olarak kalır (`test_engine_patch_census`).
 - **Kapanış:** sha.
 
@@ -356,7 +356,7 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Kapanış:** sha; Kod-1 görsel kontrol K4.
 
 ### G2.22 shadcn/toast temizliği
-- **Satırlar:** D-557, D-570, D-558, D-572, D-567, D-566, D-579. **Ruling:** R-S33. **Kulvar:** B. **İnceleme:** Opus (D-566 dükkân). **Önce:** G2.20.
+- **Satırlar:** D-557, D-570, D-558, D-572, D-567, D-566, D-579. **Ruling:** R-D557. **Kulvar:** B. **İnceleme:** Opus (D-566 dükkân). **Önce:** G2.20.
 - **Dosyalar:** `artifacts/ai-dnd-experience/src/components/ui/` (kullanılmayan dosyalar), `ui/toast.tsx`, `toaster.tsx`, `sonner.tsx`, `src/components/kitap/`, `shop-panel.tsx`, `artifacts/ai-dnd-experience/package.json`, `pnpm-lock.yaml`, fallow/knip tabanları.
 - **Kırmızı kontrol:** önce iddia doğrulanır: `useToast`/`Toaster` `app-shell.tsx` ve `kitap/kontroller.tsx`'te hâlâ kullanılıyor mu (D-558). Silme sonrası fallow ve knip tabanı küçülür; derleme ve vitest geçer (D-557, D-570); kitap galerisi `import.meta.env.DEV` koruması altında (D-567); `shop-panel` testleri bileşen üzerinden içe aktarır, test-only export kalkar (D-566); D-579 G1.5 ve bu görevle birlikte çözülür (üç kopyadan biri kalır).
 - **Kapanış:** sha.
@@ -376,12 +376,12 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 ### G2.25 game.py başlığı ve ölü kod tablosu
 - **Satırlar:** D-445, D-490, D-492, D-555, D-507, D-523. **Bağımlı soru:** S27, S28. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.23.
 - **Dosyalar:** `ai-dnd/game.py`, `ai-dnd/game_parts/__init__.py`, `text_rules_a.py`, `lore.py`, `places.py`, `turn_front.py` (yalnız içe aktarma), `docs/engine-split/olu-kod-kaniti.md`, `ai-dnd/scripts/quality_gate/vulture_whitelist.py`, ilgili testler.
-- **Kırmızı test:** `test_game_header_f401_gate`: izin listesi dışındaki kullanılmayan içe aktarma kırmızı (D-445; 643 yeniden dışa aktarma S4 b ile izinli); `SECURITY LLM01/LLM07` yorumu `_untrusted_player_block`'un hemen üstünde, `ast.dump` aynı (D-492). Silmeler: S34 tablosundaki satırlar, vulture beyaz liste B'deki 7 girdi (D-555), yalnız testlerin çağırdığı 7 + 4 işlev ve testleri (D-507, D-523). Her silme sonrası motor kilitleri ve komşu set yeşil.
+- **Kırmızı test:** `test_game_header_f401_gate`: izin listesi dışındaki kullanılmayan içe aktarma kırmızı (D-445; 643 yeniden dışa aktarma S4 b ile izinli); `SECURITY LLM01/LLM07` yorumu `_untrusted_player_block`'un hemen üstünde, `ast.dump` aynı (D-492). Silmeler: S28 tablosundaki satırlar, vulture beyaz liste B'deki 7 girdi (D-555), yalnız testlerin çağırdığı 7 + 4 işlev ve testleri (D-507, D-523). Her silme sonrası motor kilitleri ve komşu set yeşil.
 - **Kapanış:** sha.
 
 ### G2.26 Diğer ölü kod
-- **Satırlar:** D-512, D-544, D-509, D-513, D-514, D-580, D-594, D-601, D-595. **Bağımlı soru:** S29 (D-544); Ruling R-S37, R-S39, R-S40. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.25.
-- **Dosyalar:** `ai-dnd/incidents/categories.py`, `incidents/gate.py`, `ai-dnd/intent_contract.py`, `ai-dnd/local_exploration.py`, `ai-dnd/api/lore_authority/freeze_admission.py`, `api/lore_authority/__init__.py`, `ai-dnd/interaction_adventure.py`, `ai-dnd/spells/legality.py`, `ai-dnd/adventure/dialogue_jobs.py`, `ai-dnd/docs/evidence/` (R-S40: arşiv klasörüne `git mv`), `docs/agents/kalite-taramasi-20261125/pyrightconfig.json`, ilgili testler.
+- **Satırlar:** D-512, D-544, D-509, D-513, D-514, D-580, D-594, D-601, D-595. **Bağımlı soru:** S29 (D-544); Ruling R-D512, R-D580, R-D595. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.25.
+- **Dosyalar:** `ai-dnd/incidents/categories.py`, `incidents/gate.py`, `ai-dnd/intent_contract.py`, `ai-dnd/local_exploration.py`, `ai-dnd/api/lore_authority/freeze_admission.py`, `api/lore_authority/__init__.py`, `ai-dnd/interaction_adventure.py`, `ai-dnd/spells/legality.py`, `ai-dnd/adventure/dialogue_jobs.py`, `ai-dnd/docs/evidence/` (R-D595: arşiv klasörüne `git mv`), `docs/agents/kalite-taramasi-20261125/pyrightconfig.json`, ilgili testler.
 - **Kırmızı kontrol:** her aday için repo geneli arama ve dinamik çağrı denetimi; silinemeyen aday beyaz listeye gerekçeyle (D-594, D-601). D-544 S29 (a) ise `threat_band 'none'` ile savaş bağı reddi testi, (b) ise işlev ve testi silinir. Silinen test onay listesine.
 - **Kapanış:** sha; vulture 60 ve skylos sayıları düşer.
 
@@ -425,9 +425,9 @@ Kulvar A (yuva 9): G3.1 → G3.2 → G3.3 → G3.4 → G3.5 → G3.6 → G3.7. K
 - **Kapanış:** sha.
 
 ### G3.6 Küçük motor satırları
-- **Satırlar:** D-582, D-290, D-165, D-406, D-407, D-409, D-310. **Bağımlı soru:** S34 (D-310); Ruling R-S45 (D-582). **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G3.5.
+- **Satırlar:** D-582, D-290, D-165, D-406, D-407, D-409, D-310. **Bağımlı soru:** S34 (D-310); Ruling R-D582 (D-582). **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G3.5.
 - **Dosyalar:** `ai-dnd/action_economy.py`, `ai-dnd/refusals.py`, `ai-dnd/adventure/director.py`, `ai-dnd/followup.py`, `ai-dnd/incidents/bridge.py`, `ai-dnd/game_parts/turn_front.py`, `ai-dnd/api/main.py` (yalnız kaynak etiketi), yerel oyun başlatıcısı (`start_local.ps1`, D-310); testler `test_action_economy.py`, `test_front_failed_fallback.py`, `test_d109_timing.py`, `test_model_failure_never_locks.py`, `test_talk_front.py`.
-- **Kırmızı test:** `magic` türünde Ready + `spell_metadata` kaydı yüklemede reddedilir, sonra ulaşılmaz dal silinir (D-582, R-S45); hedef ölünce takip görevi açılır, düşmüş ikinci NPC yerine sıradaki seçilir (D-290); kaynaksız tur `campaign_history_sources`'a None değil tanımlı etiket yazar (D-165); açık teklifte okuma RuntimeError → `fallback:failed:offer_answer` ve teklif kabul (D-406); okuma şemasında sınırsız kanıt dizisi yok, bozma kanıtıyla (D-407); "provider gone" testleri `ConnectionError` ile 503 bekler (D-409); başlatıcı `-LocalPlay` ile `AI_DND_SPEECH_DEBUG=1` kurar (D-310, S34 a; kapanış bir sonraki oynayışta `speech-debug.jsonl` okunmasıyla, O8).
+- **Kırmızı test:** `magic` türünde Ready + `spell_metadata` kaydı yüklemede reddedilir, sonra ulaşılmaz dal silinir (D-582, R-D582); hedef ölünce takip görevi açılır, düşmüş ikinci NPC yerine sıradaki seçilir (D-290); kaynaksız tur `campaign_history_sources`'a None değil tanımlı etiket yazar (D-165); açık teklifte okuma RuntimeError → `fallback:failed:offer_answer` ve teklif kabul (D-406); okuma şemasında sınırsız kanıt dizisi yok, bozma kanıtıyla (D-407); "provider gone" testleri `ConnectionError` ile 503 bekler (D-409); başlatıcı `-LocalPlay` ile `AI_DND_SPEECH_DEBUG=1` kurar (D-310, S34 a; kapanış bir sonraki oynayışta `speech-debug.jsonl` okunmasıyla, O8).
 - **Kapanış:** sha.
 
 ### G3.7 TypedDict artıkları
@@ -460,7 +460,7 @@ Kulvar A (yuva 9): G3.1 → G3.2 → G3.3 → G3.4 → G3.5 → G3.6 → G3.7. K
 - **Kapanış:** sha (D-083, D-091, D-273) ya da kanıt (D-087 CI koşu kimlikleri, D-236 ekran görüntüsü yolu) + Kod-1 notu.
 
 ### G3.12 Kayıp Kişi: kaçıran ayrı düşman
-- **Satırlar:** D-279, D-221. **Ruling:** R-S2. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G3.10.
+- **Satırlar:** D-279, D-221. **Ruling:** R-D221. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G3.10.
 - **Dosyalar:** `ai-dnd/adventure/templates.py` (`_missing_person` bağları: `captor_npc_ids`), `ai-dnd/adventure/evidence.py`, `ai-dnd/adventure/dungeon.py`, `ai-dnd/adventure/projection.py`; yeni test `ai-dnd/api/tests/test_d279_captor.py` (sabit kasaba).
 - **Kırmızı test:** `test_defeating_captor_closes_threat_step`: kaçıran yenilince "Tehdidi dağıt" adımı kapanır; `test_defeating_rescuee_does_not_close`; `test_captor_placed_in_dungeon`; etiket "Karşılaş"; ikna/sindirme yolu D-183 istisnasıyla çalışmaya devam eder (uçtan uca `apply_evidence` testi).
 - **Düzeltme:** kaçıran şablona ayrı NPC olarak eklenir, `resolution_kinds`'a combat geri döner; eski kayıtlı görev göçü yok (Kadir kuralı).
@@ -501,7 +501,7 @@ Sıralı, yuva 9: G4.1 → G4.2 → G4.3 → G4.4.
 - [ ] Tam CI: `gh run list --repo kadirkayarr-beep/AI-DND` 'AI-DND bounded verification' ve 'AI-DND quality gate' yeşil.
 - [ ] desloppify taraması: objective ≥ 74.9, açık kümeler başlangıçtan büyük değil.
 - [ ] Bütün dal incelemesi: Opus, `superpowers:requesting-code-review`, dalga dallarının main'e göre farkı.
-- [ ] Defter sayımı: Python ile her `| D-NNN |` satırının son hücresini al; açık = `casefold()` sonrası `açık`/`acik`/`kısmen`/`kismen` ile başlar ya da satır elle tutulan tuhaf biçim listesindedir (D-012, D-023, D-076, D-279 ve plan sırasında eklenenler; bunlar için durum hücresi yeniden yazıldı mı bakılır) ya da metinde `durum: açık` geçer. Beklenen: 0. `ertelendi:` ve `wontfix` Kadir cevabıyla kapalıdır. Sayımın kendisi bir kez elle denetlenir: rastgele 10 kapalı satırın durumunu oku.
+- [ ] Defter sayımı: Python ile her `| D-NNN |` satırının son hücresini al; açık = hücre önce `casefold()` edilir, sonra `ı`, `i̇` ve noktasız/noktalı farkı düz `i`'ye indirilir (`"AÇIK".casefold()` = `açik` olduğu için; Python'da `İ` de `i̇` olur), ardından `açik`/`acik`/`kismen` ile başlar ya da satır elle tutulan tuhaf biçim listesindedir (D-012, D-023, D-076, D-279 ve plan sırasında eklenenler; bunlar için durum hücresi yeniden yazıldı mı bakılır) ya da metinde `durum: açık` geçer. Beklenen: 0. `ertelendi:` ve `wontfix` Kadir cevabıyla kapalıdır. Sayımın kendisi bir kez elle denetlenir: rastgele 10 kapalı satırın durumunu oku.
 - [ ] Kadir oynayışı (en az 10 dakika) ve sabah özeti.
 
 ---
@@ -511,7 +511,7 @@ Sıralı, yuva 9: G4.1 → G4.2 → G4.3 → G4.4.
 - [ ] **K1:** dalganın bütün görevleri dalga dalında; denetleyici defteri güncelledi.
 - [ ] **K2 CI kapıları yerelde:** `.github/workflows/ai-dnd-quality.yml` içindeki adımlar aynen (ruff F,E9 taban, ruff/knip/vulture/gitleaks/size_lock yalnız küçülür, vulture 80, gitleaks tam geçmiş, knip, `pnpm run typecheck`). Hepsi exit 0.
 - [ ] **K3 ucuz taban komutları:** `ruff_extra`, `vulture60`, `bandit`, `pyright`, `radon_cc`, `import_linter`, `engine_api_edges`, `deptry`, `fallow` → `AI-DND-TOOLS/gate-<tarih>-dalgaN/raw`; `make_baseline.py` ile `baseline-dalgaN.json`.
-- [ ] **K4 karşılaştırma:** `compare_baseline.py baseline.json baseline-dalgaN.json --touched "$(git diff --name-only origin/main...HEAD)"` → exit 0. Herhangi bir aracın toplamı büyürse (dokunulmayan dosyada olsa da) aynı dalgada, büyümeye yol açan görevin kulvarında küçük düzeltme görevi (aynı kurallar). Yeni satır açılmaz. deptry ve skylos da karşılaştırılır (skylos yalnız DK2 ve G4.4'te, 289 sn).
+- [ ] **K4 karşılaştırma:** `compare_baseline.py baseline.json baseline-dalgaN.json --touched "$(git diff --name-only origin/main...HEAD)" --moved <ledger'daki taşımalar>` → exit 0. Herhangi bir `kural|dosya` anahtarı ya da aracın toplamı büyürse (dokunulmayan dosyada olsa da; toplam küçülse bile; yalnız ledger'da `taşındı:` diye yazılmış taşıma `--moved` ile istisna) aynı dalgada, büyümeye yol açan görevin kulvarında küçük düzeltme görevi (aynı kurallar). Yeni satır açılmaz. deptry ve skylos da karşılaştırılır (skylos yalnız DK2 ve G4.4'te, 289 sn).
 - [ ] **K5 dalga hedef seti:** dalgada dokunulan dosyaları okuyan test modüllerinin birleşimi + komşu set + motor kilitleri + para listesi, iki bayrakta, yuva 9 ve 2'ye bölünmüş. `failing_ids 0`.
 - [ ] **K6 PR ve CI:** dalga dalı → main PR; `gh run list` ile iki iş akışı yeşil. Kırmızı hemen bildirilir; tekrar koşmadan önce kırmızı denemenin kanıtı indirilir.
 - [ ] **K7 oynayış ve özet:** oyun davranışı değiştiyse Kadir en az 10 dakika oynar (oynayış listesi); oynamadıysa defterde "oynayış bekliyor" ve main'e birleştirme yok. Sabah özeti (en çok beş satır).
@@ -561,7 +561,7 @@ Haftalık kullanım %61; sıfırlanma 2026-11-29 17:00; %90'da yeni aşama başl
 
 ## Kadir'e soru paketi (tek seferlik; cevaplar `docs/agents/borc-sorulari-20261126.md`'ye)
 
-Her soruya harf ile cevap yeterli (ör. "S1 a"). "Öneri" bizim seçimimiz; cevapsız soru yeniden sorulmaz, yalnız dalga raporunda "cevap bekliyor" diye görünür ve ona bağlı görev başlamaz. Yalnız senin zevkine kalan ya da "wontfix/ertele" gerektiren sorular burada; classify.json'un 13 sorusu ve planın S52'si (eski numaralarıyla S2, S18-S23, S30, S33, S37, S39, S40, S45, S52; toplam 14) ajan kararına çevrildi, Rulings bölümünde "R-S<eski no>" adıyla duruyor.
+Her soruya harf ile cevap yeterli (ör. "S1 a"). "Öneri" bizim seçimimiz; cevapsız soru yeniden sorulmaz, yalnız dalga raporunda "cevap bekliyor" diye görünür ve ona bağlı görev başlamaz. Yalnız senin zevkine kalan ya da "wontfix/ertele" gerektiren sorular burada; classify.json'un 13 sorusu ve planın S52'si (eski numaralarıyla S2, S18-S23, S30, S33, S37, S39, S40, S45, S52; toplam 14) ajan kararına çevrildi, Rulings bölümünde satır kimliğiyle "R-D<no>" adıyla duruyor (birden çok satırı kapsayan Ruling ilk satırın adını taşır: R-D575 = D-575, D-585, D-311, D-568, D-569; R-D078 = D-078, D-079, D-304, D-306, D-302).
 
 | No | Satır | Görev | Soru | Seçenekler | Öneri |
 |---|---|---|---|---|---|
@@ -673,7 +673,7 @@ Kaynak sayımı: 39 soru. 36'sı classify.json'daki 49 sahip sorusundan kalanlar
 
 ## Ek A — Satır → görev eşlemesi (285 satır)
 
-Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme, tekrar yok, eksik yok (betikle denetlendi; yürütücü Dalga 0'da aynı denetimi defterin o günkü hâliyle, "Kapalı sayma" tanımıyla yeniden yapar). "P/K/G" para/kayıt/Geri Al demektir. "Soru" sütunu bağlı soru numarası (S) ya da ajan kararı (R-S<eski no>) gösterir. Classify dışı 4 satırın tür/öncelik değerleri defter metninden plan tarafından atandı.
+Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme, tekrar yok, eksik yok (betikle denetlendi; yürütücü Dalga 0'da aynı denetimi defterin o günkü hâliyle, "Kapalı sayma" tanımıyla yeniden yapar). "P/K/G" para/kayıt/Geri Al demektir. "Soru" sütunu bağlı soru numarası (S) ya da ajan kararı (R-D<no>) gösterir. Classify dışı 4 satırın tür/öncelik değerleri defter metninden plan tarafından atandı.
 
 | Satır | Öncelik | Tür | P/K/G | Görev | Soru/Ruling |
 |---|---|---|---|---|---|
@@ -696,8 +696,8 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-058 | ORTA | blocked_on_feature | - | G0.1 | S12 |
 | D-066 | DÜŞÜK | blocked_on_feature | - | G0.1 | S12 |
 | D-076 | DÜŞÜK | test_only | - | G3.8 | - |
-| D-078 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
-| D-079 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
+| D-078 | DÜŞÜK | external_tool | - | G0.3 | R-D078 |
+| D-079 | DÜŞÜK | external_tool | - | G0.3 | R-D078 |
 | D-083 | DÜŞÜK | test_only | - | G3.11 | - |
 | D-085 | DÜŞÜK | test_only | - | G2.20 | - |
 | D-086 | DÜŞÜK | already_fixed | - | G0.2 | - |
@@ -719,7 +719,7 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-177 | DÜŞÜK | owner_decision | evet | G1.3 | S13 |
 | D-180 | DÜŞÜK | code_fix | - | G1.7 | - |
 | D-218 | ORTA | tooling_ci | - | G2.17 | - |
-| D-221 | DÜŞÜK | owner_decision | - | G3.12 | R-S2 |
+| D-221 | DÜŞÜK | owner_decision | - | G3.12 | R-D221 |
 | D-222 | DÜŞÜK | code_fix | - | G3.5 | - |
 | D-226 | ORTA | code_fix | - | G2.4 | - |
 | D-235 | ORTA | code_fix | - | G2.21 | - |
@@ -761,16 +761,16 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-298 | DÜŞÜK | code_fix | - | G3.4 | - |
 | D-299 | DÜŞÜK | code_fix | - | G1.2 | - |
 | D-301 | ORTA | code_fix | - | G2.5 | - |
-| D-302 | DÜŞÜK | external_tool | - | G0.4 | R-S52 |
+| D-302 | DÜŞÜK | external_tool | - | G0.4 | R-D078 |
 | D-303 | DÜŞÜK | code_fix | evet | G2.5 | - |
-| D-304 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
+| D-304 | DÜŞÜK | external_tool | - | G0.3 | R-D078 |
 | D-305 | DÜŞÜK | test_only | evet | G2.24 | - |
-| D-306 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
+| D-306 | DÜŞÜK | external_tool | - | G0.3 | R-D078 |
 | D-307 | ORTA | blocked_on_feature | - | G0.1 | S11 |
 | D-308 | ORTA | code_fix | - | G2.14 | - |
 | D-309 | DÜŞÜK | code_fix | - | G2.5 | - |
 | D-310 | DÜŞÜK | owner_decision | - | G3.6 | S34 |
-| D-311 | DÜŞÜK | owner_decision | - | G1.5 | R-S21 |
+| D-311 | DÜŞÜK | owner_decision | - | G1.5 | R-D575 |
 | D-312 | DÜŞÜK | blocked_on_feature | evet | G0.1 | S12 |
 | D-313 | DÜŞÜK | code_fix | - | G2.10 | - |
 | D-314 | DÜŞÜK | code_fix | - | G2.10 | - |
@@ -893,7 +893,7 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-507 | DÜŞÜK | refactor | - | G2.25 | - |
 | D-508 | DÜŞÜK | code_fix | - | G3.5 | - |
 | D-509 | ORTA | refactor | - | G2.26 | - |
-| D-512 | DÜŞÜK | owner_decision | - | G2.26 | R-S37 |
+| D-512 | DÜŞÜK | owner_decision | - | G2.26 | R-D512 |
 | D-513 | DÜŞÜK | refactor | - | G2.26 | - |
 | D-514 | DÜŞÜK | refactor | - | G2.26 | - |
 | D-515 | ORTA | refactor | - | G2.16 | - |
@@ -907,7 +907,7 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-526 | ORTA | refactor | evet | G2.7 | - |
 | D-530 | YÜKSEK | refactor | evet | G1.8 | S17 |
 | D-531 | YÜKSEK | refactor | evet | G1.4 | - |
-| D-532 | ORTA | refactor | evet | G1.4 | R-S18 |
+| D-532 | ORTA | refactor | evet | G1.4 | R-D532 |
 | D-536 | ORTA | owner_decision | evet | G2.24 | S26 |
 | D-538 | DÜŞÜK | code_fix | evet | G2.6 | - |
 | D-539 | DÜŞÜK | refactor | - | G2.10 | - |
@@ -920,7 +920,7 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-554 | DÜŞÜK | test_only | - | G2.20 | - |
 | D-555 | ORTA | refactor | - | G2.25 | - |
 | D-556 | DÜŞÜK | tooling_ci | - | G4.1 | - |
-| D-557 | ORTA | dependency | - | G2.22 | R-S33 |
+| D-557 | ORTA | dependency | - | G2.22 | R-D557 |
 | D-558 | DÜŞÜK | code_fix | - | G2.22 | - |
 | D-559 | DÜŞÜK | test_only | evet | G1.6 | - |
 | D-560 | YÜKSEK | refactor | evet | G1.6 | - |
@@ -929,23 +929,23 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-564 | DÜŞÜK | code_fix | evet | G1.6 | - |
 | D-566 | DÜŞÜK | refactor | evet | G2.22 | - |
 | D-567 | DÜŞÜK | docs | - | G2.22 | - |
-| D-568 | ORTA | dependency | - | G1.5 | R-S22 |
-| D-569 | ORTA | dependency | - | G1.5 | R-S23 |
+| D-568 | ORTA | dependency | - | G1.5 | R-D575 |
+| D-569 | ORTA | dependency | - | G1.5 | R-D575 |
 | D-570 | ORTA | dependency | - | G2.22 | - |
 | D-571 | ORTA | refactor | evet | G1.6 | - |
 | D-572 | DÜŞÜK | code_fix | - | G2.22 | - |
 | D-573 | DÜŞÜK | test_only | evet | G1.6 | - |
 | D-574 | YÜKSEK | refactor | evet | G1.7 | - |
-| D-575 | DÜŞÜK | dependency | - | G1.5 | R-S20 |
+| D-575 | DÜŞÜK | dependency | - | G1.5 | R-D575 |
 | D-576 | ORTA | code_fix | evet | G2.6 | - |
 | D-578 | DÜŞÜK | refactor | - | G1.6 | - |
 | D-579 | DÜŞÜK | dependency | - | G2.22 | - |
-| D-580 | DÜŞÜK | refactor | - | G2.26 | R-S39 |
+| D-580 | DÜŞÜK | refactor | - | G2.26 | R-D580 |
 | D-581 | ORTA | code_fix | evet | G2.8 | - |
-| D-582 | DÜŞÜK | code_fix | - | G3.6 | R-S45 |
-| D-583 | DÜŞÜK | refactor | - | G2.11 | R-S30 |
+| D-582 | DÜŞÜK | code_fix | - | G3.6 | R-D582 |
+| D-583 | DÜŞÜK | refactor | - | G2.11 | R-D583 |
 | D-584 | DÜŞÜK | blocked_on_feature | - | G1.8 | - |
-| D-585 | YÜKSEK | dependency | - | G1.5 | R-S19 |
+| D-585 | YÜKSEK | dependency | - | G1.5 | R-D575 |
 | D-586 | ORTA | dependency | - | G1.5 | - |
 | D-587 | ORTA | dependency | - | G2.23 | - |
 | D-588 | ORTA | code_fix | evet | G4.1 | - |
@@ -955,7 +955,7 @@ Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme,
 | D-592 | DÜŞÜK | refactor | evet | G1.8 | S18 |
 | D-593 | DÜŞÜK | dependency | - | G2.23 | - |
 | D-594 | DÜŞÜK | refactor | - | G2.26 | - |
-| D-595 | DÜŞÜK | owner_decision | - | G2.26 | R-S40 |
+| D-595 | DÜŞÜK | owner_decision | - | G2.26 | R-D595 |
 | D-596 | DÜŞÜK | code_fix | evet | G3.3 | - |
 | D-597 | DÜŞÜK | test_only | - | G3.7 | - |
 | D-598 | ORTA | refactor | evet | G4.3 | S38 |
