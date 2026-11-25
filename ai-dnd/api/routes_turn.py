@@ -665,7 +665,7 @@ def _check_engine_answer(run: TurnRun) -> None:
             ),
         }
 
-    from api.model_phase import only_resolved_narration_failures
+    from model_phase import only_resolved_narration_failures
 
     model_failures = run.model_failures
     if only_resolved_narration_failures(model_failures):
