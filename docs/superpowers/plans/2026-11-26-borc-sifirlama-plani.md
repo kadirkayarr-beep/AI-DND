@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (recommended) or superpowers:executing-plans. Her görev kendi dalında, kulvarının worktree'sinde ve kulvarının test yuvasında koşar. Adımlar onay kutusu (`- [ ]`) biçimindedir.
 
-**Goal:** Borç defterindeki 281 açık/kısmi satırın her biri kapanır (düzelten commit sha'sı ya da Kadir'in "wontfix" cevabı) ve bu iş yeni borç ya da yeni sorun açmaz.
+**Goal:** Borç defterindeki 285 satırın (classify.json'daki 281 + classify'ın kaçırdığı 4 açık satır: D-012, D-023, D-076, D-279) her biri kapanır (düzelten commit sha'sı ya da Kadir'in "wontfix" cevabı) ve bu iş yeni borç ya da yeni sorun açmaz.
 
-**Architecture:** Satırlar 53 göreve dağıtıldı (51'i satır taşır; G0.5 ve G4.3 satırsız araç/kapı görevidir). Görevler 5 dalgada koşar: Dalga 0 (sorular, kapanış kanıtı, araç), Dalga 1 (KRİTİK/YÜKSEK), Dalga 2 (ORTA), Dalga 3 (DÜŞÜK), Dalga 4 (kapıları sıkılaştırma ve son ölçüm). Her dalgada iki kulvar paralel çalışır (A: yuva 9, B: yuva 2); aynı anda koşan iki görevin dosya listesi kesişmez. Her dalga "dalga kapısı" ile biter: ölçüm `baseline.json` ile karşılaştırılır, dokunulan dosyada büyüyen sayı aynı dalgada düzeltilir.
+**Architecture:** Satırlar 55 göreve dağıtıldı (53'ü satır taşır; G0.5 ve G4.4 satırsız araç/kapı görevidir). Görevler 5 dalgada koşar: Dalga 0 (sorular, kapanış kanıtı, araç), Dalga 1 (KRİTİK/YÜKSEK), Dalga 2 (ORTA), Dalga 3 (DÜŞÜK), Dalga 4 (kapıları sıkılaştırma, desloppify kalanı ve son ölçüm). Her dalgada iki kulvar paralel çalışır (A: yuva 9, B: yuva 2); aynı anda koşan iki görevin dosya listesi kesişmez. Her dalga "dalga kapısı" ile biter: ölçüm `baseline.json` ile karşılaştırılır; herhangi bir aracın toplam sayısı büyürse aynı dalgada düzeltilir.
 
 **Tech Stack:** Python 3.13 (CI) motoru ve FastAPI (`ai-dnd/`), React/TypeScript arayüz (`artifacts/ai-dnd-experience`), pnpm, GitHub Actions; ölçüm araçları `AI-DND-TOOLS/gate-venv-20261125` içinde (ruff 0.17.5, vulture 2.14, pyright 1.1.414, radon 6.0.1, import-linter 2.17, deptry 0.25.1, bandit 1.9.4, pip-audit 2.10.1, skylos 5.8.0, knip 6.48.0, fallow 3.45.0, gitleaks 8.30.1).
 
@@ -12,12 +12,12 @@
 
 ## Kadir için kısa özet (Türkçe)
 
-- Defterde 281 açık ya da yarım kalmış borç var. Plan her birini tek bir göreve bağlar; Ek A'da satır satır liste var (281 satır, eksik yok, iki kez yazılan yok).
-- **Senden bir kez cevap istiyoruz:** 52 soruluk tek liste (Bölüm "Kadir'e soru paketi"). 49'u satırların kendi sorusu, 3'ü toplu kapanış onayı. Her sorunun seçenekleri ve önerimiz var. Bir kez cevaplarsın, bir daha sorulmaz.
+- Defterde 285 açık ya da yarım kalmış borç var (sınıflandırma dosyasının 281'i + onun kaçırdığı 4 satır). Plan her birini tek bir göreve bağlar; Ek A'da satır satır liste var (285 satır, eksik yok, iki kez yazılan yok).
+- **Senden bir kez cevap istiyoruz:** tek liste (Bölüm "Kadir'e soru paketi"). Yalnız senin zevkine kalan ya da "wontfix/ertele" kararı gereken sorular var; ajanların karar verebileceği 14 soru (ör. kullanılmayan paketleri silmek) soru olmaktan çıkıp Ruling oldu. Her sorunun seçenekleri ve önerimiz var. Bir kez cevaplarsın, bir daha sorulmaz.
 - **Önce en tehlikeliler:** Dalga 1'de 2 KRİTİK ve 7 YÜKSEK satır var (zar atılmaması, yanlış okunan sözün kalıcı değişiklik yapması, belirsiz yere gidememe, dev işlevler, npm güvenlik açıkları).
 - Her düzeltmede önce hatayı gösteren test yazılır, sonra kod değişir. Para, kayıt ve Geri Al'a dokunan her iş Opus ile ayrıca incelenir.
-- **Yeni borç açılmaz:** her dalga sonunda ölçüm araçları yeniden koşulur; dokunulan dosyada bir sayı büyüdüyse aynı dalgada düzeltilir.
-- Haftalık kullanım şu an %61. Dalga 0 ve Dalga 1 29 Kasım sıfırlanmasından önce sığar (tahmin, ölçülmedi). Dalga 2-4 sıfırlamadan sonra.
+- **Yeni borç açılmaz:** her dalga sonunda ölçüm araçları yeniden koşulur; herhangi bir aracın toplam sayısı büyüdüyse aynı dalgada düzeltilir.
+- Haftalık kullanım şu an %61. Dalga 0 ve Dalga 1'in KRİTİK/güvenlik kısmı 29 Kasım sıfırlanmasından önce sığar; G1.6-G1.8 sığmazsa sıfırlamaya kalır (tahmin, ölçülmedi). Dalga 2-4 sıfırlamadan sonra, yaklaşık iki hafta.
 - Oyunu değiştiren dalgalar senin en az 10 dakikalık oynayışından önce "bitti" sayılmaz.
 
 ## Sayım kontrolü
@@ -27,20 +27,22 @@
 | code_fix | 90 | düzeltme görevleri (kırmızı test + sha) |
 | test_only | 45 | test görevleri (kırmızı test ya da bozma kanıtı + sha); 5 tarayıcı/ekran satırı G3.11 Kod-1 listesine |
 | refactor | 40 | bölme/ölü kod görevleri (karakterizasyon testi + sha) |
-| owner_decision | 26 | 9'u G0.1'de yalnız cevapla kapanır; 17'si cevaba göre kod görevinde (G1.3, G1.5, G2.2, G2.3, G2.9, G2.24, G2.25, G2.26, G3.5, G3.6) |
+| owner_decision | 26 | 8'i G0.1'de yalnız cevapla kapanır; D-221 G3.12'de D-279 ile kapanır (Kadir zaten seçti); 17'si cevaba ya da Ruling'e göre kod görevinde (G1.3, G1.5, G2.2, G2.3, G2.9, G2.24, G2.25, G2.26, G3.5, G3.6) |
 | tooling_ci | 25 | araç/CI görevleri |
-| blocked_on_feature | 19 | 18'i G0.1 kapanış listesi (S11, S12, S13); D-584 G1.8'de düzeltilir (engeli olan D-592 aynı görevde kalkar) |
+| blocked_on_feature | 19 | 18'i G0.1 kapanış listesi (S10, S11, S12); D-584 G1.8'de düzeltilir (engeli olan D-592 aynı görevde kalkar) |
 | docs | 13 | G3.9, G2.15 (D-552), G2.22 (D-567) |
 | dependency | 10 | G1.5, G2.22, G2.23 |
 | external_tool | 8 | G0.3 (4), G0.4 (1), G2.19 (D-359), G3.9 (D-455), G0.1 (D-168) |
-| already_fixed | 4 | G0.2 (3), G3.9 (D-469, D-481'e bağlı) |
+| already_fixed | 4 | G0.2 (3), G3.9 (D-469: defterde zaten "kapandı"; yalnız D-481 işaretçisi doğrulanır) |
 | false_alarm | 1 | G0.2 |
-| **Toplam** | **281** | 51 görevde satır var + G0.5 ve G4.3 satırsız = 53 görev |
+| classify.json dışında kalan açık satır | 4 | D-012 → G2.4 (S-sorusu, ürün tercihi); D-023 → G0.1 erteleme listesi; D-076 → G3.8; D-279 → G3.12 (yeni görev) |
+| **Toplam** | **285** | 53 görevde satır var + G0.5 ve G4.4 satırsız = 55 görev |
 
-Öncelik: KRİTİK 2 ve YÜKSEK 7 satırın hepsi Dalga 0/1'de. ORTA satırlar Dalga 2'de; istisnalar: G0.1'de yalnız cevapla kapanan 13 ORTA satır, G1.x paketlerine katılan ORTA satırlar ve Dalga 4'teki D-588, D-598, D-599 (bütün kodun durulmasını bekler; Ruling aşağıda). Para/kayıt/Geri Al satırı 65, sahip sorusu 49.
+Kaynak: defter durum sütunu büyük/küçük harf duyarsız `açık`/`kısmen` ile başlayan 280 satır + başka biçimde açık 4 satır (D-012 "AÇIK, kabul edilen davranış", D-023 "PR bekliyor", D-076 "kökeni bilinmiyor", D-279 metin içinde "durum: açık") + defterde kapalı ama classify'da açık D-469 = 285. Öncelik: KRİTİK 2 ve YÜKSEK 7 satırın hepsi Dalga 0/1'de. ORTA satırlar Dalga 2'de; istisnalar: G0.1'de yalnız cevapla kapanan 13 ORTA satır, G1.x paketlerine katılan ORTA satırlar ve Dalga 4'teki D-588, D-598, D-599 (bütün kodun durulmasını bekler; Ruling aşağıda). Para/kayıt/Geri Al satırı 66 (D-023 dahil).
 
 ## Global Constraints (her görev bunlara bağlıdır)
 
+- **Kapalı sayma:** bir satırın açık sayılması = durum hücresi büyük/küçük harf duyarsız `açık` ya da `kısmen` ile başlar, ya da satır elle tutulan tuhaf biçim listesindedir (D-012, D-023, D-076, D-279; yeni bulunursa eklenir). Diğer biçimler (`kapandı`, `kapalı`, `düzeltildi`, `düzeldi`, `tamamlandı`, `uygulandı`, `yapıldı`, `yanlış bulgu`, `kasıtlı / wontfix`, `PR #NN'te düzeltildi` vb.) kapalıdır.
 - **Kapanma kuralı (defterin kendi kuralı):** bir satır yalnız düzelten commit sha'sı ile ya da Kadir'in "wontfix" cevabıyla kapanır. Durum sütununa `kapandı (<sha>)` ya da `wontfix (Kadir, S<no>, <tarih>)` yazılır. already_fixed ve false_alarm satırları kanıt satırı (commit sha, test adı, komut çıktısı) ve ikinci bir doğrulayıcı ajanın "çürütemedim" notuyla kapanır.
 - **Yeni borç yok:** görev sırasında bulunan yeni bir hata sessizce düzeltilmez ve göz ardı edilmez. Görevin kendi dosyasında ve görevin yol açtığı bir hataysa aynı görevde düzeltilir. Önceden var olan bir hataysa deftere yeni satır olarak yazılır ve aynı dalganın bir görevine eklenir; plan bu satır da kapanmadan bitmez.
 - **Davranış:** yalnız satırın istediği davranış değişir. HTTP kodları, hata gövdeleri, oyuncu metni, kayıt/commit/rollback sırası, makbuzlar, Geri Al noktaları ve kilitler başka türlü aynen kalır.
@@ -56,7 +58,8 @@
 - **Yerel geçiş CI değildir:** CI ayrıca knip, gitleaks, project_health_check/final_gate ve tam parçalı paketi koşar (`.github/workflows/ai-dnd-ci.yml`, `ai-dnd-quality.yml`). Modül seçmeden önce değişen dosya yolu ve modül adı tüm repoda aranır (tools/, content/, docs/acceptance/, api/tests, .github/); dosya metnini ya da yolunu okuyan testler içe aktarıcı olarak görünmez.
 - **Modeller:** implementer Sonnet. İnceleme: para/kayıt/Geri Al satırı taşıyan görev Opus, diğerleri Sonnet. Bütün dal incelemesi Opus. Fable kullanılmaz.
 - **Süreç:** her görev için `superpowers:test-driven-development` ve `superpowers:verification-before-completion` yüklenir; implementer istemine `docs/agents/implementer-preamble.md` konur ve her maddesi cevaplanır. Koda `graphify query` ile girilir (graphify-out varsa). İngilizce commit mesajı, satır grubu başına bir commit. `rm -r`, `Remove-Item`, `git clean`, `git reset --hard`, `git worktree remove` asla. Anahtar dosyaları (.env, apikeys*, *.pem) açılmaz. Force push yok, dal silinmez. Bekleme döngüsü en çok 9 dakika.
-- **Tek yazıcı kuralları:** `docs/agents/debt-register.md` yalnız denetleyici (controller) tarafından dalga dalında güncellenir; görev dalları deftere dokunmaz. Paylaşılan kilit/taban dosyaları (`size_lock.json`, `size_budget.json`, ruff/knip/vulture/gitleaks tabanları, fallow tabanı) yalnız küçültülür; iki görev aynı dosyayı küçültürse birleştirmede küçük değer alınır.
+- **Worktree'ler:** denetleyici `C:/Users/Kadir/Desktop/AI-DND-borc-kontrol` (dalga dalı `borc/dalga-<N>-20261126`; birleştirme, defter güncellemesi, dalga kapısı burada); kulvar A `C:/Users/Kadir/Desktop/AI-DND-borc-A`, kulvar B `C:/Users/Kadir/Desktop/AI-DND-borc-B` (görev dalları). Üçü ayrı; aynı worktree'de tek yazıcı.
+- **Tek yazıcı kuralları:** `docs/agents/debt-register.md` yalnız denetleyici tarafından kendi worktree'sinde, dalga dalında güncellenir; görev dalları deftere dokunmaz. Paylaşılan kilit/taban dosyaları (`size_lock.json`, `size_budget.json`, ruff/knip/vulture/gitleaks tabanları, fallow tabanı) yalnız küçültülür; iki görev aynı dosyayı küçültürse birleştirmede küçük değer alınır.
 - **Push/PR/birleştirme:** CLAUDE.md "Sahibin kuralları" ve Kadir'in geçerli yazılı iznine göre. Oyun davranışını değiştiren dalga, Kadir en az 10 dakika oynamadan main'e birleşmez; birleşmemiş dalganın üstüne sonraki dalga yığılır (stacked).
 - **Defter (ledger):** `.superpowers/sdd/borc-sifirlama/progress.md` (denetleyici), `progress-A.md` ve `progress-B.md` (kulvarlar). Rulings, RESULT satırları, bozma kanıtları, parklar, önsöz cevapları ve görev başına süre/düzeltme turu burada.
 
@@ -66,7 +69,19 @@
 - Ruling: D-588, D-598, D-599 (ORTA) Dalga 4'te — kapı sıkılaştırma ve desloppify kalanı bütün kod değişikliklerinden sonra ölçülmeli, yoksa iki kez yapılır — yanlışsa maliyeti: ORTA satırlar birkaç gün geç kapanır.
 - Ruling: bir paket en yüksek öncelikli satırının dalgasında koşar (ör. G1.2 içinde DÜŞÜK D-335) — aynı dosyaya iki kez dönmemek için — yanlışsa maliyeti: düşük.
 - Ruling: D-169 G0.1 kapanış listesinde, bağımlısı D-094 G1.1'de — kapanış bir karar, kod değil; G1.1 D-169'u gerektirmez — yanlışsa maliyeti: Kadir "yap" derse D-169 Dalga 2'ye yeni görev olarak girer.
-- Ruling: G0.3 repo dışı araç satırları commit sha'sı yerine araç dosyasının sha256 değeri ve koşu çıktısıyla kapanır, bunun için S52 ile Kadir'in onayı alınır — repo dışında commit yok — yanlışsa maliyeti: dört DÜŞÜK satır açık kalır.
+- Ruling (R-S52): G0.3 ve G0.4'teki repo dışı araç/canlı ölçüm satırları (D-078, D-079, D-304, D-306, D-302) commit sha'sı yerine araç dosyasının sha256 değeri ve koşu çıktısıyla kapanır — repo dışında commit olamaz, defter kuralının amacı (düzeltmenin kanıtı) böyle karşılanır — yanlışsa maliyeti: Kadir itiraz ederse araçlar repoya alınır, beş DÜŞÜK satır yeniden açılır.
+- Ruling: G0.1'deki para/kayıt/Geri Al satırları (D-009, D-023, D-048, D-050, D-271, D-312, D-320) kod değişikliği olmadan yalnız Kadir cevabıyla kapanır; bu yüzden inceleme Sonnet (metin ve seçenek doğruluğu) — Opus incelemesi kod değişikliği içindir — yanlışsa maliyeti: düşük; satır "yap" cevabı alırsa kod görevine geçer ve orada Opus incelenir.
+- Ruling (R-S18): D-532 eski /api/sessions takma adları kaldırılır; önce repo geneli arama (arayüz, `lib/api-*` istemcileri, testler, docs/acceptance) kullanan olmadığını gösterir; kullanan varsa o takma ad kalır ve gerekçesi satıra yazılır — ölü yol, Kadir kuralı "ölü kod sil" (2026-11-22) — yanlışsa maliyeti: istemci kırılır; codegen farkı ve CI yakalar.
+- Ruling (R-S19..S17): `artifacts/api-server`, `artifacts/mockup-sandbox`, `artifacts/ai-dnd-web` silinir (D-575, D-585, D-311, D-568, D-569) — kullanılmıyorlar, güvenlik açığı ve açık Vite sunucusu taşıyorlar, git geçmişinde kalırlar; Kadir kuralı "ölü kod sil" — yanlışsa maliyeti: geçmişten geri alınır.
+- Ruling (R-S33): kullanılmayan shadcn dosyaları ve bağlı paketleri aynı PR'da çıkar (D-557) — ayrı tutmak knip tabanını kirletir — yanlışsa maliyeti: düşük.
+- Ruling (R-S37, R-S39): `bind_deadline` (D-512) ve iki ölü kabul işlevi ile yalnız onları sınayan testleri (D-580) silinir — Kadir "ölü kod sil" — yanlışsa maliyeti: geçmişten geri alınır; silinen testler onay listesine.
+- Ruling (R-S40): `ai-dnd/docs/evidence/**` betikleri üretim bölgesinden arşiv klasörüne `git mv` ile taşınır (D-595) — yalnız dışlamak bozuk kodu bırakır — yanlışsa maliyeti: düşük.
+- Ruling (R-S45): kayıt doğrulayıcısındaki ulaşılmaz `spell_mechanic_unavailable` dalı silinir (D-582) — `prepare_ready` zaten reddediyor; ölü kod — yanlışsa maliyeti: gelecekteki büyü motoru dalı yeniden yazar.
+- Ruling (R-S2): D-221 Kadir'in 2026-11-15 (a) kararıyla D-279'a bağlıdır; ikisi G3.12'de birlikte kapanır — karar zaten verilmiş, yeniden sorulmaz — yanlışsa maliyeti: yok.
+- Ruling (R-S30): D-583 bütün 20 motor→api kenarı kaldırılarak kapanır: önce `api.dnd_2024_rules` motora iner (14 kenar), kalan 6 kenar tek tek taşınır ya da çağrı yerinde değer geçirilir; davranış değiştirmeden kaldırılamayan kenar onay listesine "gevşetme olabilir" diye yazılır ve satır `kısmen` kalır — tam port katmanı gereksiz büyük — yanlışsa maliyeti: satır Dalga 4'e kadar kısmen kalır.
+- Ruling: D-592 (109 F-rank işlev) bu planda tamamen sıfırlanamaz; G1.8 üç işlevi böler ve radon cc ratchet kapısını kurar. Satır ancak S18'de Kadir (b) derse `wontfix (kalan F işlevleri ratchet ile yalnız küçülür)` olur ve bu sınır onay listesine "gevşetme olabilir" diye girer; (a) derse ayrı bir plan gerekir ve satır o plana kadar `kısmen` kalır — kapanışı sessizce yeniden tanımlamamak için — yanlışsa maliyeti: borç sıfır hedefi bu satırda Kadir'in kararına bağlı kalır.
+- Ruling: D-279 kayıp kişi kaçıranı yeni görev G3.12 olarak yapılır; eski kayıtlı görevler için göç yapılmaz (Kadir kuralı: eski kayıt önemsiz) — Kadir 2026-11-15 (a) seçti — yanlışsa maliyeti: içerik işi bir dilim sürer.
+- Ruling: eski G4.2 bölündü: D-599 (72 öznel bulgu) G4.2, D-598 (mekanik kümeler, defterde D-599'a bağlı) G4.3; son kapı G4.4 — tek görev inceleme yüzeyi için çok büyük — yanlışsa maliyeti: bir ek inceleme turu.
 
 ## Review Focus (hiçbir mevcut testin kesin yakalamadığı, en olası beş arıza)
 
@@ -98,10 +113,10 @@
 ## Dalga 0 — sorular, kapanış kanıtı, araçlar (Dalga 1 ile paralel; kod yok ya da yalnız araç)
 
 ### G0.1 Kadir'e soru paketi ve cevapla kapanan satırlar
-- **Satırlar (28):** D-024, D-221, D-320, D-021, D-343, D-404, D-424, D-327, D-246, D-168, D-149, D-307 ve kapanış listesi (S13): D-312, D-315, D-029, D-022, D-025, D-026, D-009, D-169, D-271, D-042, D-048, D-050, D-058, D-358, D-066, D-014.
-- **Kulvar:** denetleyici (yuva gerekmez). **İnceleme:** Sonnet (soru metni sade mi, seçenekler satırla uyumlu mu).
+- **Satırlar (28):** D-024, D-320, D-021, D-343, D-404, D-424, D-327, D-246, D-168, D-149, D-307 (S1-S11, satır başına bir soru) ve erteleme listesi (S12): D-312, D-315, D-029, D-022, D-025, D-026, D-009, D-169, D-271, D-042, D-048, D-050, D-058, D-358, D-066, D-014, D-023.
+- **Kulvar:** denetleyici (yuva gerekmez). **İnceleme:** Sonnet (soru metni sade mi, seçenekler satırla uyumlu mu; para satırları için Ruling yukarıda).
 - **Dosyalar:** yeni `docs/agents/borc-sorulari-20261126.md` (aşağıdaki "Kadir'e soru paketi" bölümü aynen).
-- **Adımlar:** soru dosyasını yaz, Kadir'e tek mesajla gönder. Cevapları dosyaya ve deftere yaz. Cevap bir satırı "yap" yönüne çevirirse satır yeni bir göreve (G2.x/G3.x sonuna) eklenir, plan onu da kapatmadan bitmez. Cevap "erteleme/wontfix" ise satır `wontfix (Kadir, S<no>)` olur.
+- **Adımlar:** soru dosyasını yaz, Kadir'e tek mesajla gönder. Cevapları dosyaya ve deftere yaz. Cevap bir satırı "yap" yönüne çevirirse satır yeni bir göreve (G2.x/G3.x sonuna) eklenir, plan onu da kapatmadan bitmez. Cevap "erteleme/wontfix" ise satır `ertelendi: <özellik> (Kadir, S<no>)` olur; tetikleyici sütunu korunur, özellik gelince satır yeniden açılır. Bu biçim kapalı sayılır.
 - **Kural:** her soru bir kez sorulur. Cevapsız soru yeniden sorulmaz; dalga raporunda "cevap bekleyen: S<no>" diye yalnız listelenir.
 
 ### G0.2 Kapanış kanıtı (already_fixed / false_alarm)
@@ -111,34 +126,34 @@
 - **Kapanış:** doğrulayıcı ajan satırı çürütmeye çalışır; çürütemezse denetleyici `kapandı (kanıt: <sha/test>)` yazar.
 
 ### G0.3 Repo dışı test araçları
-- **Satırlar:** D-078, D-079, D-304, D-306. **Bağımlı soru:** S52.
-- **Kulvar:** B, G0.2'den sonra. **İnceleme:** Sonnet.
-- **Dosyalar:** `C:/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh`, `slot_web.sh`, `slot_sync.sh` (repo dışı; önce yedek kopya `*.bak-20261126`).
+- **Satırlar:** D-078, D-079, D-304, D-306. **Ruling:** R-S52.
+- **Kulvar:** denetleyici, yalnız yuva 9 ve yuva 2 boşken (hiçbir `slot.sh` koşusu açık değilken; bash betiği koşu sırasında satır satır okur). **İnceleme:** Sonnet.
+- **Dosyalar:** `C:/Users/Kadir/Desktop/AI-DND-TOOLS/slot.sh`, `slot_web.sh`, `slot_sync.sh` (repo dışı). Önce yedek kopya `*.bak-20261126`; değişiklik `*.new` dosyasına yazılır, `bash -n` ile denetlenir, sonra `mv` ile yerine konur (yarım dosya hiç koşmaz).
 - **Kırmızı kontrol:** `slot.sh x /yok test l 1 m` ve `slot.sh 9 '../kötü' ...` bugün devam ediyor (D-079) → sonra exit 2. `slot_web.sh` ile altı arayüz testi bugün `spawnSync python ENOENT` (D-078) → `PYTHON` dışa aktarılınca geçer. `slot_web.sh` kopyasında `content/names` yok (D-306) → var.
 - **Düzeltme:** `[[ "$N" =~ ^[0-9]+$ ]] || exit 2` ve WT adı denetimi (Kadir 2026-11-16 onaylı); `slot_web.sh` `PYTHON` dışa aktarır ve `content/names` kopyalar; D-304 için paket koşusu bir kez çalıştırılıp çıktısı deftere.
-- **Kapanış:** araç dosyalarının sha256 değeri + koşu çıktısı; S52 onayıyla.
+- **Kapanış:** araç dosyalarının sha256 değeri + koşu çıktısı (R-S52).
 
 ### G0.4 Yerel modelle canlı ölçüm (harcama yok)
-- **Satırlar:** D-302. Ayrıca S14-S16 "yerel ölçüm" seçilirse D-177, D-262, D-263 için ölçüm verisini üretir (bu satırlar G1.3'te kapanır).
+- **Satırlar:** D-302. Ayrıca S13-S15 "yerel ölçüm" seçilirse D-177, D-262, D-263 için ölçüm verisini üretir (bu satırlar G1.3'te kapanır). **G1.1'in ön koşuludur** (D-094 kalan dünya önkoşullu denemeler D-177 ölçümüne bağlı).
 - **Kulvar:** denetleyici, yerel `gemma4-12b-dm` ile. **İnceleme:** Sonnet.
-- **Adım:** `_REPLY_TOKEN_CAPS` (300 yanıt, 450 varış) ile 20 turda `mentions` JSON'unun kesilip kesilmediğini say; `timing` alanının doğru dolma oranını ve "evet" sonrası yeniden okumanın değişme oranını say. Sonuç `.superpowers/sdd/borc-sifirlama/olcum-g04.md`.
-- **Kapanış:** kesilme 0 ise D-302 kanıtla kapanır (S52); kesilme varsa tavan yükseltme düzeltmesi aynı görevde kırmızı testle (`test_reply_cap_fits_mentions`: tavan, en uzun örnek `mentions` cevabını kesmez) yapılır.
+- **Adım:** `_REPLY_TOKEN_CAPS` bugün yalnız `{"gemma4-12b-dm": 300}` (yanıt); varış çağrısının tavanı ayrıca kodda okunur, varsayılmaz. 20 turda `mentions` JSON'unun kesilip kesilmediğini say; `timing` alanının doğru dolma oranını ve "evet" sonrası yeniden okumanın değişme oranını say. Sonuç `.superpowers/sdd/borc-sifirlama/olcum-g04.md`.
+- **Kapanış:** kesilme 0 ise D-302 kanıtla kapanır (R-S52); kesilme varsa tavan yükseltme düzeltmesi aynı görevde kırmızı testle (`test_reply_cap_fits_mentions`: tavan, en uzun örnek `mentions` cevabını kesmez) yapılır.
 
 ### G0.5 Taban karşılaştırma aracı
 - **Satırlar:** yok (dalga kapısının aracı). **Kulvar:** A (yuva 9), Dalga 1'den önce. **İnceleme:** Sonnet.
 - **Dosyalar:** yeni `docs/agents/kalite-taramasi-20261125/compare_baseline.py`; test `ai-dnd/api/tests/test_compare_baseline.py` (modülü dosya yolundan `importlib` ile yükler).
-- **Arayüz:** `compare(base: dict, new: dict, touched: set[str]) -> list[str]`; komut satırı `python compare_baseline.py BASE.json NEW.json --touched <dosya listesi>`; büyüme varsa satırları basar ve exit 1.
-- **Kırmızı test:** `test_growth_in_touched_file_fails`: `ruff_extra` içinde `B023|ai-dnd/x.py` 2'den 3'e çıkınca listede tek satır; `test_growth_in_untouched_file_is_ignored`; `test_new_engine_api_edge_fails` (liste araçlarında yeni girdi, dokunulan dosyadan bağımsız hata); `test_new_vuln_id_fails` (pip/pnpm audit'te yeni kimlik).
-- **Kural:** sözlük araçlarında `kural|dosya` anahtarı, dosya `touched` içindeyse yeni ≤ eski. Liste araçlarında (`engine_api_edges`, `import_linter_broken_pairs`, audit kimlikleri) yeni girdi her zaman hata.
+- **Arayüz:** `compare(base: dict, new: dict, touched: set[str]) -> list[str]`; komut satırı `python compare_baseline.py BASE.json NEW.json --touched <dosya listesi>`; herhangi bir toplam büyürse satırları basar ve exit 1.
+- **Kırmızı test:** `test_total_growth_fails`: `ruff_extra` toplamı 10'dan 11'e çıkınca hata; `test_growth_in_untouched_file_fails` (ölü kod silme ya da imza değişikliği dokunulmayan çağıranda vulture60/pyright bulgusu doğurursa yakalanır; `touched` yalnız raporda "kimin yüzünden" sütunu için); `test_deptry_growth_fails` (modül anahtarlı); `test_skylos_total_growth_fails` (yalnız toplamlar); `test_new_engine_api_edge_fails`; `test_new_vuln_id_fails` (pip/pnpm audit'te yeni kimlik); `test_shrink_passes`.
+- **Kural:** her araç için toplam (sözlükte değerler toplamı, listede uzunluk, skylos'ta kategori toplamları) yeni ≤ eski; ayrıca liste araçlarında (`engine_api_edges`, `import_linter_broken_pairs`, audit kimlikleri) yeni girdi her zaman hata. Çıktı büyüyen anahtarları `touched` içinde mi diye işaretler.
 
 ---
 
 ## Dalga 1 — KRİTİK ve YÜKSEK
 
-Kulvar A (yuva 9): G0.5 → G1.1 → G1.2 → G1.3 → G1.8. Kulvar B (yuva 2): G0.2 → G0.3 → G1.4 → G1.5 → G1.6 → G1.7.
+Kulvar A (yuva 9): G0.5 → (G0.4 bitince) G1.1 → G1.2 → G1.3 → G1.8. G0.4 ölçümü gecikirse kulvar A önce G1.2'yi alır. Kulvar B (yuva 2): G0.2 → G0.3 → G1.4 → G1.5 → G1.6 → G1.7.
 
 ### G1.1 Riskli denemede her zaman zar (KRİTİK)
-- **Satırlar:** D-094, D-173. **Kulvar:** A. **İnceleme:** Opus (para). **Önce:** G0.5.
+- **Satırlar:** D-094, D-173. **Kulvar:** A. **İnceleme:** Opus (para). **Önce:** G0.5 ve G0.4 (D-177 ölçümü).
 - **Dosyalar:** `ai-dnd/game_parts/turn_front.py`, `ai-dnd/bold_acts.py`, `ai-dnd/api/model_chain.py`; yeni test `ai-dnd/api/tests/test_d094_world_rolls.py`.
 - **Kırmızı test:** `test_sneak_past_guard_rolls_stealth`: "Muhafızın yanından gizlice geçiyorum" turunda motor Stealth zarını atar ve sonucu anlatı değil motor belirler (Athletics ve Perception için aynı şekil, alt test); `test_theft_with_trailing_words_rolls`: `bold_acts.is_theft("kesesini çalmak için zar atıyorum, kimse görmesin")` ve yazım hatalı "zar atıyorm" True, olumsuz cümle ("çalmayacağım") False.
 - **Düzeltme:** ön okumanın riskli deneme becerilerine dünya önkoşullu becerileri ekle, motor doğrular ve atar (PR #55 yolu); `_STEAL_TRY` kapısı cümle sonundaki ek sözü kabul eder.
@@ -148,28 +163,28 @@ Kulvar A (yuva 9): G0.5 → G1.1 → G1.2 → G1.3 → G1.8. Kulvar B (yuva 2): 
 - **Satırlar:** D-331, D-335, D-333, D-299, D-297. **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G1.1 (aynı `turn_front.py`).
 - **Dosyalar:** `ai-dnd/game_parts/turn_front.py`, `ai-dnd/grounded_places.py`, `ai-dnd/exits.py`, `ai-dnd/talk_front.py`, `ai-dnd/heard_rumours.py`, `ai-dnd/game_parts/travel.py`; yeni test `ai-dnd/api/tests/test_d331_vague_places.py`.
 - **Kırmızı test:** `test_listed_place_not_named_by_reading_walks_or_asks`: "Bakkala gidiyorum" yürür ya da "Hangisine gidiyorsun?" sorar, sahne anlatısı vermez; `test_npc_named_inn_is_an_option` (D-335); `test_misrouted_lines` (D-333: "4 bakırım var mı" kese sorgusuna, ikinci "tavernaya gidiyorum" yolculuğa, "teşekkür edip handan çıkıyorum" çıkışa); `test_generic_alias_only_with_one_match` (D-299); `test_heard_inn_name_routes_to_inn` (D-297: "Kara Kuzgun Hanı" duyulduktan sonra "Hana gidiyorum" handa biter, "giremiyorsun" yok).
-- **Düzeltme:** yer çözümü önce görünen/duyulan yer listesine, sonra türe bakar; birden çok eşleşmede soru sorar. D-297 tek kasaba haritası içinde çözülür (ikinci yerleşim S12'ye bağlı değil).
+- **Düzeltme:** yer çözümü önce görünen/duyulan yer listesine, sonra türe bakar; birden çok eşleşmede soru sorar. D-297 tek kasaba haritası içinde çözülür (ikinci yerleşim S11'e bağlı değil).
 - **Kapanış:** sha; oynayış listesi O2.
 
 ### G1.3 Eylem başına zamanlama (timing) (KRİTİK)
-- **Satırlar:** D-109, D-260, D-261, D-262, D-263, D-177, D-420, D-245. **Bağımlı soru:** S14, S15, S16, S17 (ölçüm G0.4'te). **Kulvar:** A. **İnceleme:** Opus (para). **Önce:** G1.2.
+- **Satırlar:** D-109, D-260, D-261, D-262, D-263, D-177, D-420, D-245. **Bağımlı soru:** S13, S14, S15, S16 (ölçüm G0.4'te). **Kulvar:** A. **İnceleme:** Opus (para). **Önce:** G1.2.
 - **Dosyalar:** `ai-dnd/front_proposal.py`, `ai-dnd/game_parts/turn_front.py`, `ai-dnd/bold_acts.py`, `ai-dnd/api/main.py` (yalnız D-245 günlük etiketi); testler `ai-dnd/api/tests/test_d109_timing.py`, `test_front_proposal.py`.
-- **Kırmızı test:** `test_mixed_timing_line_changes_only_now_actions`: "yarın ona vuracağım ama şimdi biramı içiyorum" sahte okumayla vuruş ertelenir, içki şimdi; envanter/ilişki yalnız "now" eylemle değişir (D-109, D-260); `test_later_go_to_does_not_move_or_pass_time` (D-261); `test_missing_timing_is_not_now` (D-262: alan yoksa kalıcı değişiklik yok); `test_yes_replays_stored_reading` (D-263: "evet" ilk okumayı yeniden kullanır, ikinci okuma çağrısı yok); `test_unclear_persuasion_reading_asks` (D-177, S14'e göre); `test_front_reply_called_set_once` (D-420); `test_dash_command_logged_as_command_not_empty` (D-245: etiket `skipped:empty` değil).
+- **Kırmızı test:** `test_mixed_timing_line_changes_only_now_actions`: "yarın ona vuracağım ama şimdi biramı içiyorum" sahte okumayla vuruş ertelenir, içki şimdi; envanter/ilişki yalnız "now" eylemle değişir (D-109, D-260); `test_later_go_to_does_not_move_or_pass_time` (D-261); `test_missing_timing_is_not_now` (D-262: alan yoksa kalıcı değişiklik yok); `test_yes_replays_stored_reading` (D-263: "evet" ilk okumayı yeniden kullanır, ikinci okuma çağrısı yok); `test_unclear_persuasion_reading_asks` (D-177, S13'e göre); `test_front_reply_called_set_once` (D-420); `test_dash_command_logged_as_command_not_empty` (D-245: etiket `skipped:empty` değil).
 - **Düzeltme:** okuma şemasında `timing` eylem başına alan olur ve zorunludur; eksikse güvenli varsayılan "later/ask"; "evet" saklı okumayı oynatır.
 - **Kapanış:** sha; oynayış listesi O3.
 
 ### G1.4 create_app kalan bölme ve yinelenen rotalar (YÜKSEK)
-- **Satırlar:** D-531, D-532. **Bağımlı soru:** S18 (D-532). **Kulvar:** B. **İnceleme:** Opus (Geri Al). **Önce:** G0.3.
+- **Satırlar:** D-531, D-532. **Ruling:** R-S18 (D-532). **Kulvar:** B. **İnceleme:** Opus (Geri Al). **Önce:** G0.3.
 - **Dosyalar:** `ai-dnd/api/main.py`, `ai-dnd/api/routes_turn.py`, `routes_undo.py`, `routes_quests.py`, `routes_species.py`, `routes_level_up.py`; yeni test `ai-dnd/api/tests/test_main_route_aliases.py`; `size_lock.json`.
-- **Kırmızı test:** `test_ambient_event_route_exits` (ortam olayı rotasının çıkışları, bugün testsiz); `test_journal_not_written_on_denied_turn`; `test_no_duplicate_method_path_pairs` (D-532: her takma ad kümesi için yöntem+yol çifti tek). Mevcut rota tablosu ve OpenAPI öncesi/sonrası birebir aynı (`route_dump.py`, `main_openapi_golden.json`).
-- **Düzeltme:** kalan yazma yollarını `register_*_routes(application, *, api_main, ...)` kalıbıyla taşı (aşama 1-3 ile aynı); S18 (a) ise eski takma adları sil ve TS/Python istemcilerini yeniden üret.
+- **Kırmızı test:** `test_ambient_event_route_exits` (ortam olayı rotasının çıkışları, bugün testsiz); `test_journal_not_written_on_death_rollback` (ölüm geri sarmasında günlük yazılmaz; defter satırı D-531); `test_no_duplicate_method_path_pairs` (D-532: her takma ad kümesi için yöntem+yol çifti tek). Mevcut rota tablosu ve OpenAPI öncesi/sonrası birebir aynı (`route_dump.py`, `main_openapi_golden.json`).
+- **Düzeltme:** kalan yazma yollarını `register_*_routes(application, *, api_main, ...)` kalıbıyla taşı (aşama 1-3 ile aynı); R-S18 ile eski takma adları sil ve TS/Python istemcilerini yeniden üret.
 - **Kapanış:** sha.
 
 ### G1.5 Kullanılmayan npm paketleri ve açıklar (YÜKSEK)
-- **Satırlar:** D-575, D-585, D-586, D-311, D-568, D-569. **Bağımlı soru:** S19-S23. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G1.4.
+- **Satırlar:** D-575, D-585, D-586, D-311, D-568, D-569. **Ruling:** R-S19..S17. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G1.4.
 - **Dosyalar:** `artifacts/api-server/`, `artifacts/mockup-sandbox/`, `artifacts/ai-dnd-web/`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `package.json`, `lib/api-zod/package.json`, `lib/db/package.json`, `lib/api-spec/package.json`, `artifacts/ai-dnd-experience/package.json`, `artifacts/ai-dnd-experience/vite.config.ts`.
 - **Kırmızı kontrol:** `pnpm audit --prod --json` bugün 1 kritik, 2 yüksek; `pnpm audit` toplam 23. Silmeden önce repo geneli arama paketin adını hiçbir yerde göstermemeli (workflow, `start_local.ps1`, docs/acceptance dahil).
-- **Düzeltme:** S19-S23 "sil" ise üç paketi `git rm -r` ile değil `git rm` ile dosya dosya kaldır (yasak komut yok); zod'u `>=4.6.6`'ya yükselt; kalan dev açıkları yükselt. "Tut" seçilirse Vite sunucusu `127.0.0.1` ve adlı `allowedHosts`.
+- **Düzeltme:** üç paketi `git rm` ile dosya dosya kaldır (`git rm -r` ve diğer yasak komutlar yok); zod'u `>=4.6.6`'ya yükselt; kalan dev açıkları yükselt; `artifacts/ai-dnd-experience/vite.config.ts` Vite sunucusu `127.0.0.1` ve adlı `allowedHosts` (D-311'in kalan kısmı).
 - **Doğrulama:** `pnpm install --frozen-lockfile`, `pnpm run typecheck`, orval codegen farksız, `pnpm audit --prod` kritik/yüksek 0, knip ve fallow tabanı büyümez.
 - **Kapanış:** sha.
 
@@ -188,11 +203,11 @@ Kulvar A (yuva 9): G0.5 → G1.1 → G1.2 → G1.3 → G1.8. Kulvar B (yuva 2): 
 - **Kapanış:** sha; Kod-1 görsel kontrol K2.
 
 ### G1.8 Uzun tur işlevleri ve karmaşıklık (YÜKSEK)
-- **Satırlar:** D-530, D-592, D-584. **Bağımlı soru:** S24, S25. **Kulvar:** A. **İnceleme:** Opus (Geri Al/para yolu). **Önce:** G1.3.
+- **Satırlar:** D-530, D-592, D-584. **Bağımlı soru:** S17, S18. **Kulvar:** A. **İnceleme:** Opus (Geri Al/para yolu). **Önce:** G1.3.
 - **Dosyalar:** `ai-dnd/game_parts/turn.py`, `turn_front_steps.py`, `living_world_steps.py`, `intent_steps.py`, `narration_steps.py`, `narration_safety.py`, `narration.py`, `ai-dnd/model_phase.py`, `ai-dnd/game.py` (yalnız kilit), `size_lock.json`, `size_budget.json`; yeni test `ai-dnd/api/tests/test_turn_long_functions_pin.py`.
 - **Kırmızı test:** sabit tohumla `_run_player_turn_internal`, `_dispatch_player_turn`, `_narration_safety_decision` için karakterizasyon (çıktı durumu, mesajlar, makbuz, Geri Al noktası), bozma kanıtıyla; `test_fallbacks_log_when_forced` (D-584: paket doğrulama ve yalnız-anlatı model çağrısı yedekleri hata fırlatınca `model_phase.log_fallback` çağrılır).
-- **Düzeltme:** tur-bölme aracıyla (`cut_block`/`cut_check`, CHANGED 0) üç işlevi böl; böldükten sonra D-584'ün üç geniş `except`'i daraltılır ya da loglanır. S25 (a) ise radon cc ratchet G4.1'de kapıya girer; bu görev yalnız ilk iki hedefi küçültür.
-- **Kapanış:** sha.
+- **Düzeltme:** tur-bölme aracıyla (`cut_block`/`cut_check`, CHANGED 0) üç işlevi böl; böldükten sonra D-584'ün üç geniş `except`'i daraltılır ya da loglanır. radon cc ratchet (F/E sayısı yalnız küçülür) bu görevde `ai-dnd/scripts/quality_gate/` altına kurulur ve G4.1'de CI'a girer.
+- **Kapanış:** D-530 ve D-584 sha ile. D-592 yalnız S18 cevabına göre: (b) ise `wontfix (kalan F işlevleri ratchet ile)` + onay listesinde "gevşetme olabilir"; (a) ise `kısmen (<sha>; kalan N F işlevi ayrı planda)` — sessizce "kapandı" yazılmaz.
 
 ### Dalga 1 kapısı (DK1)
 Aşağıdaki "Dalga kapısı" bölümündeki adımlar. Ayrıca `pnpm audit --prod` ve `pnpm audit` (G1.5 değişti). Oynayış: O1-O3.
@@ -213,30 +228,30 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Kapanış:** sha.
 
 ### G2.2 Bayrak açık konuşma okuması
-- **Satırlar:** D-413, D-414, D-425. **Bağımlı soru:** S26. **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G2.1.
+- **Satırlar:** D-413, D-414, D-425. **Bağımlı soru:** S19. **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G2.1.
 - **Dosyalar:** `ai-dnd/game_parts/turn_front.py`; testler `test_campaign_api.py`, `test_experimental_npc_dialogue.py`.
-- **Kırmızı test:** `test_free_person_line_answers_purpose` (D-413: "Marek, seni bu şehre getiren şeyi anlat" cevabı amaca değinir, `conversation_focus` nedeni yazılır); `test_inn_question_gives_locked_inn_answer` (D-414: `owner_verified` odak `venue-door:<han>`); `test_room_deal_in_talk_mode_has_speech_call` (D-425: çağrı türlerinde konuşma çağrısı var; S26 (b) ise satır kod değişmeden kapanır).
-- **Düzeltme:** düz konuşma okumasında Python'un doğrulanmış odağı yazılır; oda kartı açılırken hancı konuşur (S26 a).
+- **Kırmızı test:** `test_free_person_line_answers_purpose` (D-413: "Marek, seni bu şehre getiren şeyi anlat" cevabı amaca değinir, `conversation_focus` nedeni yazılır); `test_inn_question_gives_locked_inn_answer` (D-414: `owner_verified` odak `venue-door:<han>`); `test_room_deal_in_talk_mode_has_speech_call` (D-425: çağrı türlerinde konuşma çağrısı var; S19 (b) ise satır kod değişmeden Kadir cevabıyla kapanır).
+- **Düzeltme:** düz konuşma okumasında Python'un doğrulanmış odağı yazılır; oda kartı açılırken hancı konuşur (S19 a).
 - **Kapanış:** sha; oynayış O4.
 
 ### G2.3 Model çağrı tavanı ve kullanım defteri
-- **Satırlar:** D-150, D-416, D-418, D-419, D-417, D-405, D-408, D-494, D-496. **Bağımlı soru:** S27. **Kulvar:** B. **İnceleme:** Opus (D-150 harcama).
+- **Satırlar:** D-150, D-416, D-418, D-419, D-417, D-405, D-408, D-494, D-496. **Bağımlı soru:** S20. **Kulvar:** B. **İnceleme:** Opus (D-150 harcama).
 - **Dosyalar:** `ai-dnd/api/model_chain.py`, `ai-dnd/api/ollama_adapter.py`, `ai-dnd/api/usage_ledger.py`, `ai-dnd/api/main.py` (yalnız health ve 503 günlüğü), `ai-dnd/dialogue_runtime.py`, `ai-dnd/game_parts/turn_front.py` (yalnız `model_calls_left` çağrıları), `api/tests/live_*_smoke.py` (4 dosya); testler `test_model_chain.py`, `test_ollama_adapter.py`, `test_front_failed_fallback.py`.
-- **Kırmızı test:** zaman aşımı/200 dışı yanıtta aylık sayaç en yüksek olası maliyet kadar artar (D-150); `[front, initiative]` sonrası düz çağrı reddedilir (D-416); 3 çağrılı tur `total_model_calls=3` (D-418); "satırın kalanı" ve stok cevabı 3. çağrı istisnasını alır (D-419, S27 a); canlı betikler `turn_call_cap` içe aktarır, yerel `MAX_MODEL_CALLS_PER_TURN = 2` yok (D-417, statik test); tur içi `ConnectionError` 503 ve durum/zar değişmez (D-405); 503 tur rota günlüğüne ve kullanım satırına `refused` yazar (D-408); kilitli `_LOCAL_CALL_LOCK` ikinci çağrıyı zaman aşımıyla yedeğe düşürür (D-494); art arda iki `/api/health` defter dosyasını bir kez okur (D-496).
+- **Kırmızı test:** sonucu bilinmeyen ya da zaman aşımına uğrayan Haiku çağrısı aylık sayaca en yüksek olası maliyetle yazılır (D-150, Kadir 2026-11-16 a); açık 4xx reddi fazla faturalanmaz (sayaç değişmez, ayrı alt test); `[front, initiative]` sonrası düz çağrı reddedilir (D-416); 3 çağrılı tur `total_model_calls=3` (D-418); "satırın kalanı" ve stok cevabı 3. çağrı istisnasını alır (D-419, S20 a); canlı betikler `turn_call_cap` içe aktarır, yerel `MAX_MODEL_CALLS_PER_TURN = 2` yok (D-417, statik test); tur içi `ConnectionError` 503 ve durum/zar değişmez (D-405); 503 tur rota günlüğüne ve kullanım satırına `refused` yazar (D-408); kilitli `_LOCAL_CALL_LOCK` ikinci çağrıyı zaman aşımıyla yedeğe düşürür (D-494); art arda iki `/api/health` defter dosyasını bir kez okur (D-496).
 - **Düzeltme:** `turn_call_cap` listeyi çağrı başına sayar; kilit `acquire(timeout=...)`; health uyarısı kısa süreli önbellek.
 - **Kapanış:** sha.
 
 ### G2.4 Zar ve anlatı çelişkisi
-- **Satırlar:** D-226, D-241, D-242, D-251. **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G2.2.
+- **Satırlar:** D-226, D-241, D-242, D-251, D-012. **Bağımlı soru:** S21 (D-012). **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G2.2.
 - **Dosyalar:** `ai-dnd/game_parts/turn_front.py`, `ai-dnd/game_parts/narration.py`, `ai-dnd/game.py` (yalnız çağrı), `ai-dnd/town_knowledge.py`, `ai-dnd/bold_acts.py`, `ai-dnd/api/journey_messages/`; yeni test `ai-dnd/api/tests/test_d226_roll_before_speech.py`.
-- **Kırmızı test:** düz korkutma cümlesi konuşma çağrısından önce zar atar ve cevap sonucu yansıtır (D-226); başarısız zar + listede olmayan akıcı başarı anlatısı reddedilir ya da yeniden yazılır (D-241); iş şartını reddeden NPC cevabına `terms_to_add` eklenmez (D-242); yolculuk sistem satırı N çekişte art arda tekrarlanmaz (D-251).
+- **Kırmızı test:** düz korkutma cümlesi konuşma çağrısından önce zar atar ve cevap sonucu yansıtır (D-226); başarısız zar + listede olmayan akıcı başarı anlatısı reddedilir ya da yeniden yazılır (D-241); iş şartını reddeden NPC cevabına `terms_to_add` eklenmez (D-242); yolculuk sistem satırı N çekişte art arda tekrarlanmaz (D-251); S21 (a) ise modelin gerçek ödülü kendi sözleriyle söylemesi ("25 deneyim puanı kazandın", tutar gerçek ödülle aynı) `CANONICAL_XP_CONTRADICTION` ile reddedilmez, farklı tutar hâlâ reddedilir (D-012; (b) ise satır Kadir cevabıyla kapanır).
 - **Düzeltme:** zar konuşmadan önce; `_states_the_failed_check` anlam denetimi genişler; şablon satırları `bold_lines_said` gibi döner.
 - **Kapanış:** sha; oynayış O5.
 
 ### G2.5 Yolculuk ve varış anlatısı
-- **Satırlar:** D-301, D-338, D-309, D-296, D-498, D-303. **Bağımlı soru:** S28. **Kulvar:** A. **İnceleme:** Opus (D-303 kayıt alanı). **Önce:** G2.4.
+- **Satırlar:** D-301, D-338, D-309, D-296, D-498, D-303. **Bağımlı soru:** S22. **Kulvar:** A. **İnceleme:** Opus (D-303 kayıt alanı). **Önce:** G2.4.
 - **Dosyalar:** `ai-dnd/game_parts/travel.py`, `resolved_narration.py`, `narration.py`, `ai-dnd/arrival_narration.py`, `ai-dnd/grounded_action.py`, `ai-dnd/heard_rumours.py`, `ai-dnd/api/lore_authority/campaign_state.py`.
-- **Kırmızı test:** "X'a gidiyorum" anlatıcıya gider, "X konumuna vardın." yok (D-301, Kadir K29); art arda iki "yürümeye devam" farklı metin (D-338); Python yedeğine düşen varışın nedeni kaydet/yükle sonrası okunur (D-309); ekli hedef adı `base_name` ile temizlenir (D-296); aynı kasabada üç binadan çıkışta "Dışarı, <kent> sokaklarına çıkıyorsun." en çok bir kez (D-498, S28); başlangıç kentine dönüş kasaba portresi yazmaz (D-303: başlangıç yerleşimi `world_state`'e yazılır).
+- **Kırmızı test:** "X'a gidiyorum" anlatıcıya gider, "X konumuna vardın." yok (D-301, Kadir K29); art arda iki "yürümeye devam" farklı metin (D-338); Python yedeğine düşen varışın nedeni kaydet/yükle sonrası okunur (D-309); ekli hedef adı `base_name` ile temizlenir (D-296); aynı kasabada üç binadan çıkışta "Dışarı, <kent> sokaklarına çıkıyorsun." en çok bir kez (D-498, S22); başlangıç kentine dönüş kasaba portresi yazmaz (D-303: başlangıç yerleşimi `world_state`'e yazılır).
 - **Kapanış:** sha; oynayış O6.
 
 ### G2.6 Eski kayıt dalları A (kayıt, savaş, büyü, diyalog)
@@ -256,13 +271,13 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Satırlar:** D-581, D-502. **Kulvar:** A. **İnceleme:** Opus. **Önce:** G2.21; öteki kulvarda `api/main.py`'ye dokunan görev koşmuyor olmalı (A2).
 - **Dosyalar:** `ai-dnd/game_parts/turn.py`, `turn_front.py`, `places.py`, `living_world_turn.py`, `ai-dnd/api/routes_turn.py`, `routes_undo.py`, `routes_economic.py`, `ai-dnd/api/main.py`; test `api/tests/test_turn_rollback_sites.py`.
 - **Kırmızı test:** `test_every_turn_end_increments_once`: her tur bitiren yol `turn_index`'i tam bir kez artırır ve tek geçmiş girdisi ekler; Geri Al önceki indeks ve mesajları geri getirir (D-581, D-502).
-- **Düzeltme:** tek yardımcı (`_reply` + `messages.extend` + artış); yedi kopya onu çağırır.
+- **Düzeltme:** tek yardımcı (`_reply` + `messages.extend` + artış); bilinen 10 artış yeri onu çağırır (`turn_front.py` içinde 7, `turn.py` ~852, `places.py` ~1625, `routes_economic.py` ~93; satır numaraları bayatlayabilir, implementer `turn_index` aramasıyla yeniden sayar ve sayıyı deftere yazar).
 - **Kapanış:** sha.
 
 ### G2.9 Ekonomi çekirdeği
-- **Satırlar:** D-317, D-403, D-501. **Bağımlı soru:** S29. **Kulvar:** A. **İnceleme:** Opus. **Önce:** G2.7.
+- **Satırlar:** D-317, D-403, D-501. **Bağımlı soru:** S23. **Kulvar:** A. **İnceleme:** Opus. **Önce:** G2.7.
 - **Dosyalar:** `ai-dnd/equipment_economy.py`, `ai-dnd/bold_acts.py`, `ai-dnd/game.py`, `ai-dnd/api/narrative_director.py`, `ai-dnd/game_parts/turn.py`; testler `test_front_failed_fallback.py`, yeni `test_d317_shopkeeper_purse.py`, `test_equipment_apply_pin.py`.
-- **Kırmızı test:** dükkânsız "Shopkeeper" NPC 5-40 bakır taşır, üstü aranınca en çok o kadar (D-317); sayısız "biraz para" teklifi yapısal kurala göre karara bağlanır, sessiz kalmaz (D-403, S29: tutar sorulur); `_apply` her işlem için altın/eşya/makbuz/Geri Al karakterizasyonu, bölmeden önce yeşil (D-501).
+- **Kırmızı test:** dükkânsız "Shopkeeper" NPC 5-40 bakır taşır, üstü aranınca en çok o kadar (D-317); sayısız "biraz para" teklifi yapısal kurala göre karara bağlanır, sessiz kalmaz (D-403, S23: tutar sorulur); `_apply` her işlem için altın/eşya/makbuz/Geri Al karakterizasyonu, bölmeden önce yeşil (D-501).
 - **Düzeltme:** `person_purse` rol eşleşmesi dükkân kaydına bağlanır; `_apply` işlem başına işlevlere bölünür, kilit küçülür.
 - **Kapanış:** sha.
 
@@ -273,9 +288,9 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Kapanış:** sha.
 
 ### G2.11 Katman döngüsü ve motor→api kenarları
-- **Satırlar:** D-590, D-583. **Bağımlı soru:** S30. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.10.
+- **Satırlar:** D-590, D-583. **Ruling:** R-S30. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.10.
 - **Dosyalar:** `ai-dnd/api/persistence/campaign_store.py`, `ai-dnd/api/auth.py`, `ai-dnd/api/local_play.py`, `ai-dnd/api/main.py`, yeni `ai-dnd/api/deps.py`, `ai-dnd/dnd_2024_rules.py` (taşınan), `ai-dnd/api/dnd_2024_rules.py` (ince yeniden dışa aktarma), `docs/agents/kalite-taramasi-20261125/importlinter.ini`.
-- **Kırmızı test:** import-linter sözleşmeleri (`routes_*` bağımsızlığı ve "motor api'yi içe aktarmaz") bugün kırık; görev sonunda geçer ya da yok sayma listesi yalnız küçülür; `engine_api_edges` 20'den en az 14 düşer (S30 b).
+- **Kırmızı test:** import-linter sözleşmeleri (`routes_*` bağımsızlığı ve "motor api'yi içe aktarmaz") bugün kırık; görev sonunda geçer ya da yok sayma listesi yalnız küçülür; `engine_api_edges` 20'den 0'a iner (R-S30; kaldırılamayan kenar onay listesine ve satır `kısmen`).
 - **Düzeltme:** `api.main`'deki paylaşılan yardımcılar `api/deps.py`'ye; `dnd_2024_rules` motor katmanına iner, eski yol yama hedefi olarak kalır (`test_engine_patch_census`).
 - **Kapanış:** sha.
 
@@ -317,15 +332,15 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Kapanış:** sha.
 
 ### G2.18 inventory ve probe araçları
-- **Satırlar:** D-451, D-461, D-452, D-437, D-438, D-362, D-365. **Bağımlı soru:** S31. **Kulvar:** B. **İnceleme:** Opus (D-452 oturum takibi). **Önce:** G2.17.
+- **Satırlar:** D-451, D-461, D-452, D-437, D-438, D-362, D-365. **Bağımlı soru:** S24. **Kulvar:** B. **İnceleme:** Opus (D-452 oturum takibi). **Önce:** G2.17.
 - **Dosyalar:** `ai-dnd/scripts/engine_split/inventory.py`, `outside_probe.py`, `ai-dnd/api/tests/engine_probe.py`, `test_engine_split_inventory.py`, `test_talk_mode_writers.py`.
-- **Kırmızı test (fikstür):** başka sınıf yöntemi tarafından okunan ad listelenmez (D-451, S31 b ise); `"game.py"` yol dizesiyle tarayan test listelenir (D-461); yardımcıdan dönen üç oturum biçimi takip edilir (D-452); 3 adımlı zincir listelenir (D-437); üst düzey `from game import X` yardımcısı `run=True` (D-438); yeniden kurulan araç kimliği 4 eski satırları yeniden tetikler (D-362); asılı alt süreç `PROBE FAIL <adım>` verir (D-365).
+- **Kırmızı test (fikstür):** başka sınıf yöntemi tarafından okunan ad listelenmez (D-451, S24 b ise; a ise Kadir cevabıyla kapanır); `"game.py"` yol dizesiyle tarayan test listelenir (D-461); yardımcıdan dönen üç oturum biçimi takip edilir (D-452); 3 adımlı zincir listelenir (D-437); üst düzey `from game import X` yardımcısı `run=True` (D-438); yeniden kurulan araç kimliği 4 eski satırları yeniden tetikler (D-362); asılı alt süreç `PROBE FAIL <adım>` verir (D-365).
 - **Kapanış:** sha.
 
 ### G2.19 move/coverage/ledger/census araçları
-- **Satırlar:** D-349, D-468, D-431, D-432, D-433, D-436, D-435, D-363, D-427, D-475, D-434, D-359. **Bağımlı soru:** S32. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.18.
+- **Satırlar:** D-349, D-468, D-431, D-432, D-433, D-436, D-435, D-363, D-427, D-475, D-434, D-359. **Bağımlı soru:** S25. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.18.
 - **Dosyalar:** `ai-dnd/scripts/engine_split/routing_audit.py`, `coverage_by_function.py`, `move_check.py`, `ledger_diff.py`, `patch_census.py`, `move_block.py`, `ai-dnd/docs/engine-split/patch-census.md`, `ai-dnd/api/tests/gate_boot.py`, testler `test_engine_surface.py`, `test_engine_move_check.py`, `test_engine_probe_tools.py`, `test_engine_move_block.py`, `test_engine_gate_boot.py`.
-- **Kırmızı test:** classify.json `red_test` alanlarındaki fikstürler (örnek: `game_parts/<diğer>.py:999:neden` "manual entry exempts nothing" verir, D-432; `import_module('game')` ve `builtins.__import__('game')` görülür, D-434/D-359; bozuk `--identity-allowlist` satırı exit 2 REFUSED, D-475; rapor sayıları taze taramaya eşit, D-427). D-349 için S32 (a) önerisi kabul edilirse kalan kör noktalar belgeye yazılır ve satır Kadir cevabıyla kapanır.
+- **Kırmızı test:** classify.json `red_test` alanlarındaki fikstürler (örnek: `game_parts/<diğer>.py:999:neden` "manual entry exempts nothing" verir, D-432; `import_module('game')` ve `builtins.__import__('game')` görülür, D-434/D-359; bozuk `--identity-allowlist` satırı exit 2 REFUSED, D-475; rapor sayıları taze taramaya eşit, D-427). D-349 için S25 (a) önerisi kabul edilirse kalan kör noktalar belgeye yazılır ve satır Kadir cevabıyla kapanır.
 - **Kapanış:** sha.
 
 ### G2.20 Kasaba tohumu ve yolculuk testleri
@@ -341,7 +356,7 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Kapanış:** sha; Kod-1 görsel kontrol K4.
 
 ### G2.22 shadcn/toast temizliği
-- **Satırlar:** D-557, D-570, D-558, D-572, D-567, D-566, D-579. **Bağımlı soru:** S33. **Kulvar:** B. **İnceleme:** Opus (D-566 dükkân). **Önce:** G2.20.
+- **Satırlar:** D-557, D-570, D-558, D-572, D-567, D-566, D-579. **Ruling:** R-S33. **Kulvar:** B. **İnceleme:** Opus (D-566 dükkân). **Önce:** G2.20.
 - **Dosyalar:** `artifacts/ai-dnd-experience/src/components/ui/` (kullanılmayan dosyalar), `ui/toast.tsx`, `toaster.tsx`, `sonner.tsx`, `src/components/kitap/`, `shop-panel.tsx`, `artifacts/ai-dnd-experience/package.json`, `pnpm-lock.yaml`, fallow/knip tabanları.
 - **Kırmızı kontrol:** önce iddia doğrulanır: `useToast`/`Toaster` `app-shell.tsx` ve `kitap/kontroller.tsx`'te hâlâ kullanılıyor mu (D-558). Silme sonrası fallow ve knip tabanı küçülür; derleme ve vitest geçer (D-557, D-570); kitap galerisi `import.meta.env.DEV` koruması altında (D-567); `shop-panel` testleri bileşen üzerinden içe aktarır, test-only export kalkar (D-566); D-579 G1.5 ve bu görevle birlikte çözülür (üç kopyadan biri kalır).
 - **Kapanış:** sha.
@@ -353,21 +368,21 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 - **Kapanış:** sha.
 
 ### G2.24 campaign_store
-- **Satırlar:** D-495, D-536, D-305. **Bağımlı soru:** S34. **Kulvar:** B. **İnceleme:** Opus. **Önce:** G2.11 (aynı dosya).
+- **Satırlar:** D-495, D-536, D-305. **Bağımlı soru:** S26. **Kulvar:** B. **İnceleme:** Opus. **Önce:** G2.11 (aynı dosya).
 - **Dosyalar:** `ai-dnd/api/persistence/campaign_store.py`, `ai-dnd/api/tests/test_persistence_idempotency.py`, `compact_receipts` testleri.
-- **Kırmızı test:** 10 000 satırlık geçmiş sayfalı okunur ve eski `fetchall` ile aynı veri (D-495); S34 (b) ise `compact_receipts` ve yalnız onu çağıran test kullanımları silinir, Geri Al derinliği testi yeşil kalır (D-536, onay listesine); eşzamanlı iki farklı eylem `threading.Barrier` ile aynı anda başlar ve zaman kaybı olmadan sıralanır (D-305).
+- **Kırmızı test:** 10 000 satırlık geçmiş sayfalı okunur ve eski `fetchall` ile aynı veri (D-495); S26 (b) ise `compact_receipts` ve yalnız onu çağıran test kullanımları silinir, Geri Al derinliği testi yeşil kalır (D-536, onay listesine); eşzamanlı iki farklı eylem `threading.Barrier` ile aynı anda başlar ve zaman kaybı olmadan sıralanır (D-305).
 - **Kapanış:** sha.
 
 ### G2.25 game.py başlığı ve ölü kod tablosu
-- **Satırlar:** D-445, D-490, D-492, D-555, D-507, D-523. **Bağımlı soru:** S35, S36. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.23.
+- **Satırlar:** D-445, D-490, D-492, D-555, D-507, D-523. **Bağımlı soru:** S27, S28. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.23.
 - **Dosyalar:** `ai-dnd/game.py`, `ai-dnd/game_parts/__init__.py`, `text_rules_a.py`, `lore.py`, `places.py`, `turn_front.py` (yalnız içe aktarma), `docs/engine-split/olu-kod-kaniti.md`, `ai-dnd/scripts/quality_gate/vulture_whitelist.py`, ilgili testler.
-- **Kırmızı test:** `test_game_header_f401_gate`: izin listesi dışındaki kullanılmayan içe aktarma kırmızı (D-445; 643 yeniden dışa aktarma S5 b ile izinli); `SECURITY LLM01/LLM07` yorumu `_untrusted_player_block`'un hemen üstünde, `ast.dump` aynı (D-492). Silmeler: S36 tablosundaki satırlar, vulture beyaz liste B'deki 7 girdi (D-555), yalnız testlerin çağırdığı 7 + 4 işlev ve testleri (D-507, D-523). Her silme sonrası motor kilitleri ve komşu set yeşil.
+- **Kırmızı test:** `test_game_header_f401_gate`: izin listesi dışındaki kullanılmayan içe aktarma kırmızı (D-445; 643 yeniden dışa aktarma S4 b ile izinli); `SECURITY LLM01/LLM07` yorumu `_untrusted_player_block`'un hemen üstünde, `ast.dump` aynı (D-492). Silmeler: S34 tablosundaki satırlar, vulture beyaz liste B'deki 7 girdi (D-555), yalnız testlerin çağırdığı 7 + 4 işlev ve testleri (D-507, D-523). Her silme sonrası motor kilitleri ve komşu set yeşil.
 - **Kapanış:** sha.
 
 ### G2.26 Diğer ölü kod
-- **Satırlar:** D-512, D-544, D-509, D-513, D-514, D-580, D-594, D-601, D-595. **Bağımlı soru:** S37-S40. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.25.
-- **Dosyalar:** `ai-dnd/incidents/categories.py`, `incidents/gate.py`, `ai-dnd/intent_contract.py`, `ai-dnd/local_exploration.py`, `ai-dnd/api/lore_authority/freeze_admission.py`, `api/lore_authority/__init__.py`, `ai-dnd/interaction_adventure.py`, `ai-dnd/spells/legality.py`, `ai-dnd/adventure/dialogue_jobs.py`, `ai-dnd/docs/evidence/` (S40 a: arşiv klasörüne `git mv`), `docs/agents/kalite-taramasi-20261125/pyrightconfig.json`, ilgili testler.
-- **Kırmızı kontrol:** her aday için repo geneli arama ve dinamik çağrı denetimi; silinemeyen aday beyaz listeye gerekçeyle (D-594, D-601). D-544 S38 (a) ise `threat_band 'none'` ile savaş bağı reddi testi, (b) ise işlev ve testi silinir. Silinen test onay listesine.
+- **Satırlar:** D-512, D-544, D-509, D-513, D-514, D-580, D-594, D-601, D-595. **Bağımlı soru:** S29 (D-544); Ruling R-S37, R-S39, R-S40. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G2.25.
+- **Dosyalar:** `ai-dnd/incidents/categories.py`, `incidents/gate.py`, `ai-dnd/intent_contract.py`, `ai-dnd/local_exploration.py`, `ai-dnd/api/lore_authority/freeze_admission.py`, `api/lore_authority/__init__.py`, `ai-dnd/interaction_adventure.py`, `ai-dnd/spells/legality.py`, `ai-dnd/adventure/dialogue_jobs.py`, `ai-dnd/docs/evidence/` (R-S40: arşiv klasörüne `git mv`), `docs/agents/kalite-taramasi-20261125/pyrightconfig.json`, ilgili testler.
+- **Kırmızı kontrol:** her aday için repo geneli arama ve dinamik çağrı denetimi; silinemeyen aday beyaz listeye gerekçeyle (D-594, D-601). D-544 S29 (a) ise `threat_band 'none'` ile savaş bağı reddi testi, (b) ise işlev ve testi silinir. Silinen test onay listesine.
 - **Kapanış:** sha; vulture 60 ve skylos sayıları düşer.
 
 ### Dalga 2 kapısı (DK2)
@@ -377,17 +392,17 @@ G2.16 (18 dosyaya dokunur) dalganın sonunda tek başına, iki kulvar boşken ko
 
 ## Dalga 3 — DÜŞÜK
 
-Kulvar A (yuva 9): G3.1 → G3.2 → G3.3 → G3.4 → G3.5 → G3.6 → G3.7. Kulvar B (yuva 2): G3.8 → G3.9 → G3.10 → G3.11.
+Kulvar A (yuva 9): G3.1 → G3.2 → G3.3 → G3.4 → G3.5 → G3.6 → G3.7. Kulvar B (yuva 2): G3.8 → G3.9 → G3.10 → G3.12. G3.11 Kod-1'de, kulvarlardan bağımsız.
 
 ### G3.1 Kese cümlesi okuması
-- **Satırlar:** D-285, D-286, D-287, D-288, D-289, D-291. **Bağımlı soru:** S41, S42. **Kulvar:** A. **İnceleme:** Opus.
+- **Satırlar:** D-285, D-286, D-287, D-288, D-289, D-291. **Bağımlı soru:** S30, S31. **Kulvar:** A. **İnceleme:** Opus.
 - **Dosyalar:** `ai-dnd/pocket.py`, `ai-dnd/front_proposal.py`; test `ai-dnd/api/tests/test_pocket_coin_lines.py`.
-- **Kırmızı test (tablo, olumlu ve olumsuz):** "Kesene 5 bakır bırakıyor." para hareketsiz turda silinir (D-285); "Kesene beş gümüş ekli." silinir, "ekli" metal sıfatı değil (D-288); "Kesenin altından on bakır çıkıyor", "Yirmi altın senin", "bir buçuk bakır", "0 bakır" (D-289); ilk sözcük olmayan veriş ve "birkaç gold" (D-291); S41 (a) ise İngilizce olumsuz kese cümlesi (D-286), (b) ise satır wontfix; S42 (a) ise kazanılan zarda anlatı ödenen 5'e göre yeniden yazılır (D-287). Her durumda: kese yalnız kartla değişir.
+- **Kırmızı test (tablo, olumlu ve olumsuz):** "Kesene 5 bakır bırakıyor." para hareketsiz turda silinir (D-285); "Kesene beş gümüş ekli." silinir, "ekli" metal sıfatı değil (D-288); "Kesenin altından on bakır çıkıyor", "Yirmi altın senin", "bir buçuk bakır", "0 bakır" (D-289); ilk sözcük olmayan veriş ve "birkaç gold" (D-291); S30 (a) ise İngilizce olumsuz kese cümlesi (D-286), (b) ise satır `ertelendi: İngilizce dil desteği`; S31 (a) ise kazanılan zarda anlatı ödenen 5'e göre yeniden yazılır (D-287). Her durumda: kese yalnız kartla değişir.
 - **Kapanış:** sha.
 
 ### G3.2 Ekonomi satırları
-- **Satırlar:** D-334, D-253, D-275, D-278, D-265, D-412, D-318. **Bağımlı soru:** S43. **Kulvar:** A. **İnceleme:** Opus. **Önce:** G3.1.
-- **Dosyalar:** `ai-dnd/economic_actions.py`, `ai-dnd/equipment_economy.py`, `ai-dnd/game_parts/coin.py`, `ai-dnd/bold_acts.py`, `ai-dnd/local_dialogue.py`, `ai-dnd/game_parts/turn_front.py`, içerik kataloğu (S43 a: "20 Ok" fiyatı); testler `test_economic_bribe.py`, yeni `test_d334_room_price.py`.
+- **Satırlar:** D-334, D-253, D-275, D-278, D-265, D-412, D-318. **Bağımlı soru:** S32. **Kulvar:** A. **İnceleme:** Opus. **Önce:** G3.1.
+- **Dosyalar:** `ai-dnd/economic_actions.py`, `ai-dnd/equipment_economy.py`, `ai-dnd/game_parts/coin.py`, `ai-dnd/bold_acts.py`, `ai-dnd/local_dialogue.py`, `ai-dnd/game_parts/turn_front.py`, içerik kataloğu (S32 a: "20 Ok" fiyatı); testler `test_economic_bribe.py`, yeni `test_d334_room_price.py`.
 - **Kırmızı test:** oda fiyatı tek cümlede bir kez; açık 4 bakır teklife "barmene 4 bakır veriyorum" satın almayı tamamlar, tek harcama, tek makbuz (D-334); "Kısa Yay & 20 Ok" parça toplamıyla fiyatlanır (D-253); NPC kaldırılınca kesesi de taşınır/düşer, `validate_world` temiz (D-275); `|` içeren yer kimliği `rpartition` ile bölünür, olumsuz anlatılar ("mızrak çalınmış") eşya göstermez (D-278); aynı turdaki para isteği kendi Persuasion zarını atar, kart sonucu parayla tutar (D-265); 500 bakırlı kesede bahşiş cevabı "altın yok" demez (D-412); 4000 karakterlik düşmanca girdi zaman sınırında biter (D-318: `_NOT_NOW` sınırlı).
 - **Kapanış:** sha.
 
@@ -404,15 +419,15 @@ Kulvar A (yuva 9): G3.1 → G3.2 → G3.3 → G3.4 → G3.5 → G3.6 → G3.7. K
 - **Kapanış:** sha.
 
 ### G3.5 grounded_action ve metin süzgeçleri
-- **Satırlar:** D-381, D-382, D-392, D-222, D-508, D-330. **Bağımlı soru:** S44. **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G3.4.
+- **Satırlar:** D-381, D-382, D-392, D-222, D-508, D-330. **Bağımlı soru:** S33. **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G3.4.
 - **Dosyalar:** `ai-dnd/grounded_action.py`, `ai-dnd/game.py`, `ai-dnd/town_knowledge.py`; testler `test_front_failed_fallback.py`, yeni `test_d381_rob_outside.py`.
-- **Kırmızı test:** tohum 12/27/32 kasabasında okuma kapalı "şehrin dışına gidiyorum ve X'i soyuyorum" oyuncuyu kasabadaki X'e yürütmez, "X kasabada mı?" sorar (D-381, S44); "Zivanel'i soyuyorum." tek başına adım üretir (D-382); `PLACE_KINDS` dış mekân bayrağı bozulunca son iddia tek başına kırmızı (D-392); "birine" yer/kişi adıyla eşleşmez, geçerse satır yanlış alarm olarak kanıtla kapanır (D-222); geniş `except` yerleri loglar ya da daralır, beklenmeyen hata yutulmaz (D-508); çok paragraflı metin süzgeçten paragraf boşluğuyla çıkar (D-330).
+- **Kırmızı test:** tohum 12/27/32 kasabasında okuma kapalı "şehrin dışına gidiyorum ve X'i soyuyorum" oyuncuyu kasabadaki X'e yürütmez, "X kasabada mı?" sorar (D-381, S33); "Zivanel'i soyuyorum." tek başına adım üretir (D-382); `PLACE_KINDS` dış mekân bayrağı bozulunca son iddia tek başına kırmızı (D-392); "birine" yer/kişi adıyla eşleşmez, geçerse satır yanlış alarm olarak kanıtla kapanır (D-222); geniş `except` yerleri loglar ya da daralır, beklenmeyen hata yutulmaz (D-508); çok paragraflı metin süzgeçten paragraf boşluğuyla çıkar (D-330).
 - **Kapanış:** sha.
 
 ### G3.6 Küçük motor satırları
-- **Satırlar:** D-582, D-290, D-165, D-406, D-407, D-409, D-310. **Bağımlı soru:** S45, S46. **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G3.5.
+- **Satırlar:** D-582, D-290, D-165, D-406, D-407, D-409, D-310. **Bağımlı soru:** S34 (D-310); Ruling R-S45 (D-582). **Kulvar:** A. **İnceleme:** Sonnet. **Önce:** G3.5.
 - **Dosyalar:** `ai-dnd/action_economy.py`, `ai-dnd/refusals.py`, `ai-dnd/adventure/director.py`, `ai-dnd/followup.py`, `ai-dnd/incidents/bridge.py`, `ai-dnd/game_parts/turn_front.py`, `ai-dnd/api/main.py` (yalnız kaynak etiketi), yerel oyun başlatıcısı (`start_local.ps1`, D-310); testler `test_action_economy.py`, `test_front_failed_fallback.py`, `test_d109_timing.py`, `test_model_failure_never_locks.py`, `test_talk_front.py`.
-- **Kırmızı test:** `magic` türünde Ready + `spell_metadata` kaydı yüklemede reddedilir, sonra ulaşılmaz dal silinir (D-582, S45 a); hedef ölünce takip görevi açılır, düşmüş ikinci NPC yerine sıradaki seçilir (D-290); kaynaksız tur `campaign_history_sources`'a None değil tanımlı etiket yazar (D-165); açık teklifte okuma RuntimeError → `fallback:failed:offer_answer` ve teklif kabul (D-406); okuma şemasında sınırsız kanıt dizisi yok, bozma kanıtıyla (D-407); "provider gone" testleri `ConnectionError` ile 503 bekler (D-409); başlatıcı `-LocalPlay` ile `AI_DND_SPEECH_DEBUG=1` kurar (D-310, S46 a; kapanış bir sonraki oynayışta `speech-debug.jsonl` okunmasıyla, O8).
+- **Kırmızı test:** `magic` türünde Ready + `spell_metadata` kaydı yüklemede reddedilir, sonra ulaşılmaz dal silinir (D-582, R-S45); hedef ölünce takip görevi açılır, düşmüş ikinci NPC yerine sıradaki seçilir (D-290); kaynaksız tur `campaign_history_sources`'a None değil tanımlı etiket yazar (D-165); açık teklifte okuma RuntimeError → `fallback:failed:offer_answer` ve teklif kabul (D-406); okuma şemasında sınırsız kanıt dizisi yok, bozma kanıtıyla (D-407); "provider gone" testleri `ConnectionError` ile 503 bekler (D-409); başlatıcı `-LocalPlay` ile `AI_DND_SPEECH_DEBUG=1` kurar (D-310, S34 a; kapanış bir sonraki oynayışta `speech-debug.jsonl` okunmasıyla, O8).
 - **Kapanış:** sha.
 
 ### G3.7 TypedDict artıkları
@@ -422,15 +437,15 @@ Kulvar A (yuva 9): G3.1 → G3.2 → G3.3 → G3.4 → G3.5 → G3.6 → G3.7. K
 - **Kapanış:** sha.
 
 ### G3.8 Motor testi sertleştirme
-- **Satırlar:** D-453, D-454, D-462, D-463, D-476, D-477, D-380, D-356, D-388, D-391. **Kulvar:** B. **İnceleme:** Sonnet.
+- **Satırlar:** D-453, D-454, D-462, D-463, D-476, D-477, D-380, D-356, D-388, D-391, D-076. **Kulvar:** B. **İnceleme:** Sonnet.
 - **Dosyalar:** `ai-dnd/api/tests/test_engine_patch_census.py`, `test_engine_module_alias.py`, `patch_census.json`, `test_engine_surface.py`, `test_engine_parts_pilot.py`, `test_engine_schemas_part.py`, `test_front_proposal.py`, `test_front_carries_more.py`, yeni `test_no_tests_dir_on_sys_path.py`.
-- **Kırmızı test:** izin listesinde olmayan hesaplanmış yama adı sayımı kırmızı yapar (D-453); uygun olmayan kapanış `_assert_part_ob...` kırmızı (D-454); D-462 (a)-(e), D-476 ve D-477 maddelerinin her biri bozma kanıtıyla; `SchemasPart` `assertIs` (D-380 madde 2; 5-8 ölçüm notu, kanıtla kapanır); `api/tests`'i `sys.path`'e koyan modül AST taramasında kırmızı (D-356); `test_front_carries_more` kurulumu mixin'e taşınır, 243 yinelenen koşu düşer (D-388); `holders` karakter adını içerir, `['text']`'ten önce `assertIsNotNone` (D-391).
+- **Kırmızı test:** izin listesinde olmayan hesaplanmış yama adı sayımı kırmızı yapar (D-453); uygun olmayan kapanış `_assert_part_ob...` kırmızı (D-454); D-462 (a)-(e), D-476 ve D-477 maddelerinin her biri bozma kanıtıyla; `SchemasPart` `assertIs` (D-380 madde 2; 5-8 ölçüm notu, kanıtla kapanır); `api/tests`'i `sys.path`'e koyan modül AST taramasında kırmızı (D-356); `test_front_carries_more` kurulumu mixin'e taşınır, 243 yinelenen koşu düşer (D-388); `holders` karakter adını içerir, `['text']`'ten önce `assertIsNotNone` (D-391); D-076: `test_roadmap_c06_dex_asi` modülü yuvada 10 kez koşulur, süreler deftere; tek test 60 sn'yi geçmezse satır "yeniden üretilemedi" kanıtı + doğrulayıcı ile kapanır (flake kuralı: bisect yok, tohum zaten sabit), geçerse kök neden aranır ve düzeltilir.
 - **Kapanış:** sha.
 
 ### G3.9 Belgeler ve süreç kuralları
 - **Satırlar:** D-357, D-442, D-457, D-460, D-482, D-493, D-479, D-481, D-491, D-439, D-441, D-455, D-469. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G3.8.
 - **Dosyalar:** `docs/design/borc-defteri.md`, `docs/agents/hiz-kurallari.md`, `docs/agents/implementer-preamble.md`, `docs/agents/common.md`, `docs/agents/onay-listesi-20261115.md`, `docs/engine-split/olu-kod-kaniti.md`, `docs/design/INDEX.md`, `ai-dnd/docs/engine-split/claims.md`, `ai-dnd/scripts/engine_split/blank_runs.py`, `ai-dnd/api/tests/test_engine_layout.py`, `test_engine_surface.py` (bir yorum satırı), `.superpowers/sdd/tur-bolme/progress.md` (repo içindeyse).
-- **Kırmızı test (yalnız kod maddeleri):** `blank_runs.verify('x = 1\n','x = 1')` bulgu döner (D-493 d); def içinde silinen boş satır bulgusu tam metinle (D-493 e). Diğerleri metin: 8 dikey çizgi düzeltmesi (D-357), "sekiz yeni parça" (D-442), claims.md "Plan 2 anlık görüntüsü" notu (D-439), progress.md'ye RED/GREEN işaretçileri (D-441), D-481 koşu kuralları bir kez `common.md`'ye; D-455 ve D-469 D-481'e bağlanıp kanıtla kapanır; biten planlara ait D-457, D-460, D-479, D-482, D-491 "plan bitti, kural `common.md`'de" kanıtıyla kapanır.
+- **Kırmızı test (yalnız kod maddeleri):** `blank_runs.verify('x = 1\n','x = 1')` bulgu döner (D-493 d); def içinde silinen boş satır bulgusu tam metinle (D-493 e). Diğerleri metin: 8 dikey çizgi düzeltmesi (D-357), "sekiz yeni parça" (D-442), claims.md "Plan 2 anlık görüntüsü" notu (D-439), progress.md'ye RED/GREEN işaretçileri (D-441), D-481 koşu kuralları bir kez `common.md`'ye; D-455 D-481'e bağlanıp kanıtla kapanır; D-469 defterde zaten `kapandı (açık kalanlar D-481'de)`, yalnız işaretçinin doğru olduğu doğrulanır, durum değişmez; biten planlara ait D-457, D-460, D-479, D-482, D-491 "plan bitti, kural `common.md`'de" kanıtıyla kapanır.
 - **Kapanış:** sha.
 
 ### G3.10 Eski arayüz kodu
@@ -444,45 +459,59 @@ Kulvar A (yuva 9): G3.1 → G3.2 → G3.3 → G3.4 → G3.5 → G3.6 → G3.7. K
 - **İş:** D-083 giriş resmi `img.complete/decode` beklenir; D-273 ve D-091 yerleşim/kaydırma durulmasını bekleyen tek çağrı; D-087 son N (öneri 10) yeşil main CI koşusu kanıtıyla kapanır; D-236 dar ve geniş genişlikte üç kurtarma düğmesinin üst üste binmediği ekran görüntüsü. Kırılgan pakete yeni test eklenmez; yalnız var olan bekleme düzeltilir.
 - **Kapanış:** sha (D-083, D-091, D-273) ya da kanıt (D-087 CI koşu kimlikleri, D-236 ekran görüntüsü yolu) + Kod-1 notu.
 
+### G3.12 Kayıp Kişi: kaçıran ayrı düşman
+- **Satırlar:** D-279, D-221. **Ruling:** R-S2. **Kulvar:** B. **İnceleme:** Sonnet. **Önce:** G3.10.
+- **Dosyalar:** `ai-dnd/adventure/templates.py` (`_missing_person` bağları: `captor_npc_ids`), `ai-dnd/adventure/evidence.py`, `ai-dnd/adventure/dungeon.py`, `ai-dnd/adventure/projection.py`; yeni test `ai-dnd/api/tests/test_d279_captor.py` (sabit kasaba).
+- **Kırmızı test:** `test_defeating_captor_closes_threat_step`: kaçıran yenilince "Tehdidi dağıt" adımı kapanır; `test_defeating_rescuee_does_not_close`; `test_captor_placed_in_dungeon`; etiket "Karşılaş"; ikna/sindirme yolu D-183 istisnasıyla çalışmaya devam eder (uçtan uca `apply_evidence` testi).
+- **Düzeltme:** kaçıran şablona ayrı NPC olarak eklenir, `resolution_kinds`'a combat geri döner; eski kayıtlı görev göçü yok (Kadir kuralı).
+- **Kapanış:** sha (iki satır birlikte); oynayış O10.
+
 ### Dalga 3 kapısı (DK3)
-"Dalga kapısı" adımları. Oynayış: O8 ve para satırları (G3.1-G3.3) için O9.
+"Dalga kapısı" adımları. Oynayış: O8, O9 (para satırları G3.1-G3.3) ve O10.
 
 ---
 
 ## Dalga 4 — kapıları sıkılaştırma, desloppify kalanı, son ölçüm
 
-Sıralı, yuva 9: G4.1 → G4.2 → G4.3.
+Sıralı, yuva 9: G4.1 → G4.2 → G4.3 → G4.4.
 
 ### G4.1 Kalite kapısı sıkılaştırma
-- **Satırlar:** D-588, D-589, D-591, D-556, D-600. **Bağımlı soru:** S47, S48, S49. **İnceleme:** Opus (D-588 para yolu).
+- **Satırlar:** D-588, D-589, D-591, D-556, D-600. **Bağımlı soru:** S35, S36, S37. **İnceleme:** Opus (D-588 para yolu).
 - **Dosyalar:** `ai-dnd/equipment_economy.py`, `economic_actions.py`, `game.py`, `api/main.py`, `api/routes_level_up.py`, `game_parts/turn.py`, `turn_front.py`, `combat_flow.py`, `resolved_narration.py` (yalnız "possibly unbound" yerleri), `ai-dnd/bound_text.py`, `npc_speech_boundary.py`, `pyproject.toml`, `ai-dnd/scripts/quality_gate/` (ratchet, tabanlar), `.github/workflows/ai-dnd-quality.yml`, `docs/agents/kalite-taramasi-20261125.md`.
-- **Kırmızı test:** "possibly unbound" her yer için değişkeni atanmamış bırakan dalı süren test UnboundLocalError vermez (D-588; pyright yanılıyorsa yerleşim değişir); döngüdeki kapanış döngüden sonra çağrılınca kendi değerini görür (D-591 B023); pyright ratchet tabanı 1804'ten büyüyemez, yeni Optional hatası kapıyı kırmızı yapar (D-589, S47 a); ruff tabanı yalnız gerçek borcu tutar, bilinçli yeniden dışa aktarmalar `__all__` ya da gerekçeli `noqa` (D-556); S49'da seçilen her araç ratchet adımı olarak eklenir ve tohumlanmış yeni bulguyla kırmızı olduğu gösterilir (D-600).
+- **Kırmızı test:** "possibly unbound" her yer için değişkeni atanmamış bırakan dalı süren test UnboundLocalError vermez (D-588; pyright yanılıyorsa yerleşim değişir); döngüdeki kapanış döngüden sonra çağrılınca kendi değerini görür (D-591 B023); pyright ratchet tabanı 1804'ten büyüyemez, yeni Optional hatası kapıyı kırmızı yapar (D-589, S35 a); ruff tabanı yalnız gerçek borcu tutar, bilinçli yeniden dışa aktarmalar `__all__` ya da gerekçeli `noqa` (D-556); S37'te seçilen her araç ratchet adımı olarak eklenir ve tohumlanmış yeni bulguyla kırmızı olduğu gösterilir (D-600).
 - **Kapanış:** sha; CI süresi önce/sonra deftere.
 
-### G4.2 desloppify kalanı
-- **Satırlar:** D-598, D-599. **Bağımlı soru:** S50, S51. **İnceleme:** Opus.
-- **Dosyalar:** küme başına belirlenir (`ai-dnd` üretim bölgesi, `api/main.py`, `api/session_manager.py`, `api/auth.py`, `api/emergence`, `character_progression.py`, `class_progression.py`, `game.py`, `game_parts/`).
-- **Kırmızı test:** küme başına desloppify sayısı düşer; para veya girdi koruyan `assert`'ler (bandit B101) açık `raise` olur, her biri için test; D-599 alt bulguları tek tek: `SessionManager.get` durum değiştirmez testi; docs/openapi rotası G2.10 D-314 ile kapandıysa kanıt. S50 (evet) ile "gerekçeli yanlış alarm" kümeleri (ör. 988 bölümler arası özel içe aktarma) satır notuna gerekçesiyle yazılır. S51'de `ValueError` → `GameError` göçü "hayır" ise o alt bulgu Kadir cevabıyla kapanır.
+### G4.2 desloppify öznel bulgular (72 bulgu)
+- **Satırlar:** D-599. **Bağımlı soru:** S39. **İnceleme:** Opus (session_manager, main).
+- **Dosyalar:** bulgu başına (`game.py`, `game_parts/`, `api/main.py`, `api/session_manager.py`, `api/auth.py`, `api/emergence`, `character_progression.py`, `class_progression.py`).
+- **İş bölümü:** 72 bulgu 20 boyuta göre en çok 4 alt partiye bölünür; her parti ayrı commit ve ayrı inceleme turu.
+- **Kırmızı test:** alt bulgu başına (ör. `SessionManager.get` durum değiştirmez); docs/openapi rotası G2.10 D-314 ile kapandıysa kanıt; S39 (2) "hayır" ise `ValueError` → `GameError` göçü alt bulgusu Kadir cevabıyla kapanır.
 - **Kapanış:** sha.
 
-### G4.3 Son kapı (satır yok)
+### G4.3 desloppify mekanik kümeler
+- **Satırlar:** D-598. **Bağımlı soru:** S38. **İnceleme:** Opus (para koruyan assert'ler). **Önce:** G4.2 (defterde D-598, D-599'a bağlı).
+- **Dosyalar:** küme başına belirlenir (`ai-dnd` üretim bölgesi; `api/` içindeki `assert`'ler).
+- **Kırmızı test:** küme başına desloppify sayısı düşer; para veya girdi koruyan `assert`'ler (bandit B101) açık `raise` olur, her biri için test. S38 (a) ile "gerekçeli yanlış alarm" kümeleri (ör. 988 bölümler arası özel içe aktarma) satır notuna gerekçesiyle yazılır.
+- **Kapanış:** sha.
+
+### G4.4 Son kapı (satır yok)
 - [ ] `make_baseline.py` `COMMANDS` içindeki 17 komutun hepsini `AI-DND-TOOLS/gate-<tarih>-son/raw` içine koş (skylos gerçek `rg` ile, pip-audit iki dosya, pnpm audit iki koşu).
 - [ ] `python docs/agents/kalite-taramasi-20261125/make_baseline.py <raw> <...>/baseline-son.json`.
-- [ ] `compare_baseline.py baseline.json baseline-son.json --touched <bütün dosyalar>` → exit 0. Yeni yayımlanmış açık (2026-11-25 sonrası) varsa aynı görevde yükseltilir.
+- [ ] `compare_baseline.py baseline.json baseline-son.json --touched <bütün dosyalar>` → exit 0 (her araç toplamı ≤ başlangıç). Yeni yayımlanmış açık (2026-11-25 sonrası) varsa aynı görevde yükseltilir.
 - [ ] Tam CI: `gh run list --repo kadirkayarr-beep/AI-DND` 'AI-DND bounded verification' ve 'AI-DND quality gate' yeşil.
 - [ ] desloppify taraması: objective ≥ 74.9, açık kümeler başlangıçtan büyük değil.
 - [ ] Bütün dal incelemesi: Opus, `superpowers:requesting-code-review`, dalga dallarının main'e göre farkı.
-- [ ] Defter sayımı: `debt-register.md` içinde Durum sütunu "açık" ya da "kısmen" olan satır 0 (Kadir wontfix'leri kapalı sayılır). Komut: satırları Python ile ayrıştır, durumu `kapandı (`, `wontfix`, `tamamlandı`, `yanlış bulgu`, `düzeltildi` ile başlamayanları say; beklenen 0.
+- [ ] Defter sayımı: Python ile her `| D-NNN |` satırının son hücresini al; açık = `casefold()` sonrası `açık`/`acik`/`kısmen`/`kismen` ile başlar ya da satır elle tutulan tuhaf biçim listesindedir (D-012, D-023, D-076, D-279 ve plan sırasında eklenenler; bunlar için durum hücresi yeniden yazıldı mı bakılır) ya da metinde `durum: açık` geçer. Beklenen: 0. `ertelendi:` ve `wontfix` Kadir cevabıyla kapalıdır. Sayımın kendisi bir kez elle denetlenir: rastgele 10 kapalı satırın durumunu oku.
 - [ ] Kadir oynayışı (en az 10 dakika) ve sabah özeti.
 
 ---
 
-## Dalga kapısı (DK1-DK3; DK4 = G4.3)
+## Dalga kapısı (DK1-DK3; DK4 = G4.4)
 
 - [ ] **K1:** dalganın bütün görevleri dalga dalında; denetleyici defteri güncelledi.
 - [ ] **K2 CI kapıları yerelde:** `.github/workflows/ai-dnd-quality.yml` içindeki adımlar aynen (ruff F,E9 taban, ruff/knip/vulture/gitleaks/size_lock yalnız küçülür, vulture 80, gitleaks tam geçmiş, knip, `pnpm run typecheck`). Hepsi exit 0.
 - [ ] **K3 ucuz taban komutları:** `ruff_extra`, `vulture60`, `bandit`, `pyright`, `radon_cc`, `import_linter`, `engine_api_edges`, `deptry`, `fallow` → `AI-DND-TOOLS/gate-<tarih>-dalgaN/raw`; `make_baseline.py` ile `baseline-dalgaN.json`.
-- [ ] **K4 karşılaştırma:** `compare_baseline.py baseline.json baseline-dalgaN.json --touched "$(git diff --name-only origin/main...HEAD)"` → exit 0. Büyüme varsa: aynı dalgada, büyümeye yol açan görevin kulvarında küçük düzeltme görevi (aynı kurallar). Yeni satır açılmaz.
+- [ ] **K4 karşılaştırma:** `compare_baseline.py baseline.json baseline-dalgaN.json --touched "$(git diff --name-only origin/main...HEAD)"` → exit 0. Herhangi bir aracın toplamı büyürse (dokunulmayan dosyada olsa da) aynı dalgada, büyümeye yol açan görevin kulvarında küçük düzeltme görevi (aynı kurallar). Yeni satır açılmaz. deptry ve skylos da karşılaştırılır (skylos yalnız DK2 ve G4.4'te, 289 sn).
 - [ ] **K5 dalga hedef seti:** dalgada dokunulan dosyaları okuyan test modüllerinin birleşimi + komşu set + motor kilitleri + para listesi, iki bayrakta, yuva 9 ve 2'ye bölünmüş. `failing_ids 0`.
 - [ ] **K6 PR ve CI:** dalga dalı → main PR; `gh run list` ile iki iş akışı yeşil. Kırmızı hemen bildirilir; tekrar koşmadan önce kırmızı denemenin kanıtı indirilir.
 - [ ] **K7 oynayış ve özet:** oyun davranışı değiştiyse Kadir en az 10 dakika oynar (oynayış listesi); oynamadıysa defterde "oynayış bekliyor" ve main'e birleştirme yok. Sabah özeti (en çok beş satır).
@@ -492,17 +521,21 @@ Sıralı, yuva 9: G4.1 → G4.2 → G4.3.
 
 ## Bütçe
 
-Haftalık kullanım %61; sıfırlanma 2026-11-29 17:00. %90'da yeni aşama başlamaz. Fable kullanılmaz; Opus yalnız para/kayıt/Geri Al incelemesi ve bütün dal incelemesi; implementer ve diğer incelemeler Sonnet. Sayılar tahmindir, ölçülmedi; her görevin gerçek payı deftere yazılır ve sonraki tahmin onunla düzeltilir.
+Haftalık kullanım %61; sıfırlanma 2026-11-29 17:00; %90'da yeni aşama başlamaz. Fable kullanılmaz; Opus yalnız para/kayıt/Geri Al incelemesi ve bütün dal incelemesi; implementer ve diğer incelemeler Sonnet. Sayılar tahmindir, ölçülmedi.
 
-| Dalga | Görev | Ajan (impl + inceleme + düzeltme turu tahmini) | Opus inceleme | Tahmini haftalık pay | Sıfırlamadan önce |
+**Oran:** Dalga 1 görev başına ~%2,5 (implementer + inceleme + ortalama 0,4 düzeltme turu; 6/8 Opus inceleme) tahmin edilir. Sonraki dalgalar bu oranla hesaplanır; yalnız Opus incelemesi olmayan küçük (S) paketler için ~%1,5 kullanılır, çünkü Sonnet inceleme ve kısa diff. Dalga 1 bittiğinde gerçek oran defterden okunur ve tablo yeniden hesaplanır.
+
+| Dalga | Görev | Ajan (impl + inceleme + düzeltme turu) | Opus inceleme | Tahmini pay | Hesap |
 |---|---|---|---|---|---|
-| 0 | 5 | 5 + 5 + 1 = 11 | 1 (D-517) | %4 | evet |
-| 1 | 8 | 8 + 8 + 3 = 19 | 6 | %20 | evet (toplam ~%85; %88'i geçerse G1.7 ve G1.8 sıfırlamaya kalır) |
-| 2 | 26 | 26 + 26 + 8 = 60 | 15 | %45 | hayır |
-| 3 | 11 | 11 + 11 + 3 = 25 | 4 | %14 | hayır |
-| 4 | 3 | 3 + 3 + 1 + bütün dal = 8 | 3 | %14 | hayır |
+| 0 | 5 | 5 + 5 + 1 = 11 | 1 | %4 | küçük görevler, ~%0,8 |
+| 1 | 8 | 8 + 8 + 3 = 19 | 6 | %20 | 8 × 2,5 |
+| 2 | 26 | 26 + 26 + 8 = 60 | 15 | %55 | 15 × 2,5 + 11 × 1,5 |
+| 3 | 12 | 12 + 12 + 4 = 28 | 4 | %22 | 4 × 2,5 + 8 × 1,5 |
+| 4 | 4 | 4 + 7 (G4.2 dört parti) + 2 + bütün dal = 14 | 4 | %18 | G4.1 2,5 + G4.2 6 + G4.3 3 + G4.4 (tam ölçüm + bütün dal) 6 |
 
-Dalga 2-4 toplamı yaklaşık bir tam hafta (%73) ister; Dalga 4 büyük olasılıkla 6 Aralık sıfırlamasından sonraya kalır. Para/kayıt/Geri Al incelemesi ve bütün dal incelemesi bütçe için atlanmaz (Dokunulmaz).
+**Sıfırlamadan önce (61 → 90):** 29 puan var. Dalga 0 (%4) + Dalga 1 (%20) = %24 → ~%85; düzeltme turları fazla çıkarsa sınır aşılır. Sıra ve kesme kuralı: G0.1, G0.2, G0.5, G0.4, G0.3 → G1.1, G1.3 (KRİTİK) → G1.5 (güvenlik açığı) → G1.2, G1.4 → G1.6, G1.7, G1.8. Bir görev başlarken kullanım %82'yi geçmişse o görev ve kalan Dalga 1 görevleri (önce G1.8, G1.7, G1.6) sıfırlamaya kalır; yarım görev bırakılmaz.
+
+**Sıfırlamadan sonra:** Dalga 2 (%55) ilk haftaya sığar; Dalga 3 (%22) ve Dalga 4 (%18) ikinci haftaya (6 Aralık sıfırlamasından sonra) kalır. Toplam yaklaşık iki hafta. Para/kayıt/Geri Al incelemesi ve bütün dal incelemesi bütçe için atlanmaz (Dokunulmaz).
 
 ## Kadir oynayış listesi (O) ve Kod-1 görsel listesi (K)
 
@@ -517,6 +550,7 @@ Dalga 2-4 toplamı yaklaşık bir tam hafta (%73) ister; Dalga 4 büyük olasıl
 | O7 | Takip etme, kapıya girme, açılıştaki ulağa soru | G2.14 |
 | O8 | `-LocalPlay` oyunu sonrası `speech-debug.jsonl` okunur | G3.6 |
 | O9 | Bahşiş, oda fiyatı, paket satışı, iş teslimi | G3.1-G3.3 |
+| O10 | Kayıp Kişi görevi: kaçıranla karşılaşma | G3.12 |
 | K1 | Karakter yaratma ekranı, altı sınıf | G1.6 |
 | K2 | Oyun ekranı kaydırma, Geri Al, kurtarma mesajı | G1.7 |
 | K3 | Wizard/Cleric 2-5 seviye başlangıcı | G2.12 |
@@ -527,64 +561,51 @@ Dalga 2-4 toplamı yaklaşık bir tam hafta (%73) ister; Dalga 4 büyük olasıl
 
 ## Kadir'e soru paketi (tek seferlik; cevaplar `docs/agents/borc-sorulari-20261126.md`'ye)
 
-Her soruya harf ile cevap yeterli (ör. "S1 a"). "Öneri" bizim seçimimiz; cevapsız soru yeniden sorulmaz, yalnız dalga raporunda "cevap bekliyor" diye görünür ve ona bağlı görev başlamaz.
+Her soruya harf ile cevap yeterli (ör. "S1 a"). "Öneri" bizim seçimimiz; cevapsız soru yeniden sorulmaz, yalnız dalga raporunda "cevap bekliyor" diye görünür ve ona bağlı görev başlamaz. Yalnız senin zevkine kalan ya da "wontfix/ertele" gerektiren sorular burada; classify.json'un 13 sorusu ve planın S52'si (eski numaralarıyla S2, S18-S23, S30, S33, S37, S39, S40, S45, S52; toplam 14) ajan kararına çevrildi, Rulings bölümünde "R-S<eski no>" adıyla duruyor.
 
 | No | Satır | Görev | Soru | Seçenekler | Öneri |
 |---|---|---|---|---|---|
 | S1 | D-024 | G0.1 | Bilinçsiz (Unconscious) kuralı PHB s.376'dan doğrulanmadı. Sen ya da Jarvis PDF'e bakabilir misin? | a) bak, doğrula, kapat · b) doğrulanmamış diye kabul et, kapat | a (Jarvis bakar) |
-| S2 | D-221 | G0.1 | Kayıp Kişi görevinde kaçıranlar için zaten (a) ayrı NPC'yi seçtin. Bu satır D-279'a katılıp kapansın mı? | a) evet · b) hayır, ayrı kalsın | a |
-| S3 | D-320 | G0.1 | Para, kayıt ve Geri Al uç noktalarının (tekrar oynatma, eşzamanlı istek, iade) güvenlik incelemesi ne zaman? | a) şimdi, Opus ile · b) oyun internete açılmadan önce | b (bugün tek kullanıcı, yerel; satır 'internete açılana kadar wontfix') |
-| S4 | D-021 | G0.1 | Gerçek model İngilizce 'I shove the guard' cümlesinde kavga sorusunu her zaman açmıyor. Motor güvenli. | a) motor yedek kural eklesin · b) olduğu gibi kalsın · c) ön model değişince bakılsın | b |
-| S5 | D-343 | G0.1 | Parçalar motor adlarını game.X önekiyle okuyor; game.py'de 643 yeniden dışa aktarma satırı var. Bunlar kaldırılsın mı? | a) evet, ayrı bir dilimde · b) hayır, merkez kuralı kalıcı | b (kırılma riski büyük, oyuna faydası yok) |
-| S6 | D-404 | G0.1 | Bayrak açıkken kullanılamayan okumadan sonra 2 çağrı sınırı yüzünden sonuç biraz kötüleşiyor. | a) kabul et · b) okumadan sonra ek çağrıya yer bırak | a |
-| S7 | D-424 | G0.1 | Küçük model oda cümlesini 'belirsiz' okursa Python'un kelime yolu oda kartını yedek olarak açsın mı? | a) evet · b) hayır, tasarım kalsın | b |
-| S8 | D-327 | G0.1 | Konuşma kipindeki eski kelime yedek yolları ne olsun? | a) sonraki oynayış ve ölçümden sonra kaldır · b) kalıcı yedek olarak kalsın | b (zararsız; model düşünce oyunu ayakta tutar) |
-| S9 | D-246 | G0.1 | İlan panosu ya da iş listesi olduğunda söylenti sorusu oraya yönlendirsin mi? | a) evet · b) hayır, 'söylentiler belirsiz' kalsın | b (bugün pano olup olmadığını doğrulamadım) |
-| S10 | D-168 | G0.1 | Uygulama içi araç sayaç dosyasının eski kopyasını gösteriyor. Bu yalnız geliştirici aracı. | a) wontfix · b) okuyucuyu düzelt | a |
-| S11 | D-149 | G0.1 | Oyuncu başına maliyet kotası gerekli mi? | a) şimdi yap · b) gerek yok · c) çok kullanıcılı yayına kadar ertele | c |
-| S12 | D-307 | G0.1 | Yolda ikinci yerleşim (ör. Phandalin) ve kentler arası yolculuk yapılsın mı? | a) dilim olarak yap · b) ertele, bugünkü çıkmaz mesajı kalsın | b |
-| S13 | 16 satır | G0.1 | Aşağıdaki satırlar bir özellik gelmeden düzeltilemez. Her biri 'özellik X gelene kadar wontfix' diye kapansın mı? D-312 (çok kullanıcılı barındırma), D-315 (internete açık sürüm), D-029 (konum modeli), D-022, D-025, D-026, D-014 (İngilizce dil desteği), D-009 (XP tablosu dışı CR'lı ilk canavar), D-169 (NPC isteklilik/Influence modeli), D-271 (kayıtta kalıcı ödül işareti), D-042 (Wizard/Cleric özellikleri için sayfalı kaynak ve çözücü), D-048 (müttefik NPC iyileştirme yolu), D-050 (odak/malzeme bileşeni kaydı), D-058 (savaşta anlatı büyüsü eylem ekonomisi), D-358 (CI'ın Python 3.14'e geçmesi), D-066 (D-048 ve yoğunlaşma çözücüsü) | a) hepsi evet · b) satır satır yaz (ör. 'D-029 yap') | a |
-| S14 | D-177 | G1.3 | Motorun ayıramadığı model yanlış okumaları için yeniden tasarımdan önce küçük bir gerçek model ölçümü yapılsın mı? | a) evet, yerel gemma4-12b-dm ile (para harcanmaz) · b) evet, bulut modelle (bütçe rakamını sen ver) · c) ölçme, kurala göre düzelt | a |
-| S15 | D-262 | G1.3 | 'timing' alanı gelmezse bugün 'şimdi' sayılıyor (güvensiz). Alanın gerçek modelde ne sıklıkla doğru dolduğu ölçülsün mü? (S14 ile aynı ölçüm) | a) yerel ölçüm · b) bulut ölçüm, bütçe sen · c) ölçme, alanı zorunlu yap ve eksikse sor | a |
-| S16 | D-263 | G1.3 | 'evet' sonrası okuma yeniden yapılıyor ve ikinci okuma farklı çıkabilir. Ölçülsün mü? (S14 ile aynı ölçüm) | a) yerel ölçüm · b) bulut ölçüm, bütçe sen · c) ölçme, ilk okumayı sakla ve yeniden oynat | a (ölçüm ne derse desin ilk okumayı saklamayı da öneriyoruz) |
-| S17 | D-260 | G1.3 | Bir satırda iki eylem ayrı zamanda olabilir ('yarın vuracağım ama şimdi içiyorum'). Okumaya eylem başına zaman alanı eklensin mi? | a) evet, eylem başına · b) hayır, karışık satırda oyuncuya kısa soru sorulsun | a |
-| S18 | D-532 | G1.4 | /api/sessions altında 10 yinelenen eski rota adı var. Web arayüzü ya da eski istemci bunları kullanmıyorsa kaldırılsın mı? | a) kaldır (önce aramayla kullanan olmadığı gösterilir) · b) iki yol da kalsın | a |
-| S19 | D-585 | G1.5 | npm üretim açıkları (1 kritik, 2 yüksek) kullanılmayan artifacts/api-server iskeletinden geliyor. | a) iskeleti sil · b) tut ve paketleri yükselt | a |
-| S20 | D-575 | G1.5 | Kullanılmayan Express iskeleti artifacts/api-server silinsin mi? | a) sil · b) tut | a |
-| S21 | D-311 | G1.5 | Eski web arayüzü ve mockup sandbox Vite sunucuları 0.0.0.0 ile her adrese açık. Bu iki paket hâlâ kullanılıyor mu? | a) kullanılmıyor, iki paketi sil · b) tut, 127.0.0.1 ve adlı allowedHosts yap | a |
-| S22 | D-568 | G1.5 | Kullanılmayan mockup-sandbox paketi silinsin mi? | a) sil · b) tasarım deneme alanı olarak tut | a |
-| S23 | D-569 | G1.5 | Eski ai-dnd-web arayüz paketi (809 satırlık eski oyun ekranı) silinsin mi? | a) sil · b) kaynak olarak tut | a (git geçmişinde zaten duruyor) |
-| S24 | D-530 | G1.8 | Tur kodundaki kalan üç uzun işlev (_run_player_turn_internal, _dispatch_player_turn, _narration_safety_decision) şimdi bölünsün mü? Satır 'oynayıştan sonra' diyordu. | a) evet, bu planda, önce davranışı sabitleyen testlerle · b) bir sonraki oynayışından sonra | a |
-| S25 | D-592 | G1.8 | Karmaşıklık: önce hangi işlevler küçülsün ve karmaşıklık için yalnız küçülen kapı (ratchet) istiyor musun? | a) önce _run_player_turn_internal, sonra narration_safety; kapı evet · b) yalnız küçült, kapı yok | a |
-| S26 | D-425 | G2.2 | Konuşma kipinde oyuncu oda isteyince hancı konuşsun mu (bir ek model çağrısı) yoksa yalnız kart mı açılsın? | a) hancı konuşur · b) yalnız kart | a (sinematik anlatı kuralın) |
-| S27 | D-419 | G2.3 | 'Satırın kalanı' ve yeniden sorulan stok cevabı için ek çağrılar NPC inisiyatifi gibi 3. çağrı istisnası alsın mı? | a) evet, bunlar için de sınır 3 · b) hayır, 2 kalsın, kaybolan cümleyi kabul et · c) oynayış kaybı gösterince karar ver | a |
-| S28 | D-498 | G2.5 | 'Dışarı, <kent> sokaklarına çıkıyorsun.' aynı oyunda tekrar tekrar yazılıyor. | a) çıkış satırını her sahnede model yazsın; Python satırı yalnız yedek ve ziyaret başına bir kez · b) yalnız ziyaret başına bir kez göster, sonra kısa çeşit | a |
-| S29 | D-403 | G2.9 | Oyuncuya sayı söylenmeden 'biraz para' uzatılınca oyun ne yapsın? | a) reddet · b) tutarı sor · c) varsayılan bir tutar seç | b |
-| S30 | D-583 | G2.11 | Motor dosyaları api katmanını içe aktarıyor (20 kenar). Ne yapalım? | a) şimdi tam port katmanı kur · b) önce yalnız api.dnd_2024_rules'u motora indir (20 kenarın 14'ü) | b |
-| S31 | D-451 | G2.18 | Test bulma aracı (inventory.touching_tests) içe aktarılan sınıfı yönteme göre değil ada göre çözüyor; güvenli yönde, yalnız yavaş. | a) gerekçeyle kabul et, kapat · b) şimdi düzelt | a |
-| S32 | D-349 | G2.19 | Yönlendirme denetiminin (routing_audit) bilinen kör noktaları (eval/exec, string getattr, iki adımlı zincir) kapatılsın mı? | a) belgele ve kabul et (çalışma anı kimlik testi asıl riski kapsıyor) · b) kapat | a |
-| S33 | D-557 | G2.22 | Kullanılmayan shadcn arayüz dosyaları silinirken bağlı paketler de package.json'dan aynı PR'da çıkarılsın mı? | a) evet, ikisi birlikte · b) dosyaları tut, paketlere ayrıca bakılsın | a |
-| S34 | D-536 | G2.24 | Makbuz sıkıştırma (compact_receipts) gerçek oyunda hiç çağrılmıyor, yalnız testler çağırıyor. | a) gerçek oyunda aç (kayıt küçülür, Geri Al'ın ulaştığı derinliği sınırlayabilir) · b) sil | b |
-| S35 | D-445 | G2.25 | game.py başındaki 45 kullanılmayan içe aktarma için öneri: 44'ü kalsın (yama hedefi ya da yüzey), __main__ bloğundaki 1 'import game' silinsin (text_rules_a.py'deki eşiyle). | a) öneri kabul · b) satır satır yaz | a |
-| S36 | D-490 | G2.25 | Ölü kod tablosu (docs/engine-split/olu-kod-kaniti.md) satır başına evet/hayır bekliyor. Tablodaki önerileri toplu kabul ediyor musun? | a) öneriler toplu kabul · b) tabloyu sen satır satır doldur | a |
-| S37 | D-512 | G2.26 | Altı ölü işlev (living_world, bind_deadline vb.): bind_deadline planlı bir arayüz olarak kalsın mı, silinsin mi? | a) kalsın, satır 'kabul' diye kapansın · b) sil | b (2026-11-22 'ölü kod sil' kararın) |
-| S38 | D-544 | G2.26 | combat_bind_allowed işlevi ölü. threat_band 'none' iken savaş bağı reddedilsin mi? | a) evet, kuralı gate.py'ye ekle ve işlevi tut · b) işlev ölü, sil | b |
-| S39 | D-580 | G2.26 | İki ölü kabul işlevi (admit_public_batch, projection_is_transform_ready) ve sınır testleri ne olsun? | a) sil · b) güvenlik koruması olarak testle tut | a |
-| S40 | D-595 | G2.26 | ai-dnd/docs/evidence altındaki eski kanıt betikleri bozuk ve tarayıcıları kirletiyor. | a) üretim bölgesinden arşiv klasörüne taşı · b) yalnız tarayıcılardan dışla | a |
-| S41 | D-286 | G3.1 | İngilizce olumsuz kese cümlesi ('Not a single copper leaves your purse.') ele alınsın mı? | a) İngilizce olumsuzluğu şimdi ekle · b) İngilizce kip gelene kadar bekle (wontfix) | b |
-| S42 | D-287 | G3.1 | Kazanılan zarda anlatı 10 bakır diyor, 5 bakır ödeniyor. | a) anlatıyı ödenen tutara göre yeniden yaz · b) nadir, olduğu gibi kabul et | a (para doğruluğu) |
-| S43 | D-253 | G3.2 | 'Kısa Yay & 20 Ok' paketinde okların repoda fiyatı yok. | a) 20 ok için katalog fiyatı ekle (2024 kuralları: 1 GP) · b) paket satışını reddet | a |
-| S44 | D-381 | G3.5 | Oyuncu 'şehrin dışına gidiyorum ve <kasabadaki biri>'ni soyuyorum' derse oyun ne yapsın? | a) o kişiye yürüsün · b) 'o kişi kasabada mı?' diye sorsun | b |
-| S45 | D-582 | G3.6 | Kayıt doğrulayıcısında 'magic' türünde Ready dalı ulaşılmaz (prepare_ready zaten reddediyor). | a) dalı şimdi sil · b) gelecekteki büyü motoru için tut | a |
-| S46 | D-310 | G3.6 | Güvenlik denetiminin değiştirdiği NPC sözlerinin model ham metni görünmüyor. Yerel oyun başlatıcısı konuşma hata ayıklama kaydını (AI_DND_SPEECH_DEBUG) varsayılan açsın mı? | a) evet, -LocalPlay'de açık · b) hayır, sonraki oyunda elle açarsın | a |
-| S47 | D-589 | G4.1 | pyright (tip denetimi) kapıya girsin mi? | a) evet, yalnız küçülen taban (ratchet) olarak · b) kapı olmadan yalnız en kötü dosyaları düzelt | a |
-| S48 | D-591 | G4.1 | ruff hata kalıbı kuralları B023/B904/B905 kapıya girsin mi? | a) bugünkü sayıyla taban yapıp kapıya ekle · b) yalnız kaynak koddakileri düzelt | a |
-| S49 | D-600 | G4.1 | Yedi yeni araçtan hangileri CI kapısına girsin? CI süresi artabilir. | a) pip-audit, pnpm audit --prod, import-linter, pyright ratchet · b) yalnız iki audit · c) hiçbiri | a |
-| S50 | D-598 | G4.2 | desloppify bazı kümeleri bilinçli tasarım yüzünden 'sorun' sayıyor (ör. game_parts tek paket olduğu için 988 bölümler arası özel içe aktarma). Bunlar 'gerekçeli yanlış alarm' diye kapansın mı? | a) evet, gerekçe satır notuna yazılır · b) hayır, hepsi düzeltilsin | a |
-| S51 | D-599 | G4.2 | İki soru: (1) /docs ve /openapi rotaları barındırma kipinde kapansın mı? (2) Koddaki yaklaşık 935 'raise ValueError' GameError'a taşınsın mı? | (1) a) barındırma kipinde kapalı, yerelde açık · b) her yerde açık. (2) a) taşı · b) taşıma, yalnız yeni kod GameError kullansın | (1) a (G2.10 D-314 ile aynı iş) · (2) b (davranış ve hata metni riski) |
-| S52 | D-078, D-079, D-304, D-306, D-302 | G0.3, G0.4 | Bu satırlar repo dışındaki araçlarla (slot.sh, slot_web.sh) ya da canlı ölçümle ilgili; commit sha'sı olamaz. Araç dosyasının sha256 değeri ve koşu çıktısıyla kapanabilir mi? | a) evet · b) hayır, araçlar repoya alınsın | a |
+| S2 | D-320 | G0.1 | Para, kayıt ve Geri Al uç noktalarının (tekrar oynatma, eşzamanlı istek, iade) güvenlik incelemesi ne zaman? | a) şimdi, Opus ile · b) oyun internete açılmadan önce | b (bugün tek kullanıcı, yerel; satır 'internete açılana kadar wontfix') |
+| S3 | D-021 | G0.1 | Gerçek model İngilizce 'I shove the guard' cümlesinde kavga sorusunu her zaman açmıyor. Motor güvenli. | a) motor yedek kural eklesin · b) olduğu gibi kalsın · c) ön model değişince bakılsın | b |
+| S4 | D-343 | G0.1 | Parçalar motor adlarını game.X önekiyle okuyor; game.py'de 643 yeniden dışa aktarma satırı var. Bunlar kaldırılsın mı? | a) evet, ayrı bir dilimde · b) hayır, merkez kuralı kalıcı | b (kırılma riski büyük, oyuna faydası yok) |
+| S5 | D-404 | G0.1 | Bayrak açıkken kullanılamayan okumadan sonra 2 çağrı sınırı yüzünden sonuç biraz kötüleşiyor. | a) kabul et · b) okumadan sonra ek çağrıya yer bırak | a |
+| S6 | D-424 | G0.1 | Küçük model oda cümlesini 'belirsiz' okursa Python'un kelime yolu oda kartını yedek olarak açsın mı? | a) evet · b) hayır, tasarım kalsın | b |
+| S7 | D-327 | G0.1 | Konuşma kipindeki eski kelime yedek yolları ne olsun? | a) sonraki oynayış ve ölçümden sonra kaldır · b) kalıcı yedek olarak kalsın | b (zararsız; model düşünce oyunu ayakta tutar) |
+| S8 | D-246 | G0.1 | İlan panosu ya da iş listesi olduğunda söylenti sorusu oraya yönlendirsin mi? | a) evet · b) hayır, 'söylentiler belirsiz' kalsın | b (bugün pano olup olmadığını doğrulamadım) |
+| S9 | D-168 | G0.1 | Uygulama içi araç sayaç dosyasının eski kopyasını gösteriyor. Bu yalnız geliştirici aracı. | a) wontfix · b) okuyucuyu düzelt | a |
+| S10 | D-149 | G0.1 | Oyuncu başına maliyet kotası gerekli mi? | a) şimdi yap · b) gerek yok · c) çok kullanıcılı yayına kadar ertele | c |
+| S11 | D-307 | G0.1 | Yolda ikinci yerleşim (ör. Phandalin) ve kentler arası yolculuk yapılsın mı? | a) dilim olarak yap · b) ertele, bugünkü çıkmaz mesajı kalsın | b |
+| S12 | 17 satır | G0.1 | Bu satırlar bir özellik gelmeden düzeltilemez. Her biri 'ertelendi: <özellik>' diye kapansın mı? Tetikleyici sütunu kalır; özellik gelince satır yeniden açılır. Para/kayıt/Geri Al satırları **kalın**. D-312: çok kullanıcılı barındırmada oturum sahipliği yok (özellik: çok kullanıcılı barındırma) · D-315: internete açık sürümde istek sınırı ve CORS eksik (özellik: internete açık sürüm) · D-029: yakın/uzak ayrımı konumsuz tahmin ediliyor (özellik: konum modeli) · D-022, D-025, D-026, D-014: İngilizce cümlelerde niyet/hedef okuması eksik (özellik: İngilizce dil desteği) · **D-009**: XP tablosunda olmayan CR'lı ilk canavar ödülsüz kalır (özellik: o canavarın eklenmesi) · D-169: NPC isteklilik/Influence modeli yok (özellik: Influence) · **D-271**: kalıcı ödül işareti kayıtta yok, ödül iki kez verilebilir (özellik: kalıcı ödül işareti) · D-042: Wizard/Cleric özellikleri sayfalı kaynak ve çözücü olmadan eksik (özellik: o sınıf çözücüleri) · **D-048**: müttefik NPC iyileştirme yolu yok, büyü/iksir harcanmadan sonuç çıkabilir (özellik: müttefik iyileştirme) · **D-050**: odak/malzeme bileşeni harcaması kayda yazılmıyor (özellik: bileşen kaydı) · D-058: savaşta anlatı büyüsü eylem ekonomisini atlıyor (özellik: savaş büyü eylemleri) · D-358: CI Python 3.14'e geçince yerel ile CI farkı (özellik: CI 3.14) · D-066: yoğunlaşma çözücüsü D-048'i bekliyor (özellik: yoğunlaşma çözücüsü) · **D-023**: Healer's Kit kodu oyuna bağlı değil, Geri Al sarmalı gerekiyor (özellik: stabilize eylemi + NPC müttefik ölüm kurtarışları) | a) hepsi ertelensin · b) satır satır yaz (ör. 'D-029 yap') | a (yapılan iş özelliği yarım getirir; para satırlarında bugün oyuncu o yola giremiyor — doğrulamadım, G0.1 doğrulayıcısı her biri için bunu kod okumasıyla kanıtlar) |
+| S13 | D-177 | G1.3 | Motorun ayıramadığı model yanlış okumaları için yeniden tasarımdan önce küçük bir gerçek model ölçümü yapılsın mı? | a) evet, yerel gemma4-12b-dm ile (para harcanmaz) · b) evet, bulut modelle (bütçe rakamını sen ver) · c) ölçme, kurala göre düzelt | a |
+| S14 | D-262 | G1.3 | 'timing' alanı gelmezse bugün 'şimdi' sayılıyor (güvensiz). Alanın gerçek modelde ne sıklıkla doğru dolduğu ölçülsün mü? (S13 ile aynı ölçüm) | a) yerel ölçüm · b) bulut ölçüm, bütçe sen · c) ölçme, alanı zorunlu yap ve eksikse sor | a |
+| S15 | D-263 | G1.3 | 'evet' sonrası okuma yeniden yapılıyor ve ikinci okuma farklı çıkabilir. Ölçülsün mü? (S13 ile aynı ölçüm) | a) yerel ölçüm · b) bulut ölçüm, bütçe sen · c) ölçme, ilk okumayı sakla ve yeniden oynat | a (ölçüm ne derse desin ilk okumayı saklamayı da öneriyoruz) |
+| S16 | D-260 | G1.3 | Bir satırda iki eylem ayrı zamanda olabilir ('yarın vuracağım ama şimdi içiyorum'). Okumaya eylem başına zaman alanı eklensin mi? | a) evet, eylem başına · b) hayır, karışık satırda oyuncuya kısa soru sorulsun | a |
+| S17 | D-530 | G1.8 | Tur kodundaki kalan üç uzun işlev (_run_player_turn_internal, _dispatch_player_turn, _narration_safety_decision) şimdi bölünsün mü? Satır 'oynayıştan sonra' diyordu. | a) evet, bu planda, önce davranışı sabitleyen testlerle · b) bir sonraki oynayışından sonra | a |
+| S18 | D-592 | G1.8 | 109 işlev F karmaşıklıkta. Bu planda üç tur işlevi bölünür ve 'yalnız küçülür' kapısı (ratchet) kurulur. Kalan işlevler için ne olsun? | a) ayrı bir planla hepsi küçültülsün (satır o plana kadar 'kısmen' kalır) · b) kalanlar wontfix: kapı onları yalnız küçültür, büyütmez (onay listesine 'gevşetme olabilir' diye girer) | b (109 işlevi bölmek haftalar sürer; oyuna faydası düşük) |
+| S19 | D-425 | G2.2 | Konuşma kipinde oyuncu oda isteyince hancı konuşsun mu (bir ek model çağrısı) yoksa yalnız kart mı açılsın? | a) hancı konuşur · b) yalnız kart | a (sinematik anlatı kuralın) |
+| S20 | D-419 | G2.3 | 'Satırın kalanı' ve yeniden sorulan stok cevabı için ek çağrılar NPC inisiyatifi gibi 3. çağrı istisnası alsın mı? | a) evet, bunlar için de sınır 3 · b) hayır, 2 kalsın, kaybolan cümleyi kabul et · c) oynayış kaybı gösterince karar ver | a |
+| S21 | D-012 | G2.4 | Model gerçek deneyim ödülünü kendi cümlesiyle söylerse ('25 deneyim puanı kazandın') bugün reddediliyor. Tutar gerçek ödülle aynıysa izin verilsin mi? | a) aynı tutarsa izin ver, farklı tutar yine reddedilir · b) bugünkü gibi kalsın (sayıyı yalnız Python yazar) | a (sinematik anlatı; para/XP doğruluğu korunur) |
+| S22 | D-498 | G2.5 | 'Dışarı, <kent> sokaklarına çıkıyorsun.' aynı oyunda tekrar tekrar yazılıyor. | a) çıkış satırını her sahnede model yazsın; Python satırı yalnız yedek ve ziyaret başına bir kez · b) yalnız ziyaret başına bir kez göster, sonra kısa çeşit | a |
+| S23 | D-403 | G2.9 | Oyuncuya sayı söylenmeden 'biraz para' uzatılınca oyun ne yapsın? | a) reddet · b) tutarı sor · c) varsayılan bir tutar seç | b |
+| S24 | D-451 | G2.18 | Test bulma aracı (inventory.touching_tests) içe aktarılan sınıfı yönteme göre değil ada göre çözüyor; güvenli yönde, yalnız yavaş. | a) gerekçeyle kabul et, kapat · b) şimdi düzelt | a |
+| S25 | D-349 | G2.19 | Yönlendirme denetiminin (routing_audit) bilinen kör noktaları (eval/exec, string getattr, iki adımlı zincir) kapatılsın mı? | a) belgele ve kabul et (çalışma anı kimlik testi asıl riski kapsıyor) · b) kapat | a |
+| S26 | D-536 | G2.24 | Makbuz sıkıştırma (compact_receipts) gerçek oyunda hiç çağrılmıyor, yalnız testler çağırıyor. | a) gerçek oyunda aç (kayıt küçülür, Geri Al'ın ulaştığı derinliği sınırlayabilir) · b) sil | b |
+| S27 | D-445 | G2.25 | game.py başındaki 45 kullanılmayan içe aktarma için öneri: 44'ü kalsın (yama hedefi ya da yüzey), __main__ bloğundaki 1 'import game' silinsin (text_rules_a.py'deki eşiyle). | a) öneri kabul · b) satır satır yaz | a |
+| S28 | D-490 | G2.25 | Ölü kod tablosu (docs/engine-split/olu-kod-kaniti.md) satır başına evet/hayır bekliyor. Tablodaki önerileri toplu kabul ediyor musun? | a) öneriler toplu kabul · b) tabloyu sen satır satır doldur | a |
+| S29 | D-544 | G2.26 | combat_bind_allowed işlevi ölü. threat_band 'none' iken savaş bağı reddedilsin mi? | a) evet, kuralı gate.py'ye ekle ve işlevi tut · b) işlev ölü, sil | b |
+| S30 | D-286 | G3.1 | İngilizce olumsuz kese cümlesi ('Not a single copper leaves your purse.') ele alınsın mı? | a) İngilizce olumsuzluğu şimdi ekle · b) İngilizce kip gelene kadar bekle (wontfix) | b |
+| S31 | D-287 | G3.1 | Kazanılan zarda anlatı 10 bakır diyor, 5 bakır ödeniyor. | a) anlatıyı ödenen tutara göre yeniden yaz · b) nadir, olduğu gibi kabul et | a (para doğruluğu) |
+| S32 | D-253 | G3.2 | 'Kısa Yay & 20 Ok' paketinde okların repoda fiyatı yok. | a) 20 ok için katalog fiyatı ekle (2024 kuralları: 1 GP) · b) paket satışını reddet | a |
+| S33 | D-381 | G3.5 | Oyuncu 'şehrin dışına gidiyorum ve <kasabadaki biri>'ni soyuyorum' derse oyun ne yapsın? | a) o kişiye yürüsün · b) 'o kişi kasabada mı?' diye sorsun | b |
+| S34 | D-310 | G3.6 | Güvenlik denetiminin değiştirdiği NPC sözlerinin model ham metni görünmüyor. Yerel oyun başlatıcısı konuşma hata ayıklama kaydını (AI_DND_SPEECH_DEBUG) varsayılan açsın mı? | a) evet, -LocalPlay'de açık · b) hayır, sonraki oyunda elle açarsın | a |
+| S35 | D-589 | G4.1 | pyright (tip denetimi) kapıya girsin mi? | a) evet, yalnız küçülen taban (ratchet) olarak · b) kapı olmadan yalnız en kötü dosyaları düzelt | a |
+| S36 | D-591 | G4.1 | ruff hata kalıbı kuralları B023/B904/B905 kapıya girsin mi? | a) bugünkü sayıyla taban yapıp kapıya ekle · b) yalnız kaynak koddakileri düzelt | a |
+| S37 | D-600 | G4.1 | Yedi yeni araçtan hangileri CI kapısına girsin? CI süresi artabilir. | a) pip-audit, pnpm audit --prod, import-linter, pyright ratchet · b) yalnız iki audit · c) hiçbiri | a |
+| S38 | D-598 | G4.3 | desloppify bazı kümeleri bilinçli tasarım yüzünden 'sorun' sayıyor (ör. game_parts tek paket olduğu için 988 bölümler arası özel içe aktarma). Bunlar 'gerekçeli yanlış alarm' diye kapansın mı? | a) evet, gerekçe satır notuna yazılır · b) hayır, hepsi düzeltilsin | a |
+| S39 | D-599 | G4.2 | İki soru: (1) /docs ve /openapi rotaları barındırma kipinde kapansın mı? (2) Koddaki yaklaşık 935 'raise ValueError' GameError'a taşınsın mı? | (1) a) barındırma kipinde kapalı, yerelde açık · b) her yerde açık. (2) a) taşı · b) taşıma, yalnız yeni kod GameError kullansın | (1) a (G2.10 D-314 ile aynı iş) · (2) b (davranış ve hata metni riski) |
 
-Kaynak sayımı: S1-S12, S14-S16 ve S18-S51 classify.json'daki 49 sahip sorusudur; S13, S17 ve S52 plan tarafından eklendi (toplu kapanış, D-260, repo dışı kanıt). D-382 S44'ün cevabını izler.
+Kaynak sayımı: 39 soru. 36'sı classify.json'daki 49 sahip sorusundan kalanlar; 13'ü (eski S2, S18-S23, S30, S33, S37, S39, S40, S45) ve planın eski S52'si ajan kararına (Ruling) çevrildi. S12 erteleme listesi, S16 (D-260) ve S21 (D-012) plan tarafından eklendi. D-382 S33'ün cevabını izler.
 
 
 ---
@@ -593,7 +614,7 @@ Kaynak sayımı: S1-S12, S14-S16 ve S18-S51 classify.json'daki 49 sahip sorusudu
 
 | Görev | Satır sayısı | Satırlar | P/K/G | İnceleme |
 |---|---|---|---|---|
-| G0.1 | 28 | D-024, D-221, D-320, D-021, D-343, D-404, D-424, D-327, D-246, D-168, D-149, D-307, D-312, D-315, D-029, D-022, D-025, D-026, D-009, D-169, D-271, D-042, D-048, D-050, D-058, D-358, D-066, D-014 | evet | Sonnet (kod yok; cevapla kapanış) |
+| G0.1 | 28 | D-024, D-320, D-021, D-343, D-404, D-424, D-327, D-246, D-168, D-149, D-307, D-312, D-315, D-029, D-022, D-025, D-026, D-009, D-169, D-271, D-042, D-048, D-050, D-058, D-358, D-066, D-014, D-023 | evet | Sonnet (kod yok; cevapla kapanış) |
 | G0.2 | 4 | D-344, D-517, D-086, D-478 | evet | Opus (D-517), Sonnet (diğerleri) |
 | G0.3 | 4 | D-078, D-079, D-304, D-306 | - | Sonnet |
 | G0.4 | 1 | D-302 | - | Sonnet |
@@ -608,7 +629,7 @@ Kaynak sayımı: S1-S12, S14-S16 ve S18-S51 classify.json'daki 49 sahip sorusudu
 | G2.1 | 8 | D-410, D-415, D-421, D-423, D-428, D-411, D-390, D-389 | evet | Opus |
 | G2.2 | 3 | D-413, D-414, D-425 | - | Sonnet |
 | G2.3 | 9 | D-150, D-416, D-418, D-419, D-417, D-405, D-408, D-494, D-496 | evet | Opus |
-| G2.4 | 4 | D-226, D-241, D-242, D-251 | - | Sonnet |
+| G2.4 | 5 | D-226, D-241, D-242, D-251, D-012 | - | Sonnet |
 | G2.5 | 6 | D-301, D-338, D-309, D-296, D-498, D-303 | evet | Opus |
 | G2.6 | 6 | D-525, D-524, D-576, D-538, D-505, D-028 | evet | Opus |
 | G2.7 | 3 | D-504, D-526, D-518 | evet | Opus |
@@ -638,40 +659,45 @@ Kaynak sayımı: S1-S12, S14-S16 ve S18-S51 classify.json'daki 49 sahip sorusudu
 | G3.5 | 6 | D-381, D-382, D-392, D-222, D-508, D-330 | - | Sonnet |
 | G3.6 | 7 | D-582, D-290, D-165, D-406, D-407, D-409, D-310 | - | Sonnet |
 | G3.7 | 1 | D-597 | - | Sonnet |
-| G3.8 | 10 | D-453, D-454, D-462, D-463, D-476, D-477, D-380, D-356, D-388, D-391 | - | Sonnet |
+| G3.8 | 11 | D-453, D-454, D-462, D-463, D-476, D-477, D-380, D-356, D-388, D-391, D-076 | - | Sonnet |
 | G3.9 | 13 | D-357, D-442, D-457, D-460, D-482, D-493, D-479, D-481, D-491, D-439, D-441, D-455, D-469 | - | Sonnet |
 | G3.10 | 1 | D-164 | - | Sonnet |
 | G3.11 | 5 | D-083, D-087, D-091, D-273, D-236 | - | Sonnet |
+| G3.12 | 2 | D-279, D-221 | - | Sonnet |
 | G4.1 | 5 | D-588, D-589, D-591, D-556, D-600 | evet | Opus |
-| G4.2 | 2 | D-598, D-599 | evet | Opus |
+| G4.2 | 1 | D-599 | evet | Opus |
+| G4.3 | 1 | D-598 | evet | Opus |
 | G0.5 | 0 | — | - | Sonnet |
-| G4.3 | 0 | — | - | Opus (bütün dal) |
+| G4.4 | 0 | — | - | Opus (bütün dal) |
 
 
-## Ek A — Satır → görev eşlemesi (281 satır)
+## Ek A — Satır → görev eşlemesi (285 satır)
 
-Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final.py` betiğiyle denetlendi; yürütücü görevden önce aynı denetimi `docs/agents/debt-register.md`'deki açık/kısmi satırlarla yeniden yapar). "P/K/G" para/kayıt/Geri Al demektir. "Soru" sütunu bağlı olduğu soru numarasıdır.
+Sayım: 285 satır (classify.json 281 + classify dışı açık 4), 285 eşleme, tekrar yok, eksik yok (betikle denetlendi; yürütücü Dalga 0'da aynı denetimi defterin o günkü hâliyle, "Kapalı sayma" tanımıyla yeniden yapar). "P/K/G" para/kayıt/Geri Al demektir. "Soru" sütunu bağlı soru numarası (S) ya da ajan kararı (R-S<eski no>) gösterir. Classify dışı 4 satırın tür/öncelik değerleri defter metninden plan tarafından atandı.
 
-| Satır | Öncelik | Tür | P/K/G | Görev | Soru |
+| Satır | Öncelik | Tür | P/K/G | Görev | Soru/Ruling |
 |---|---|---|---|---|---|
-| D-009 | ORTA | blocked_on_feature | evet | G0.1 | S13 |
-| D-014 | ORTA | blocked_on_feature | - | G0.1 | S13 |
-| D-021 | ORTA | owner_decision | - | G0.1 | S4 |
-| D-022 | DÜŞÜK | blocked_on_feature | - | G0.1 | S13 |
+| D-009 | ORTA | blocked_on_feature | evet | G0.1 | S12 |
+| D-012 | ORTA | owner_decision | - | G2.4 | S21 |
+| D-014 | ORTA | blocked_on_feature | - | G0.1 | S12 |
+| D-021 | ORTA | owner_decision | - | G0.1 | S3 |
+| D-022 | DÜŞÜK | blocked_on_feature | - | G0.1 | S12 |
+| D-023 | ORTA | blocked_on_feature | evet | G0.1 | S12 |
 | D-024 | DÜŞÜK | owner_decision | - | G0.1 | S1 |
-| D-025 | DÜŞÜK | blocked_on_feature | - | G0.1 | S13 |
-| D-026 | DÜŞÜK | blocked_on_feature | - | G0.1 | S13 |
+| D-025 | DÜŞÜK | blocked_on_feature | - | G0.1 | S12 |
+| D-026 | DÜŞÜK | blocked_on_feature | - | G0.1 | S12 |
 | D-028 | DÜŞÜK | code_fix | evet | G2.6 | - |
-| D-029 | ORTA | blocked_on_feature | - | G0.1 | S13 |
+| D-029 | ORTA | blocked_on_feature | - | G0.1 | S12 |
 | D-040 | ORTA | code_fix | evet | G2.12 | - |
-| D-042 | ORTA | blocked_on_feature | - | G0.1 | S13 |
-| D-048 | ORTA | blocked_on_feature | evet | G0.1 | S13 |
-| D-050 | ORTA | blocked_on_feature | evet | G0.1 | S13 |
+| D-042 | ORTA | blocked_on_feature | - | G0.1 | S12 |
+| D-048 | ORTA | blocked_on_feature | evet | G0.1 | S12 |
+| D-050 | ORTA | blocked_on_feature | evet | G0.1 | S12 |
 | D-057 | ORTA | code_fix | - | G2.12 | - |
-| D-058 | ORTA | blocked_on_feature | - | G0.1 | S13 |
-| D-066 | DÜŞÜK | blocked_on_feature | - | G0.1 | S13 |
-| D-078 | DÜŞÜK | external_tool | - | G0.3 | S52 |
-| D-079 | DÜŞÜK | external_tool | - | G0.3 | S52 |
+| D-058 | ORTA | blocked_on_feature | - | G0.1 | S12 |
+| D-066 | DÜŞÜK | blocked_on_feature | - | G0.1 | S12 |
+| D-076 | DÜŞÜK | test_only | - | G3.8 | - |
+| D-078 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
+| D-079 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
 | D-083 | DÜŞÜK | test_only | - | G3.11 | - |
 | D-085 | DÜŞÜK | test_only | - | G2.20 | - |
 | D-086 | DÜŞÜK | already_fixed | - | G0.2 | - |
@@ -682,18 +708,18 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-091 | DÜŞÜK | test_only | - | G3.11 | - |
 | D-094 | KRİTİK | code_fix | evet | G1.1 | - |
 | D-109 | KRİTİK | code_fix | evet | G1.3 | - |
-| D-149 | ORTA | blocked_on_feature | - | G0.1 | S11 |
+| D-149 | ORTA | blocked_on_feature | - | G0.1 | S10 |
 | D-150 | ORTA | code_fix | evet | G2.3 | - |
 | D-153 | ORTA | code_fix | - | G2.21 | - |
 | D-164 | DÜŞÜK | refactor | - | G3.10 | - |
 | D-165 | DÜŞÜK | code_fix | - | G3.6 | - |
-| D-168 | DÜŞÜK | external_tool | - | G0.1 | S10 |
-| D-169 | ORTA | blocked_on_feature | - | G0.1 | S13 |
+| D-168 | DÜŞÜK | external_tool | - | G0.1 | S9 |
+| D-169 | ORTA | blocked_on_feature | - | G0.1 | S12 |
 | D-173 | ORTA | code_fix | evet | G1.1 | - |
-| D-177 | DÜŞÜK | owner_decision | evet | G1.3 | S14 |
+| D-177 | DÜŞÜK | owner_decision | evet | G1.3 | S13 |
 | D-180 | DÜŞÜK | code_fix | - | G1.7 | - |
 | D-218 | ORTA | tooling_ci | - | G2.17 | - |
-| D-221 | DÜŞÜK | owner_decision | - | G0.1 | S2 |
+| D-221 | DÜŞÜK | owner_decision | - | G3.12 | R-S2 |
 | D-222 | DÜŞÜK | code_fix | - | G3.5 | - |
 | D-226 | ORTA | code_fix | - | G2.4 | - |
 | D-235 | ORTA | code_fix | - | G2.21 | - |
@@ -703,25 +729,26 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-243 | ORTA | code_fix | - | G2.14 | - |
 | D-244 | ORTA | code_fix | - | G2.14 | - |
 | D-245 | DÜŞÜK | code_fix | - | G1.3 | - |
-| D-246 | DÜŞÜK | owner_decision | - | G0.1 | S9 |
+| D-246 | DÜŞÜK | owner_decision | - | G0.1 | S8 |
 | D-251 | ORTA | code_fix | - | G2.4 | - |
-| D-253 | DÜŞÜK | code_fix | evet | G3.2 | S43 |
-| D-260 | DÜŞÜK | owner_decision | - | G1.3 | S17 |
+| D-253 | DÜŞÜK | code_fix | evet | G3.2 | S32 |
+| D-260 | DÜŞÜK | owner_decision | - | G1.3 | S16 |
 | D-261 | DÜŞÜK | code_fix | - | G1.3 | - |
-| D-262 | DÜŞÜK | owner_decision | - | G1.3 | S15 |
-| D-263 | DÜŞÜK | owner_decision | - | G1.3 | S16 |
+| D-262 | DÜŞÜK | owner_decision | - | G1.3 | S14 |
+| D-263 | DÜŞÜK | owner_decision | - | G1.3 | S15 |
 | D-265 | DÜŞÜK | code_fix | evet | G3.2 | - |
-| D-271 | DÜŞÜK | blocked_on_feature | evet | G0.1 | S13 |
+| D-271 | DÜŞÜK | blocked_on_feature | evet | G0.1 | S12 |
 | D-273 | DÜŞÜK | test_only | - | G3.11 | - |
 | D-275 | DÜŞÜK | code_fix | evet | G3.2 | - |
 | D-277 | DÜŞÜK | code_fix | evet | G3.3 | - |
 | D-278 | DÜŞÜK | code_fix | evet | G3.2 | - |
+| D-279 | DÜŞÜK | code_fix | - | G3.12 | - |
 | D-280 | DÜŞÜK | code_fix | - | G2.12 | - |
 | D-282 | DÜŞÜK | code_fix | - | G2.21 | - |
 | D-284 | DÜŞÜK | code_fix | evet | G3.3 | - |
 | D-285 | DÜŞÜK | code_fix | - | G3.1 | - |
-| D-286 | DÜŞÜK | code_fix | - | G3.1 | S41 |
-| D-287 | DÜŞÜK | code_fix | - | G3.1 | S42 |
+| D-286 | DÜŞÜK | code_fix | - | G3.1 | S30 |
+| D-287 | DÜŞÜK | code_fix | - | G3.1 | S31 |
 | D-288 | DÜŞÜK | code_fix | - | G3.1 | - |
 | D-289 | DÜŞÜK | code_fix | evet | G3.1 | - |
 | D-290 | DÜŞÜK | code_fix | - | G3.6 | - |
@@ -734,29 +761,29 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-298 | DÜŞÜK | code_fix | - | G3.4 | - |
 | D-299 | DÜŞÜK | code_fix | - | G1.2 | - |
 | D-301 | ORTA | code_fix | - | G2.5 | - |
-| D-302 | DÜŞÜK | external_tool | - | G0.4 | S52 |
+| D-302 | DÜŞÜK | external_tool | - | G0.4 | R-S52 |
 | D-303 | DÜŞÜK | code_fix | evet | G2.5 | - |
-| D-304 | DÜŞÜK | external_tool | - | G0.3 | S52 |
+| D-304 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
 | D-305 | DÜŞÜK | test_only | evet | G2.24 | - |
-| D-306 | DÜŞÜK | external_tool | - | G0.3 | S52 |
-| D-307 | ORTA | blocked_on_feature | - | G0.1 | S12 |
+| D-306 | DÜŞÜK | external_tool | - | G0.3 | R-S52 |
+| D-307 | ORTA | blocked_on_feature | - | G0.1 | S11 |
 | D-308 | ORTA | code_fix | - | G2.14 | - |
 | D-309 | DÜŞÜK | code_fix | - | G2.5 | - |
-| D-310 | DÜŞÜK | owner_decision | - | G3.6 | S46 |
-| D-311 | DÜŞÜK | owner_decision | - | G1.5 | S21 |
-| D-312 | DÜŞÜK | blocked_on_feature | evet | G0.1 | S13 |
+| D-310 | DÜŞÜK | owner_decision | - | G3.6 | S34 |
+| D-311 | DÜŞÜK | owner_decision | - | G1.5 | R-S21 |
+| D-312 | DÜŞÜK | blocked_on_feature | evet | G0.1 | S12 |
 | D-313 | DÜŞÜK | code_fix | - | G2.10 | - |
 | D-314 | DÜŞÜK | code_fix | - | G2.10 | - |
-| D-315 | DÜŞÜK | blocked_on_feature | - | G0.1 | S13 |
+| D-315 | DÜŞÜK | blocked_on_feature | - | G0.1 | S12 |
 | D-316 | DÜŞÜK | code_fix | - | G2.10 | - |
 | D-317 | ORTA | code_fix | evet | G2.9 | - |
 | D-318 | DÜŞÜK | code_fix | - | G3.2 | - |
 | D-319 | DÜŞÜK | code_fix | - | G2.10 | - |
-| D-320 | ORTA | owner_decision | evet | G0.1 | S3 |
+| D-320 | ORTA | owner_decision | evet | G0.1 | S2 |
 | D-321 | DÜŞÜK | code_fix | - | G3.4 | - |
 | D-322 | DÜŞÜK | code_fix | - | G3.4 | - |
 | D-323 | DÜŞÜK | test_only | evet | G3.4 | - |
-| D-327 | DÜŞÜK | owner_decision | - | G0.1 | S8 |
+| D-327 | DÜŞÜK | owner_decision | - | G0.1 | S7 |
 | D-329 | ORTA | tooling_ci | - | G2.17 | - |
 | D-330 | DÜŞÜK | test_only | - | G3.5 | - |
 | D-331 | YÜKSEK | code_fix | - | G1.2 | - |
@@ -769,19 +796,19 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-340 | DÜŞÜK | refactor | - | G2.17 | - |
 | D-341 | ORTA | tooling_ci | - | G2.17 | - |
 | D-342 | ORTA | tooling_ci | - | G2.17 | - |
-| D-343 | DÜŞÜK | owner_decision | - | G0.1 | S5 |
+| D-343 | DÜŞÜK | owner_decision | - | G0.1 | S4 |
 | D-344 | DÜŞÜK | already_fixed | - | G0.2 | - |
 | D-346 | DÜŞÜK | tooling_ci | - | G2.17 | - |
-| D-349 | ORTA | tooling_ci | - | G2.19 | S32 |
+| D-349 | ORTA | tooling_ci | - | G2.19 | S25 |
 | D-356 | DÜŞÜK | test_only | - | G3.8 | - |
 | D-357 | DÜŞÜK | docs | - | G3.9 | - |
-| D-358 | DÜŞÜK | blocked_on_feature | - | G0.1 | S13 |
+| D-358 | DÜŞÜK | blocked_on_feature | - | G0.1 | S12 |
 | D-359 | ORTA | external_tool | - | G2.19 | - |
 | D-362 | DÜŞÜK | test_only | - | G2.18 | - |
 | D-363 | DÜŞÜK | test_only | - | G2.19 | - |
 | D-365 | DÜŞÜK | test_only | - | G2.18 | - |
 | D-380 | DÜŞÜK | test_only | - | G3.8 | - |
-| D-381 | DÜŞÜK | owner_decision | - | G3.5 | S44 |
+| D-381 | DÜŞÜK | owner_decision | - | G3.5 | S33 |
 | D-382 | DÜŞÜK | owner_decision | - | G3.5 | - |
 | D-383 | ORTA | test_only | - | G2.20 | - |
 | D-384 | DÜŞÜK | test_only | - | G2.20 | - |
@@ -793,8 +820,8 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-391 | DÜŞÜK | test_only | - | G3.8 | - |
 | D-392 | DÜŞÜK | test_only | - | G3.5 | - |
 | D-393 | ORTA | test_only | - | G2.20 | - |
-| D-403 | ORTA | owner_decision | evet | G2.9 | S29 |
-| D-404 | ORTA | owner_decision | - | G0.1 | S6 |
+| D-403 | ORTA | owner_decision | evet | G2.9 | S23 |
+| D-404 | ORTA | owner_decision | - | G0.1 | S5 |
 | D-405 | DÜŞÜK | test_only | - | G2.3 | - |
 | D-406 | DÜŞÜK | test_only | - | G3.6 | - |
 | D-407 | DÜŞÜK | test_only | - | G3.6 | - |
@@ -809,12 +836,12 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-416 | DÜŞÜK | code_fix | - | G2.3 | - |
 | D-417 | DÜŞÜK | test_only | - | G2.3 | - |
 | D-418 | DÜŞÜK | refactor | - | G2.3 | - |
-| D-419 | ORTA | owner_decision | - | G2.3 | S27 |
+| D-419 | ORTA | owner_decision | - | G2.3 | S20 |
 | D-420 | DÜŞÜK | code_fix | - | G1.3 | - |
 | D-421 | DÜŞÜK | test_only | - | G2.1 | - |
 | D-423 | DÜŞÜK | test_only | evet | G2.1 | - |
-| D-424 | DÜŞÜK | owner_decision | - | G0.1 | S7 |
-| D-425 | DÜŞÜK | owner_decision | - | G2.2 | S26 |
+| D-424 | DÜŞÜK | owner_decision | - | G0.1 | S6 |
+| D-425 | DÜŞÜK | owner_decision | - | G2.2 | S19 |
 | D-427 | DÜŞÜK | tooling_ci | - | G2.19 | - |
 | D-428 | DÜŞÜK | refactor | - | G2.1 | - |
 | D-431 | DÜŞÜK | tooling_ci | - | G2.19 | - |
@@ -828,8 +855,8 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-439 | DÜŞÜK | docs | - | G3.9 | - |
 | D-441 | DÜŞÜK | docs | - | G3.9 | - |
 | D-442 | DÜŞÜK | docs | - | G3.9 | - |
-| D-445 | DÜŞÜK | owner_decision | - | G2.25 | S35 |
-| D-451 | ORTA | tooling_ci | - | G2.18 | S31 |
+| D-445 | DÜŞÜK | owner_decision | - | G2.25 | S27 |
+| D-451 | ORTA | tooling_ci | - | G2.18 | S24 |
 | D-452 | DÜŞÜK | tooling_ci | evet | G2.18 | - |
 | D-453 | DÜŞÜK | test_only | - | G3.8 | - |
 | D-454 | DÜŞÜK | test_only | - | G3.8 | - |
@@ -850,14 +877,14 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-480 | DÜŞÜK | test_only | - | G2.20 | - |
 | D-481 | DÜŞÜK | docs | - | G3.9 | - |
 | D-482 | DÜŞÜK | docs | - | G3.9 | - |
-| D-490 | DÜŞÜK | owner_decision | - | G2.25 | S36 |
+| D-490 | DÜŞÜK | owner_decision | - | G2.25 | S28 |
 | D-491 | DÜŞÜK | docs | - | G3.9 | - |
 | D-492 | DÜŞÜK | refactor | - | G2.25 | - |
 | D-493 | DÜŞÜK | docs | - | G3.9 | - |
 | D-494 | ORTA | code_fix | - | G2.3 | - |
 | D-495 | DÜŞÜK | code_fix | evet | G2.24 | - |
 | D-496 | ORTA | code_fix | - | G2.3 | - |
-| D-498 | DÜŞÜK | code_fix | - | G2.5 | S28 |
+| D-498 | DÜŞÜK | code_fix | - | G2.5 | S22 |
 | D-500 | ORTA | tooling_ci | - | G2.17 | - |
 | D-501 | ORTA | refactor | evet | G2.9 | - |
 | D-502 | ORTA | refactor | evet | G2.8 | - |
@@ -866,7 +893,7 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-507 | DÜŞÜK | refactor | - | G2.25 | - |
 | D-508 | DÜŞÜK | code_fix | - | G3.5 | - |
 | D-509 | ORTA | refactor | - | G2.26 | - |
-| D-512 | DÜŞÜK | owner_decision | - | G2.26 | S37 |
+| D-512 | DÜŞÜK | owner_decision | - | G2.26 | R-S37 |
 | D-513 | DÜŞÜK | refactor | - | G2.26 | - |
 | D-514 | DÜŞÜK | refactor | - | G2.26 | - |
 | D-515 | ORTA | refactor | - | G2.16 | - |
@@ -878,14 +905,14 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-524 | ORTA | code_fix | evet | G2.6 | - |
 | D-525 | ORTA | code_fix | evet | G2.6 | - |
 | D-526 | ORTA | refactor | evet | G2.7 | - |
-| D-530 | YÜKSEK | refactor | evet | G1.8 | S24 |
+| D-530 | YÜKSEK | refactor | evet | G1.8 | S17 |
 | D-531 | YÜKSEK | refactor | evet | G1.4 | - |
-| D-532 | ORTA | refactor | evet | G1.4 | S18 |
-| D-536 | ORTA | owner_decision | evet | G2.24 | S34 |
+| D-532 | ORTA | refactor | evet | G1.4 | R-S18 |
+| D-536 | ORTA | owner_decision | evet | G2.24 | S26 |
 | D-538 | DÜŞÜK | code_fix | evet | G2.6 | - |
 | D-539 | DÜŞÜK | refactor | - | G2.10 | - |
 | D-540 | ORTA | refactor | evet | G2.10 | - |
-| D-544 | DÜŞÜK | owner_decision | - | G2.26 | S38 |
+| D-544 | DÜŞÜK | owner_decision | - | G2.26 | S29 |
 | D-548 | DÜŞÜK | refactor | - | G2.16 | - |
 | D-549 | ORTA | refactor | - | G2.15 | - |
 | D-552 | ORTA | docs | - | G2.15 | - |
@@ -893,7 +920,7 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-554 | DÜŞÜK | test_only | - | G2.20 | - |
 | D-555 | ORTA | refactor | - | G2.25 | - |
 | D-556 | DÜŞÜK | tooling_ci | - | G4.1 | - |
-| D-557 | ORTA | dependency | - | G2.22 | S33 |
+| D-557 | ORTA | dependency | - | G2.22 | R-S33 |
 | D-558 | DÜŞÜK | code_fix | - | G2.22 | - |
 | D-559 | DÜŞÜK | test_only | evet | G1.6 | - |
 | D-560 | YÜKSEK | refactor | evet | G1.6 | - |
@@ -902,37 +929,37 @@ Sayım: 281 satır, 281 eşleme, tekrar yok, eksik yok (classify.json ile `final
 | D-564 | DÜŞÜK | code_fix | evet | G1.6 | - |
 | D-566 | DÜŞÜK | refactor | evet | G2.22 | - |
 | D-567 | DÜŞÜK | docs | - | G2.22 | - |
-| D-568 | ORTA | dependency | - | G1.5 | S22 |
-| D-569 | ORTA | dependency | - | G1.5 | S23 |
+| D-568 | ORTA | dependency | - | G1.5 | R-S22 |
+| D-569 | ORTA | dependency | - | G1.5 | R-S23 |
 | D-570 | ORTA | dependency | - | G2.22 | - |
 | D-571 | ORTA | refactor | evet | G1.6 | - |
 | D-572 | DÜŞÜK | code_fix | - | G2.22 | - |
 | D-573 | DÜŞÜK | test_only | evet | G1.6 | - |
 | D-574 | YÜKSEK | refactor | evet | G1.7 | - |
-| D-575 | DÜŞÜK | dependency | - | G1.5 | S20 |
+| D-575 | DÜŞÜK | dependency | - | G1.5 | R-S20 |
 | D-576 | ORTA | code_fix | evet | G2.6 | - |
 | D-578 | DÜŞÜK | refactor | - | G1.6 | - |
 | D-579 | DÜŞÜK | dependency | - | G2.22 | - |
-| D-580 | DÜŞÜK | refactor | - | G2.26 | S39 |
+| D-580 | DÜŞÜK | refactor | - | G2.26 | R-S39 |
 | D-581 | ORTA | code_fix | evet | G2.8 | - |
-| D-582 | DÜŞÜK | code_fix | - | G3.6 | S45 |
-| D-583 | DÜŞÜK | refactor | - | G2.11 | S30 |
+| D-582 | DÜŞÜK | code_fix | - | G3.6 | R-S45 |
+| D-583 | DÜŞÜK | refactor | - | G2.11 | R-S30 |
 | D-584 | DÜŞÜK | blocked_on_feature | - | G1.8 | - |
-| D-585 | YÜKSEK | dependency | - | G1.5 | S19 |
+| D-585 | YÜKSEK | dependency | - | G1.5 | R-S19 |
 | D-586 | ORTA | dependency | - | G1.5 | - |
 | D-587 | ORTA | dependency | - | G2.23 | - |
 | D-588 | ORTA | code_fix | evet | G4.1 | - |
-| D-589 | DÜŞÜK | tooling_ci | - | G4.1 | S47 |
+| D-589 | DÜŞÜK | tooling_ci | - | G4.1 | S35 |
 | D-590 | ORTA | refactor | - | G2.11 | - |
-| D-591 | DÜŞÜK | code_fix | - | G4.1 | S48 |
-| D-592 | DÜŞÜK | refactor | evet | G1.8 | S25 |
+| D-591 | DÜŞÜK | code_fix | - | G4.1 | S36 |
+| D-592 | DÜŞÜK | refactor | evet | G1.8 | S18 |
 | D-593 | DÜŞÜK | dependency | - | G2.23 | - |
 | D-594 | DÜŞÜK | refactor | - | G2.26 | - |
-| D-595 | DÜŞÜK | owner_decision | - | G2.26 | S40 |
+| D-595 | DÜŞÜK | owner_decision | - | G2.26 | R-S40 |
 | D-596 | DÜŞÜK | code_fix | evet | G3.3 | - |
 | D-597 | DÜŞÜK | test_only | - | G3.7 | - |
-| D-598 | ORTA | refactor | evet | G4.2 | S50 |
-| D-599 | ORTA | refactor | evet | G4.2 | S51 |
-| D-600 | DÜŞÜK | tooling_ci | - | G4.1 | S49 |
+| D-598 | ORTA | refactor | evet | G4.3 | S38 |
+| D-599 | ORTA | refactor | evet | G4.2 | S39 |
+| D-600 | DÜŞÜK | tooling_ci | - | G4.1 | S37 |
 | D-601 | DÜŞÜK | refactor | - | G2.26 | - |
 
