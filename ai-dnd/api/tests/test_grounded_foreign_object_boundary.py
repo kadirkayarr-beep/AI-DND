@@ -60,3 +60,20 @@ class ForeignObjectHttpTests(unittest.IsolatedAsyncioTestCase):
         door=next(d for d in session.world_state['doors'] if d['id']==door_id)
         self.assertTrue(door['open']);self.assertFalse(door['locked']);self.assertTrue(door['broken'])
         self.assertNotEqual(before,session.rng.getstate())
+
+    async def test_failing_venue_door_check_is_logged_not_swallowed(self):
+        # The venue-door ownership check is best effort, but a crash in it must leave a trace (bandit B110).
+        import exploration
+        session,url,door_id=await self.fixture()
+        import sys
+        original=exploration._natural_venue_door_action
+        def explode(*args,**kwargs):
+            # Break only grounded_action's call; turn_front asks the same question without a guard.
+            if sys._getframe(1).f_code.co_name=='_decide':raise RuntimeError('venue door check broke')
+            return original(*args,**kwargs)
+        with patch.object(self.app.state.ollama_adapter,'_client',fixture.ControlledVenueOllamaClient(intent='narrative')), \
+                patch.object(exploration,'_natural_venue_door_action',explode), \
+                self.assertLogs('grounded_action','ERROR') as logs:
+            response=await self.http.post(url,json={'message':'Eski Han Kapısını kırıyorum.','action_id':str(uuid.uuid4())})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertTrue(any('venue door check failed' in line for line in logs.output),logs.output)
