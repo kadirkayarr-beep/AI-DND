@@ -15,6 +15,7 @@ import uuid
 
 import httpx
 
+import api.main as main_module
 import combat_lifecycle
 import front_proposal
 import game
@@ -272,6 +273,18 @@ class PlayTurnBranches(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.record.journal, before["journal"], "a death rollback does not write the journal")
         self.assertEqual(self.record.narrative_memory, before["memory"], "a death rollback keeps the memory")
         self.assertEqual(self.history(), 1)
+
+    async def test_death_rollback_skips_the_journal_update(self):
+        journal = patch.object(main_module, "update_campaign_journal", wraps=main_module.update_campaign_journal)
+        with journal as update:
+            self.engine(lambda: resolved(enemy_actions=[{"death_resolution": {"rolled_back": True}}]), tamper=False)
+            death = await self.post()
+            self.assertEqual(death.status_code, 200, death.text)
+            update.assert_not_called()
+            self.engine(lambda: resolved(), tamper=False)
+            plain = await self.post()
+            self.assertEqual(plain.status_code, 200, plain.text)
+            update.assert_called_once()
 
     async def test_plain_turn_writes_journal_and_memory(self):
         """The other side of the death test: the same turn without a death rollback does write both."""
