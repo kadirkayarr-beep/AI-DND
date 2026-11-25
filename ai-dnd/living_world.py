@@ -13,9 +13,14 @@ import re
 import unicodedata
 import uuid
 import tr_case
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from ambient_event_catalog import select_ambient_event
+
+if TYPE_CHECKING:
+    from world_record_types import (
+        AmbientEvent, SceneOpening, SceneRecord, SceneReferent,
+    )
 
 
 SCENE_SCHEMA_VERSION = 1
@@ -1231,9 +1236,9 @@ def ensure_scene_record(
     world_state: dict[str, Any],
     location_id: str,
     turn_index: int,
-) -> dict[str, Any]:
+) -> SceneRecord:
     state = ensure_scene_state(world_state)
-    scene = state["scenes"].get(location_id)
+    scene: SceneRecord | None = state["scenes"].get(location_id)
     if scene is None:
         location = world_state.get("locations", {}).get(location_id, {})
         parent = location.get("parent_location_id") if isinstance(location, dict) else None
@@ -1352,7 +1357,7 @@ def set_scene_opening(
     text: str,
     tone: str,
     event: dict[str, Any],
-) -> dict[str, Any]:
+) -> SceneOpening:
     """Store the authored opening with its scene so save/resume cannot reroll it."""
     if (
         not isinstance(text, str)
@@ -1377,7 +1382,7 @@ def record_scene_visit(
     world_state: dict[str, Any],
     location_id: str,
     turn_index: int,
-) -> dict[str, Any]:
+) -> SceneRecord:
     scene = ensure_scene_record(world_state, location_id, turn_index)
     if scene.get("last_visit_turn") != turn_index:
         scene["visit_revision"] = int(scene.get("visit_revision", 0)) + 1
@@ -1498,7 +1503,7 @@ def create_scene_referent(
     aliases: list[str],
     kind: str = "person",
     event_instance_id: str | None = None,
-) -> dict[str, Any]:
+) -> SceneReferent:
     scene = ensure_scene_record(world_state, location_id, turn_index)
     for existing in scene["referents"]:
         if existing.get("lifecycle") in ("presented", "promoted"):
@@ -1509,7 +1514,7 @@ def create_scene_referent(
     number = max(1, state["next_referent_number"])
     ref_id = f"scene_ref_{number:04d}"
     state["next_referent_number"] = number + 1
-    referent = {
+    referent: SceneReferent = {
         "id": ref_id,
         "scene_id": scene["id"],
         "location_id": location_id,
@@ -1530,7 +1535,7 @@ def create_scene_referent(
 def place_scene_event(world_state: dict[str, Any], location_id: str, turn_index: int, event: dict[str, Any]) -> None:
     """Make a selected event the scene's ambient event; a BLUE one gets the referent a click joins."""
     scene = ensure_scene_record(world_state, location_id, turn_index)
-    ambient_event = {
+    ambient_event: AmbientEvent = {
         "event_id": event["event_id"],
         "instance_id": event["instance_id"],
         "variation_id": event["variation_id"],
@@ -1559,7 +1564,7 @@ def materialize_scene(
     *,
     create_npc: Callable[[dict[str, Any]], dict[str, Any] | None],
     create_feature: Callable[[dict[str, Any]], dict[str, Any] | None],
-) -> dict[str, Any]:
+) -> SceneRecord:
     """Create one small location-appropriate scene once, reusing saved actors."""
     scene = ensure_scene_record(world_state, location_id, turn_index)
     if scene.get("materialized"):
