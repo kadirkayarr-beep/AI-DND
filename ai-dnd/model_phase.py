@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from logging import Logger
 
 _PHASE = ContextVar("resolved_model_phase", default="unresolved")
 _CLASSIFIER = ContextVar("classifier_model_call", default=False)
@@ -12,6 +13,11 @@ _INITIATIVE = ContextVar("initiative_model_call", default=False)
 _REPAIR = ContextVar("repair_model_call", default=False)
 _CAUSES = ContextVar("unusable_call_causes", default=None)
 MAX_CAUSES = 10
+# What a model call raises when the model is out: the adapter wraps every provider error in RuntimeError; a timeout or a
+# dead socket may arrive bare. Any other type at a fallback is a bug in our code, not an outage.
+MODEL_OUTAGE = (RuntimeError, TimeoutError, OSError)
+# ... except these subtypes, which come from our own code (a stub, a runaway recursion, a missing or locked file).
+NOT_OUTAGE = (NotImplementedError, RecursionError, FileNotFoundError, PermissionError)
 
 
 class ModelFailure(str):
@@ -117,3 +123,11 @@ def note_cause(source: str, cause: str) -> None:
 
 def causes() -> list[str]:
     return list(_CAUSES.get() or [])
+
+
+def log_fallback(logger: Logger, error: BaseException, what: str) -> None:
+    """A broad model-call catch fell back to Python text: an outage is DEBUG (the adapter already counted it), a bug WARNING."""
+    if isinstance(error, MODEL_OUTAGE) and not isinstance(error, NOT_OUTAGE):
+        logger.debug("%s fell back after a model outage (error_type=%s)", what, type(error).__name__)
+    else:
+        logger.warning("%s fell back after an unexpected error (error_type=%s)", what, type(error).__name__, exc_info=error)

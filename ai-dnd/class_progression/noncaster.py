@@ -5,6 +5,7 @@ A class supplies only what differs (Barbarian: its AC formula has a CON term). S
 from __future__ import annotations
 
 import copy
+import logging
 from typing import Any
 
 import character_progression as core
@@ -61,6 +62,7 @@ def apply_subclass_step(session, preview, level, subclass_id, *, extra=None):
         core.validate_saved(session.character, session.world_state)
         session._player_state_for_save()
     except Exception:
+        logging.getLogger(__name__).exception("Level step failed; the snapshot is restored and the step refused")
         session._restore_runtime_snapshot(snapshot)
         return core._reject("resulting_state_invalid")
     return {"status": "applied", "reason": None, "changes": [
@@ -95,6 +97,7 @@ def apply_earned_final_step(session, preview):
         core.validate_saved(session.character, session.world_state)
         session._validate_save_payload(session.serialize_game_state())
     except Exception:
+        logging.getLogger(__name__).exception("Level step failed; the snapshot is restored and the step refused")
         session._restore_runtime_snapshot(snapshot)
         _restore_format(session, captured)
         return core._reject("resulting_state_invalid")
@@ -134,6 +137,7 @@ def apply_asi_step(session, preview, choices, *, armor_class_ability=None):
         # Full canonical serialized admission follows combat synchronization.
         session._validate_save_payload(session.serialize_game_state())
     except Exception:
+        logging.getLogger(__name__).exception("Level step failed; the snapshot is restored and the step refused")
         session._restore_runtime_snapshot(snapshot)
         _restore_format(session, captured)
         return core._reject("resulting_state_invalid")

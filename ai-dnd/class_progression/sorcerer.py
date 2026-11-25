@@ -6,6 +6,7 @@ tests patch names on character_progression (`table`, `validate_saved`, ...), so 
 from __future__ import annotations
 
 import copy
+import logging
 from typing import Any
 
 import character_progression as core
@@ -251,6 +252,7 @@ def _apply_selected_level_four(session: Any, preview: dict[str, Any], choices: d
         # Game owner also enforces the retained save version and serialized shape.
         session._player_state_for_save()
     except Exception:
+        logging.getLogger(__name__).exception("Level step failed; the snapshot is restored and the step refused")
         session._restore_runtime_snapshot(snapshot)
         if had_format:
             session._persisted_engine_format = previous_format

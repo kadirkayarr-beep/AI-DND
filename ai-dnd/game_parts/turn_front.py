@@ -8,6 +8,7 @@ import held_weapon
 import interaction_adventure
 import json
 import living_world
+import logging
 import money_owner
 import monster_sense
 import re
@@ -1104,7 +1105,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     from model_phase import front_call
     try:
         listed = front_proposal.listing(session)
-    except Exception:
+    except Exception:  # broad: the old classifier chain is a whole fallback, so a broken list never fails the turn
+        logging.getLogger("game_parts.turn_front").warning("Front list could not be built; the old chain reads the line", exc_info=True)
         front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
         if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
             session._front_reply = {"intent": "unknown", "classifier_unusable": True}

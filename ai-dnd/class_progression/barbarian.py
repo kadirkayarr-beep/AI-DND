@@ -6,6 +6,7 @@ tests patch names on character_progression (`table`, `validate_saved`, ...), so 
 from __future__ import annotations
 
 import copy
+import logging
 from typing import Any
 
 import character_progression as core
@@ -302,6 +303,7 @@ def _apply_barbarian_three(session, preview, choices):
             session._sync_combat_participant_records(combat)
         session._player_state_for_save()
     except Exception:
+        logging.getLogger(__name__).exception("Level step failed; the snapshot is restored and the step refused")
         session._restore_runtime_snapshot(snapshot)
         return core._reject("resulting_state_invalid")
     return {"status": "applied", "reason": None, "changes": [

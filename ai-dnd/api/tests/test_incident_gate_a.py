@@ -311,6 +311,20 @@ class AttemptTests(unittest.TestCase):
                 self.assertIn(first.status, ("rejected", "no_proposal"))
                 self.assertEqual((second.status, second.model_calls), ("consumed", 0))
 
+    def test_a_failed_proposal_call_logs_at_debug_and_any_other_type_warns(self):  # T3: never a silent no_proposal
+        for error, level in ((RuntimeError("down"), "DEBUG"), (TimeoutError("slow"), "DEBUG"), (OSError("socket"), "DEBUG"),
+                             (KeyError("bug"), "WARNING")):
+            with self.subTest(type(error).__name__):
+                store = attempts.MemoryAttemptStore()
+
+                def propose(packet, error=error):
+                    raise error
+                with self.assertLogs("incidents.attempts", "DEBUG") as logged:
+                    result = attempts.run(store, campaign_id=CAMPAIGN, envelope=self.envelope, world=self.world,
+                                          propose=propose, model_id="qwen3:8b")
+                self.assertEqual((result.status, result.reason, result.model_calls), ("no_proposal", "no_response", 1))
+                self.assertEqual([r.levelname for r in logged.records], [level])
+
     def test_accept_ready_then_finish_and_stale_stays_stale(self):
         result = self.run_attempt(lambda packet: json.dumps(_proposal()))
         self.assertEqual((result.status, result.model_calls), ("ready", 1))

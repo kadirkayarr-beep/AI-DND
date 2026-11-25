@@ -6,6 +6,8 @@ then one emergence proposal. Mechanics never spend a call.
 
 from __future__ import annotations
 
+import logging
+
 PROPOSE = "propose"
 DEFER = "defer"
 
@@ -31,7 +33,8 @@ def calls_used():
     """Calls already spent this turn, read from the adapter's own counter."""
     try:
         from api import ollama_adapter
-    except Exception:
+    except Exception:  # best effort: an unknown count means no incident runs this turn
+        logging.getLogger(__name__).warning("Model call counter could not be read", exc_info=True)
         return None
     calls = ollama_adapter._MODEL_CALLS.get()
     return None if calls is None else len(calls)
