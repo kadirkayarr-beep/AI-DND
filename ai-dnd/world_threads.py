@@ -185,7 +185,11 @@ def owned(world: dict[str, Any], settlement_id: str | None = None) -> list[Threa
 
 
 def by_id(world: dict[str, Any], thread_id: Any) -> Thread | None:
-    """The live record. A clock step replaces the state, so nothing is held across one."""
+    """The live record. A clock step replaces the state, so nothing is held across one.
+
+    May also return a link row from world_happenings (it carries only the trouble keys),
+    so the Thread return type is narrower than the truth there.
+    """
     state = view(world)
     return next((t for t in (*state["threads"], *state["history"], *state.get("links", ()))
                  if t.get("thread_id") == thread_id), None) if state else None  # pyright: ignore[reportReturnType]  # a link row (world_happenings) has only the trouble keys
