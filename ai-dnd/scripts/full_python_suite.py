@@ -5,7 +5,7 @@ Usage (from ai-dnd/): python scripts/full_python_suite.py --shard 2 --of 4
 """
 import argparse
 from pathlib import Path
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 
 
@@ -27,7 +27,7 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     chosen = shard(modules(root), args.shard, args.of)
     print(f"shard {args.shard}/{args.of}: {len(chosen)} modules", flush=True)
-    return subprocess.call([sys.executable, "-m", "unittest", *chosen], cwd=root)
+    return subprocess.call([sys.executable, "-m", "unittest", *chosen], cwd=root)  # nosec B603 - fixed argv list, no shell, no user input
 
 
 if __name__ == "__main__":

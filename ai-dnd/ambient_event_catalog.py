@@ -218,7 +218,7 @@ def select_ambient_event(
     digest = hashlib.sha256(
         f"{campaign_seed}|{location_id}|{turn_index}|{len(history)}".encode("utf-8")
     ).digest()
-    rng = random.Random(int.from_bytes(digest[:8], "big"))
+    rng = random.Random(int.from_bytes(digest[:8], "big"))  # nosec B311 - game dice and seeded world rng, not cryptography
     return dict(rng.choices(
         [item[0] for item in weighted],
         weights=[item[1] for item in weighted],

@@ -12,7 +12,7 @@ Usage (from the ai-dnd directory, PYTHONUTF8=1):
 """
 import json
 import os
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 import tempfile
 import time
@@ -50,7 +50,7 @@ def run_gate(test_name):
 
 def _spawn(command):
     try:
-        completed = subprocess.run(
+        completed = subprocess.run(  # nosec B603 - fixed argv list, no shell, no user input
             command, cwd=str(ROOT), capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS,
             env={**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"},

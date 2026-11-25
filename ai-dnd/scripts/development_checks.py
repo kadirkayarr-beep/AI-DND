@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 
 import run_regression_evidence as evidence
@@ -68,7 +68,7 @@ def load_config(path):
 
 
 def git(repo, *args):
-    return subprocess.check_output(
+    return subprocess.check_output(  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
         ["git", "-c", "core.fsmonitor=false", *args], cwd=repo,
         env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"}, stderr=subprocess.PIPE).decode()
 
@@ -86,7 +86,7 @@ def repository_state(repo):
             index += 1
         entries.append(row)
     branch = git(repo, "symbolic-ref", "--quiet", "--short", "HEAD") if (
-        subprocess.run(["git", "symbolic-ref", "--quiet", "HEAD"], cwd=repo,
+        subprocess.run(["git", "symbolic-ref", "--quiet", "HEAD"], cwd=repo,  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0) else None
     return {
         "revision": git(repo, "rev-parse", "HEAD").strip(),
@@ -188,7 +188,7 @@ def run_command(name, argv, repo, timeout, log):
     env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "NODE_ENV": "production",
            "PORT": "5099", "BASE_PATH": "/"}
     try:
-        process = subprocess.Popen(argv, cwd=repo, env=env, stdout=log, stderr=log,
+        process = subprocess.Popen(argv, cwd=repo, env=env, stdout=log, stderr=log,  # nosec B603 - fixed argv list, no shell, no user input
                                    start_new_session=True)
         try:
             result = process.wait(timeout=timeout)
@@ -196,7 +196,7 @@ def run_command(name, argv, repo, timeout, log):
             # Stop descendants too: an orphaned test/build must not keep changing
             # logs or source after this command's evidence has been finalized.
             if os.name == "nt":
-                subprocess.run(
+                subprocess.run(  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
                     ["taskkill", "/PID", str(process.pid), "/T", "/F"],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                     check=False,

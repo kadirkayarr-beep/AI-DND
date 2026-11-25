@@ -14,7 +14,7 @@ def stream(campaign_id, trigger_id):
     if not isinstance(campaign_id, str) or not campaign_id or not isinstance(trigger_id, str) or not trigger_id:
         raise ValueError("Emergence seed needs a campaign and a trigger.")
     digest = hashlib.sha256(f"{campaign_id}:{trigger_id}".encode("utf-8")).digest()
-    return random.Random(int.from_bytes(digest, "big"))
+    return random.Random(int.from_bytes(digest, "big"))  # nosec B311 - game dice and seeded world rng, not cryptography
 
 
 def _weighted(rng, weights):
