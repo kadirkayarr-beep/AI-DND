@@ -54,7 +54,7 @@ def apply_subclass_step(session, preview, level, subclass_id, *, extra=None):
         session.character.clear()
         session.character.update(character)
         if extra is not None:
-            extra(session)
+            extra(session)  # nosec B610 - a plain callback named extra, not Django QuerySet.extra
         combat = session.world_state.get("combat", {})
         if combat.get("active"):
             session._sync_combat_participant_records(combat)

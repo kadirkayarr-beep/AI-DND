@@ -612,7 +612,7 @@ class GameSession:
         self.world_state = copy.deepcopy(INITIAL_WORLD_STATE)
         self.recent_dm_narrations = []
         self.messages = [{"role": "system", "content": system_prompt}]
-        self.rng = random.Random(seed)
+        self.rng = random.Random(seed)  # nosec B311 - game dice and seeded world rng, not cryptography
         # Injected by the API for one request; never included in engine saves.
         self.lore_authority_context = None
         # Ephemeral diagnostics only; these are deliberately outside canonical

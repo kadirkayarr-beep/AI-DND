@@ -105,7 +105,7 @@ async def main():
     store = CampaignStore(Path(tmp.name) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
     manager = SessionManager(campaign_store=store)
     adapter = AuthenticatedOllamaAdapter.from_environment()
-    assert adapter is not None, "adapter was not built from the environment"
+    assert adapter is not None, "adapter was not built from the environment"  # nosec B101 - dev/evidence script check, not runtime input validation
     spy = Spy(adapter._client)
     adapter._client = spy
     app = create_app(session_manager=manager, ollama_adapter=adapter,

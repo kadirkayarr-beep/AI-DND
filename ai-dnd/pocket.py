@@ -8,7 +8,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-import equipment_economy
 import living_world
 import tr_case
 import shop_trade
@@ -142,7 +141,6 @@ def _people_here(session) -> tuple[str, ...]:
 
 def take_named(session, text: str, word: str) -> dict[str, Any] | None:
     """The front reading says the line takes this. It is real if the line names it and the screen showed it."""
-    world = session.world_state
     words = living_world.normalize_text(text).split()
     if not word:
         return None if any(w.startswith(_WORTH) for w in words) else _take(session, text, words)

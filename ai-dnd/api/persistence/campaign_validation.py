@@ -139,7 +139,7 @@ def _tuple_tree(value: Any) -> Any:
 def _validate_rng_state(value: Any, error_type: type[Exception]) -> None:
     _ensure_json_safe(value, error_type)
     try:
-        random.Random().setstate(_tuple_tree(value))
+        random.Random().setstate(_tuple_tree(value))  # nosec B311 - game dice and seeded world rng, not cryptography
     except Exception:
         raise error_type("Campaign random state is invalid.") from None
 

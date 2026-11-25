@@ -10,7 +10,7 @@ Prints `PROBE ok parts=<list>` and exits 0, or `PROBE FAIL <step>` and exits 1.
 from __future__ import annotations
 
 import os
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 import tempfile
 from pathlib import Path
@@ -21,7 +21,7 @@ SHOW_PARTS = "import sys; print(sorted(n for n in sys.modules if n.startswith('g
 
 def _run(args: list[str], cwd: Path | str, **kwargs) -> subprocess.CompletedProcess:
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=env, timeout=120,
+    return subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=env, timeout=120,  # nosec B603 - fixed argv list, no shell, no user input
                           **kwargs)
 
 

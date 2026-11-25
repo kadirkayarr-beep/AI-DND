@@ -6,7 +6,7 @@ import math
 import os
 from pathlib import Path
 import signal
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 import tempfile
 
@@ -152,7 +152,7 @@ def run_child_gate(command, test_name, timeout):
     try:
         for number in signals:
             signal.signal(number, interrupt)
-        child = subprocess.Popen(command, cwd=ROOT, start_new_session=True)
+        child = subprocess.Popen(command, cwd=ROOT, start_new_session=True)  # nosec B603 - fixed argv list, no shell, no user input
         if pending_signal is not None:
             interrupt(pending_signal, None)
         try:

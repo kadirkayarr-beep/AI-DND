@@ -27,6 +27,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import logging
 import re
 import time
 from typing import Any
@@ -3554,7 +3555,7 @@ def _decide(session, player_input: Any, *, interaction_mode, allow_model: bool, 
         if exploration._natural_venue_door_action(session, player_input) is not None:
             return defer  # a named venue door already has its owner and contract
     except Exception:
-        pass
+        logging.getLogger(__name__).exception("venue door check failed; grounded_action keeps the line")
     if first["target"] is None and first["place_noun"] and not first["other"] and not first.get("requires_open_place") \
             and first["verb"] in {"search", "go", "enter", "wander"}:
         kind = first["place_noun"][1]

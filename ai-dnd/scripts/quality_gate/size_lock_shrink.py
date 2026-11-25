@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 from pathlib import Path
 
@@ -58,7 +58,7 @@ def check_size_lock_shrink(path: Path, ref: str) -> int:
     try:
         new = _size_lock(path.read_text(encoding="utf-8"))
         rel = os.path.relpath(path)
-        res = subprocess.run(
+        res = subprocess.run(  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
             ["git", "show", f"{ref}:./{Path(rel).as_posix()}"],
             capture_output=True, text=True, encoding="utf-8", check=False,
         )

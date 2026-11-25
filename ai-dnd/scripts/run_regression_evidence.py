@@ -8,7 +8,7 @@ import inspect
 import json
 from pathlib import Path
 import shlex
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 import traceback
 import unittest
@@ -24,7 +24,7 @@ def now():
 
 
 def git(*args):
-    return subprocess.check_output(["git", *args], cwd=ROOT)
+    return subprocess.check_output(["git", *args], cwd=ROOT)  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
 
 
 def source_snapshot(archive, *, excluded_paths=()):
@@ -35,7 +35,7 @@ def source_snapshot(archive, *, excluded_paths=()):
     """
     repo = Path(git("rev-parse", "--show-toplevel").decode().strip())
     def repo_git(*args):
-        return subprocess.check_output(["git", "-C", str(repo), *args])
+        return subprocess.check_output(["git", "-C", str(repo), *args])  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
 
     excluded = {DEFAULT_ARCHIVE.resolve(), Path(archive).resolve(),
                 *(Path(path).resolve() for path in excluded_paths)}

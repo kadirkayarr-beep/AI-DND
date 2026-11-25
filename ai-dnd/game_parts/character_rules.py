@@ -9,14 +9,14 @@ import weapon_attack
 
 def roll_d20():
     random = game._session().rng
-    return random.randint(1, 20)
+    return random.randint(1, 20)  # nosec B311 - game dice and seeded world rng, not cryptography
 
 def get_modifier(stat):
     return (stat - 10) // 2
 
 def roll_stat():
     random = game._session().rng
-    rolls = [random.randint(1, 6) for _ in range(4)]
+    rolls = [random.randint(1, 6) for _ in range(4)]  # nosec B311 - game dice and seeded world rng, not cryptography
     rolls.remove(min(rolls))
     return sum(rolls)
 
@@ -52,9 +52,9 @@ def create_random_character():
     """
 
     random = game._session().rng
-    name = random.choice(game.RANDOM_NAMES)
-    race = random.choice(game.RACES)
-    character_class = random.choice(game.CLASSES)
+    name = random.choice(game.RANDOM_NAMES)  # nosec B311 - game dice and seeded world rng, not cryptography
+    race = random.choice(game.RACES)  # nosec B311 - game dice and seeded world rng, not cryptography
+    character_class = random.choice(game.CLASSES)  # nosec B311 - game dice and seeded world rng, not cryptography
 
     # 4d6 drop lowest x6
     rolled_stats = [game.roll_stat() for _ in range(6)]
@@ -79,7 +79,7 @@ def create_random_character():
     else:
         number_to_choose = 2
 
-    proficient_skills = random.sample(
+    proficient_skills = random.sample(  # nosec B311 - game dice and seeded world rng, not cryptography
         available_skills,
         number_to_choose
     )
@@ -413,7 +413,7 @@ def roll_damage(damage_die, damage_dice, ability_mod, *, rolls=None):
     random = game._session().rng
     total = 0
     for _ in range(damage_dice):
-        value = random.randint(1, damage_die)
+        value = random.randint(1, damage_die)  # nosec B311 - game dice and seeded world rng, not cryptography
         if rolls is not None:
             rolls.append(value)
         total += value

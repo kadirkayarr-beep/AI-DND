@@ -10,7 +10,7 @@ import argparse
 import json
 import os
 import re
-import subprocess
+import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shell
 import sys
 from pathlib import Path
 
@@ -74,7 +74,7 @@ def baseline_growth(old: Counts, new: Counts) -> list[str]:
 def _base_counts(path: Path, ref: str) -> Counts | None:
     """Counts of `path` at `ref`; None = file absent there (first introduction). Raises OSError/ValueError otherwise."""
     rel = os.path.relpath(path)
-    res = subprocess.run(
+    res = subprocess.run(  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
         ["git", "show", f"{ref}:./{Path(rel).as_posix()}"],
         capture_output=True, text=True, encoding="utf-8", check=False,
     )
@@ -241,7 +241,7 @@ def _check_names_shrink(path: Path, ref: str) -> int:
     try:
         new = _whitelist_names(path.read_text(encoding="utf-8"))
         rel = os.path.relpath(path)
-        res = subprocess.run(
+        res = subprocess.run(  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
             ["git", "show", f"{ref}:./{Path(rel).as_posix()}"],
             capture_output=True, text=True, encoding="utf-8", check=False,
         )
@@ -277,7 +277,7 @@ def _check_fingerprints_shrink(path: Path, ref: str) -> int:
     try:
         new = _fingerprints(path.read_text(encoding="utf-8"))
         rel = os.path.relpath(path)
-        res = subprocess.run(
+        res = subprocess.run(  # nosec B603 B607 - fixed argv list, no shell, no user input; git/taskkill resolved from PATH on the developer machine
             ["git", "show", f"{ref}:./{Path(rel).as_posix()}"],
             capture_output=True, text=True, encoding="utf-8", check=False,
         )

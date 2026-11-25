@@ -264,9 +264,9 @@ def execute(base, resume_base, evidence, checkpoint):
         data = json.dumps(body).encode() if body is not None else None
         req = Request(server.rstrip("/") + path, data=data, method=method,
                       headers={"Content-Type": "application/json"})
-        with urlopen(req, timeout=60) as response:
+        with urlopen(req, timeout=60) as response:  # nosec B310 - URL is the local test server base given by the operator
             event["http_status"] = response.status
-            assert response.status == 200, response.status
+            assert response.status == 200, response.status  # nosec B101 - dev/evidence script check, not runtime input validation
             result = json.load(response)
         event.update(ended_at=now(), status="PASS")
         checkpoint()
@@ -300,11 +300,11 @@ def execute(base, resume_base, evidence, checkpoint):
             return body, result
 
         _, entered = turn("Avlu karşılaşmasına gir")
-        assert not entered["state"]["combat"]["active"]
+        assert not entered["state"]["combat"]["active"]  # nosec B101 - dev/evidence script check, not runtime input validation
         seen = entered["state"]["bounded_encounter"]["visible_opponent"]
-        assert seen["statblock_id"] == "mm2024.commoner"
-        assert seen["distance_ft"] == 60
-        assert "printed p.77" in seen["source"]
+        assert seen["statblock_id"] == "mm2024.commoner"  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert seen["distance_ft"] == 60  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert "printed p.77" in seen["source"]  # nosec B101 - dev/evidence script check, not runtime input validation
         _, started = turn("Avlu çatışmasını başlat")
         dash_result = started
         if not any(d.get("action") == "monster_dash" for d in dictionaries(started)):
@@ -312,29 +312,29 @@ def execute(base, resume_base, evidence, checkpoint):
         dash = next(d for d in dictionaries(dash_result) if d.get("action") == "monster_dash")
         state_after_dash = dash_result["state"]
         seen_after_dash = state_after_dash["bounded_encounter"]["visible_opponent"]
-        assert seen_after_dash["distance_ft"] == 5
-        assert seen_after_dash["node_id"] == "courtyard_near"
+        assert seen_after_dash["distance_ft"] == 5  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert seen_after_dash["node_id"] == "courtyard_near"  # nosec B101 - dev/evidence script check, not runtime input validation
         budget = state_after_dash["combat"]["action_economy"]["actors"][seen["npc_id"]]
         # The response is returned after the monster turn has completed, so
         # its per-turn base-action flag has already reset. The reported
         # monster_dash event above is the authoritative action-use evidence.
-        assert budget["movement_used"] == 55 and budget["dash_count"] == 1
-        assert dash["status"] == "resolved" and dash["outcome"] == "dash"
+        assert budget["movement_used"] == 55 and budget["dash_count"] == 1  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert dash["status"] == "resolved" and dash["outcome"] == "dash"  # nosec B101 - dev/evidence script check, not runtime input validation
         body, attacked = turn("Turumu bitiriyorum", [{"kind": "end_turn"}])
         attack = next(d for d in dictionaries(attacked) if d.get("action") == "enemy_attack")
-        assert attack["target_id"] == "player"
-        assert attack["weapon_id"] == "commoner_club" and attack["attack_bonus"] == 2
-        assert attack["damage_type"] == "bludgeoning"
+        assert attack["target_id"] == "player"  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert attack["weapon_id"] == "commoner_club" and attack["attack_bonus"] == 2  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert attack["damage_type"] == "bludgeoning"  # nosec B101 - dev/evidence script check, not runtime input validation
         request("POST", f"/api/game/campaigns/{campaign_id}/save")
         resumed = request("POST", f"/api/game/campaigns/{campaign_id}/resume", server=resume_base)
-        assert resumed["state"] == attacked["state"]
+        assert resumed["state"] == attacked["state"]  # nosec B101 - dev/evidence script check, not runtime input validation
         resumed_sid = resumed["session_id"]
         history_before = request("GET", f"/api/game/campaigns/{campaign_id}", server=resume_base)["history"]
         replay = request("POST", f"/api/game/sessions/{resumed_sid}/turn", body, server=resume_base)
         expected = dict(attacked, session_id=resumed_sid)
-        assert replay == expected
-        assert request("GET", f"/api/game/sessions/{resumed_sid}/state", server=resume_base) == attacked["state"]
-        assert request("GET", f"/api/game/campaigns/{campaign_id}", server=resume_base)["history"] == history_before
+        assert replay == expected  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert request("GET", f"/api/game/sessions/{resumed_sid}/state", server=resume_base) == attacked["state"]  # nosec B101 - dev/evidence script check, not runtime input validation
+        assert request("GET", f"/api/game/campaigns/{campaign_id}", server=resume_base)["history"] == history_before  # nosec B101 - dev/evidence script check, not runtime input validation
         evidence.update({
             "campaign_id": campaign_id,
             "second_process_resume": base.rstrip("/") != resume_base.rstrip("/"),
