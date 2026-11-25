@@ -32,7 +32,7 @@ def _narrate_resolved_turn(resolved_turn: "ResolvedTurn", player_input, messages
         location_changed=bool(resolved_turn.expected_location_change),
     )
     narration_model_calls = 1
-    from api.model_phase import resolved_narration_scope
+    from model_phase import resolved_narration_scope
     proposes_place = game._may_propose_local_place(resolved_turn, player_input)
     packet = game._rn_build_packet(lore_context=lore_context, messages=messages, narration_only=narration_only, npc_target=npc_target, player_input=player_input, proposes_place=proposes_place, resolved_narration_scope=resolved_narration_scope, resolved_turn=resolved_turn)
     packet = packet if isinstance(packet, dict) else {}

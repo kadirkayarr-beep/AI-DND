@@ -18,7 +18,7 @@ import living_world
 import shop_trade
 import town_knowledge
 import world_threads
-from api import model_phase
+import model_phase
 from api.tests import test_town_knowledge as cases
 from api.tests.test_front_proposal import FrontClient
 

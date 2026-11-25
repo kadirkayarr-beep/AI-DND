@@ -1812,7 +1812,7 @@ def reconcile_offers_after_undo(restored_world: dict[str, Any], current_offers: 
 # ---------------------------------------------------------------------------------------------------------------
 
 def _active_action_id() -> str | None:
-    from api.core_resolution import _ACTIVE_ACTION
+    from core_resolution import _ACTIVE_ACTION
     scope = _ACTIVE_ACTION.get()
     return scope.action_id if scope is not None else None
 

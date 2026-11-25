@@ -220,7 +220,7 @@ def _serve_isolated_api(port: int, database_path: Path, audit_path: Path) -> Non
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
         phase = "intent" if "intent" in properties else "narration"
         import hashlib
-        from api.model_phase import _PHASE
+        from model_phase import _PHASE
         def digest():
             session = game._session()
             payload = {"world": session.world_state, "character": session.character,

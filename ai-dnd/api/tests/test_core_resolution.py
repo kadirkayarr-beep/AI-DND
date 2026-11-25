@@ -13,7 +13,7 @@ if str(AI_DND_DIR) not in sys.path:
 
 import game
 from api.schemas import TurnRequest
-from api.core_resolution import (
+from core_resolution import (
     resolve_ability_check,
     resolve_attack_roll,
     resolve_saving_throw,

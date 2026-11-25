@@ -7,7 +7,7 @@ from unittest.mock import patch
 import game
 import npc_told
 import economic_actions as ea
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests import test_campaign_api as api
 from api.tests import test_experimental_npc_dialogue as speech
 

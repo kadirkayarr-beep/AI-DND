@@ -18,7 +18,7 @@ import weapon_attack
 import equipment_economy
 import talk_mode
 import tr_case
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 
 
 def _has_session():
@@ -1101,7 +1101,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
     if adventure_play.inside_hideout(world):
         front_proposal.note(session, "skipped:hideout")  # the town's lists are not what is around the player here
         return None
-    from api.model_phase import front_call
+    from model_phase import front_call
     try:
         listed = front_proposal.listing(session)
     except Exception:

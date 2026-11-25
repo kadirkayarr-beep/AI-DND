@@ -26,7 +26,8 @@ from typing import Any, Literal
 import httpx
 import ollama
 
-from api import model_phase, usage_ledger
+import model_phase
+from api import usage_ledger
 
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 HAIKU_MODEL = "claude-haiku-5-5"

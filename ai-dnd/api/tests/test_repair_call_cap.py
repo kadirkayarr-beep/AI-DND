@@ -1,7 +1,8 @@
 """The per-turn model-call budget: one repair call may pass the cap after a failed speech check (D-332)."""
 import unittest
 
-from api import model_phase, ollama_adapter
+import model_phase
+from api import ollama_adapter
 from api.tests import test_dialogue_runtime as base
 
 

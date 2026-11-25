@@ -1,7 +1,7 @@
 import game
 import action_economy
 import adventure.play as adventure_play
-from api.core_resolution import (
+from core_resolution import (
     resolution_action_scope,
 )
 import combat_lifecycle

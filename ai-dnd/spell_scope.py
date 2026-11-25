@@ -10,7 +10,7 @@ import initiative
 import spatial_rules
 import tr_names
 import weapon_attack as attacks
-from api.core_resolution import resolve_attack_roll
+from core_resolution import resolve_attack_roll
 from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG, proficiency_bonus_for_level
 
 # (level, range ft, die, damage type). 4C.4b first cut, page-cited K07 leaves in content/manifest/rule-oracles.json:

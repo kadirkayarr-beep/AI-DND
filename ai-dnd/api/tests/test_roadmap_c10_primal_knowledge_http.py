@@ -15,7 +15,7 @@ import equipment_economy
 import barbarian_rage
 from api.schemas import TurnRequest, SkillCheckResult
 from api.serializers import serialize_skill_check_result
-from api.core_resolution import resolution_action_scope
+from core_resolution import resolution_action_scope
 from api.tests import test_roadmap_c10_berserker_http as prior
 from api.tests.test_roadmap_c10_primal_knowledge import selected
 from api.tests.test_campaign_api import ControlledVenueOllamaClient

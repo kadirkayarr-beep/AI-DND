@@ -167,7 +167,7 @@ class WordsOpenTheCounter(CounterTrade):
 
     def test_a_room_is_offered_at_its_own_price_and_paid_on_confirm(self):
         import economic_actions as ea
-        from api.core_resolution import resolution_action_scope
+        from core_resolution import resolution_action_scope
         result = self.turn("bi oda tutayım usta")
         self.assertEqual(result["action_result"]["action"], "lodging", result["narration"])
         self.assertEqual(result["action_result"]["status"], "offered")
