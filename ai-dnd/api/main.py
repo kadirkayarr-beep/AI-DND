@@ -37,7 +37,7 @@ from api.auth import (
 )
 from api.auth_diagnostics import enabled_for_request, safe_failure_category
 import campaign_time
-import combat_lifecycle  # noqa: F401 - api.routes_turn reads it here at call time
+import combat_lifecycle  # noqa: F401 - kept for tests that patch api.main.combat_lifecycle.<attr>
 import scheduled_events
 import adventure.projection as adventure_projection
 from api.clerk_auth import ClerkAuthenticator
