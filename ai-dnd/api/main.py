@@ -1831,12 +1831,8 @@ def create_app(
                     adopt=adopt_committed_turn,
                 )
                 record.lore_authority = lore_authority_snapshot
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
@@ -1871,12 +1867,8 @@ def create_app(
                     adopt=adopt_committed_turn,
                 )
                 record.lore_authority = lore_authority_snapshot
-                _rollback_session(record, session, snapshot)
-                session.campaign_lore_state = lore_authority_snapshot
-                session.world_metadata = metadata_snapshot
-                record.journal = journal_snapshot
-                record.narrative_memory = narrative_memory_snapshot
-                record.lore_authority = lore_authority_snapshot
+                _put_back_turn(record, session, snapshot, lore_authority_snapshot, metadata_snapshot,
+                               journal_snapshot, narrative_memory_snapshot)
                 _logger.error(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
