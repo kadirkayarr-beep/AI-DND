@@ -186,7 +186,7 @@ Module set (286 modules): global set + every api/tests module that names a touch
 - (b) Old saves: not applicable — no save field or format touched.
 - (c) Undo/reload: unchanged — A sites still restore the same snapshot and reject/raise the same way (tests assert the restore and the reject).
 - (d) Fixed town: the one new test that builds a campaign session (intent reading) uses fixed_town(self, 20261351); the others use fakes or existing fixtures (graveyard, incident _world).
-- (e) Player text: unchanged; logs carry only error type names and fixed sentences, never player or model text.
+- (e) Player text: unchanged. Correction (review): the WARNING and `.exception` logs print the exception message and trace, server-side only; DEBUG outage lines carry only the error type name. None of it reaches the player.
 - (f) Red first: shown (t3-red, s0-red); no test loosened; the identity test was rewritten to the new rule (old names gone) as the plan asks.
 - (g) Money/inventory: no economic path changed; money_tests.txt run in both flags.
 - (h) Reuse: reused town_knowledge's pattern (module logger + exception) and the existing `model_phase` module for the shared B helper; one new function (log_fallback) because five B sites need the same outage-vs-bug split; stdlib logging only.
@@ -204,3 +204,15 @@ Module set (286 modules): global set + every api/tests module that names a touch
 - failing_ids 0 in both flags; no class A or B site swallows silently except the two parked B/C sites in ask_dungeon_master (D-584, size lock); every changed C site logs with a reason comment; census complete (126 sites).
 - Park: D-584 (owner Kadir, trigger: ask_dungeon_master split).
 - Not run: browser tests, full suite (not in scope); CI not run (no push).
+
+## Review follow-up (Opus review: spec OK, quality APPROVE)
+- Fix: `model_phase.log_fallback` treated every RuntimeError/OSError as an outage, so our own NotImplementedError, RecursionError, FileNotFoundError and PermissionError logged only at DEBUG. Now `NOT_OUTAGE` excludes them; fallback behaviour unchanged (log level only).
+  - Red: RESULT tests 9 skipped 0 failing_ids 1 PAR_EXIT=1 (20261125T221624-t3f1-red: test_our_own_bugs_under_the_outage_bases_still_warn). This red run on the pre-fix code is the mutation proof (the fix is the single excluding clause).
+  - Green: RESULT tests 9 skipped 0 failing_ids 0 PAR_EXIT=0 (20261125T221636-t3f1-green); ConnectionError and plain RuntimeError/TimeoutError stay DEBUG.
+- Note (a), D-584: the T3 acceptance line "no class A/B site swallows silently" is NOT met for narration.ask_dungeon_master's second except (l.1220, the narration-only model call) until that function is split; the first (l.1179, class C) is in the same state.
+- Note (b): CLI play without the API calls the raw `ollama` module, whose outages (httpx.ConnectError, ollama.ResponseError) are not subclasses of RuntimeError, TimeoutError or OSError, so each failed call there logs a WARNING with trace. The served app goes through AuthenticatedOllamaAdapter (always RuntimeError) and logs DEBUG.
+- Note (c): checklist item (e) corrected above.
+- Runs (global set + test_except_logging, test_engine_parts_pilot, test_local_gemma_fast, test_model_chain):
+  - off: RESULT tests 558 skipped 2 failing_ids 0 PAR_EXIT=0 (20261125T221648-t3f1-off)
+  - fon (gate_boot first): RESULT tests 558 skipped 2 failing_ids 0 PAR_EXIT=0 (20261125T221900-t3f1-fon)
+- Quality gate against origin/main: ruff=0 ruffshrink=0 names=0 size=0 vulture=0.

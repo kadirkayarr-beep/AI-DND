@@ -35,6 +35,17 @@ class LogFallback(unittest.TestCase):
             self.assertEqual([r.levelno for r in logged.records], [logging.DEBUG])
             self.assertIn(type(error).__name__, logged.output[0])
 
+    def test_our_own_bugs_under_the_outage_bases_still_warn(self):
+        for error in (NotImplementedError("todo"), RecursionError("deep"), FileNotFoundError("x"), PermissionError("x")):
+            with self.subTest(type(error).__name__), self.assertLogs(self.logger, "DEBUG") as logged:
+                model_phase.log_fallback(self.logger, error, "arrival narration")
+            self.assertEqual([r.levelno for r in logged.records], [logging.WARNING])
+
+    def test_a_dropped_connection_is_still_an_outage(self):
+        with self.assertLogs(self.logger, "DEBUG") as logged:
+            model_phase.log_fallback(self.logger, ConnectionError("reset"), "arrival narration")
+        self.assertEqual([r.levelno for r in logged.records], [logging.DEBUG])
+
     def test_any_other_type_logs_a_warning_with_its_trace(self):
         error = Unexpected("bug")
         with self.assertLogs(self.logger, "WARNING") as logged:
