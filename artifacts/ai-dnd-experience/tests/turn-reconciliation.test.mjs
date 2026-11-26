@@ -9,7 +9,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import { createActionLifetime, stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, ReconciliationError } from '../src/lib/action-reconciliation.ts';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved } from '../src/lib/pending-action.ts';
-import { unresolvedActionFrom } from '../src/lib/action-recovery.ts';
+import { unresolvedActionFrom, unresolvedActionMessage } from '../src/lib/action-recovery.ts';
 import { rotateAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import { QueryClient } from '@tanstack/react-query';
 import { transcriptFollowsBottom } from '../src/lib/play-viewport.ts';
@@ -235,7 +235,7 @@ function speciesHarness({ store = storage(), fail = false, refresh = async () =>
  const client = new QueryClient(); const life = createActionLifetime(); const requests = [], setters = [];
  const env = {
   campaignId:'campaign-a', sessionId:'session-a', lifetime:life, readPending:() => null, currentAccountOwner:() => 'user-a', busy:{ current:false }, pendingRequest:{current:null},
-  stableTurnActionId, clearPendingTurnAction, reconcileState, RETRY_MESSAGE,
+  stableTurnActionId, clearPendingTurnAction, reconcileState, RETRY_MESSAGE, unresolvedActionMessage,
   window:{ sessionStorage:store, crypto:{ randomUUID:() => crypto.randomUUID() } },
   useState: fn => [fn(), v => setters.push(['retry',v])],
   setSending:v => setters.push(['sending',v]), setFeedback:v => setters.push(['feedback',v]), setFailure:v => setters.push(['failure',v]), setStorageUnavailable:v => setters.push(['storageUnavailable',v]),

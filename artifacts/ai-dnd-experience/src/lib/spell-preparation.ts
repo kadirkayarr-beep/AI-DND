@@ -1,3 +1,4 @@
+import { unresolvedActionMessage } from '@/lib/action-recovery';
 import type { SpellPrepareDropped, SpellPrepareResult, SpellPrepareViewResponse } from '@workspace/api-client-react';
 
 /** The classes that prepare from a window (engine `spell_scope.PREPARING`); other casters never see this screen. */
@@ -160,6 +161,8 @@ export function isActionArchived(error: unknown): boolean {
 }
 
 export function prepareRefusalText(error: unknown): string {
+  const unresolved = unresolvedActionMessage(error);
+  if (unresolved) return unresolved;
   const code = errorCode(error);
   if (typeof code === 'string' && REFUSALS[code]) return REFUSALS[code];
   if (errorStatus(error) === 422) return 'Liste geçersiz sayıldı. Listen kaydedilmedi.';

@@ -1,7 +1,7 @@
 import { CombatStatusStrip, CombatTransitionBanner } from '@/components/combat-status-strip';
 import { PrimalKnowledgeControl } from '@/components/primal-knowledge-controls';
 import { TacticalMindControl } from '@/components/fighter-controls';
-import { useEffect, useRef, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, type FormEvent, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { DeathEndNotice, DeathRecoveryControls } from '@/components/death-recovery-controls';
 import { RestControls } from '@/components/rest-controls';
 import {
@@ -106,7 +106,7 @@ export function StoryColumn({
   onEconomyCommand: (message: string, command: CombatActionInput) => void;
   sending: boolean;
   notice: Notice | null;
-  scrollRef: RefObject<HTMLDivElement | null>;
+  scrollRef: Ref<HTMLDivElement>;
   onScroll: () => void;
   resultCue: string;
   newResponseEntryIndex: number | null;

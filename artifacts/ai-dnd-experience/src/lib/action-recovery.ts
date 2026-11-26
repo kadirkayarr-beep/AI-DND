@@ -170,3 +170,10 @@ export function unresolvedActionFrom(error: unknown): { actionId: string; code: 
   }
   return null;
 }
+
+/** The one line every route shows when the server refuses it with `unresolved_action` (D-180); null for any other error. */
+export function unresolvedActionMessage(error: unknown): string | null {
+  return unresolvedActionFrom(error)
+    ? 'Bu kampanyada sonucu henüz kesinleşmemiş bir hamle var (başka bir sekme veya önceki oturum). Bu işlem uygulanmadı. Önce o hamlenin durumunu sunucudan kontrol et ya da bilinçli olarak vazgeç.'
+    : null;
+}

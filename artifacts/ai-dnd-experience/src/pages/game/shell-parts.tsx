@@ -1,4 +1,4 @@
-import { modelRefusalLine } from '@/lib/action-recovery';
+import { modelRefusalLine, unresolvedActionMessage } from '@/lib/action-recovery';
 import { useState, type ReactNode } from 'react';
 import { combatErrorMessage } from '@/lib/combat-ui-contract';
 import {
@@ -29,6 +29,8 @@ export function statusCode(error: unknown) {
 export function friendlyError(error: unknown, fallback: string) {
   const combatMessage = combatErrorMessage(error);
   if (combatMessage) return combatMessage;
+  const unresolved = unresolvedActionMessage(error);
+  if (unresolved) return unresolved;
   const code = statusCode(error);
   if (code === 401) return 'Kimlik doğrulaması gerekli.';
   if (code === 404) return 'Bu macera bulunamadı.';
