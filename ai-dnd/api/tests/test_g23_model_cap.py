@@ -11,18 +11,21 @@ import unittest
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import httpx
 
 import dialogue_runtime
 import front_proposal
+import game
 import model_phase
 from api import model_chain, ollama_adapter, usage_ledger
 from api.tests import test_dialogue_runtime as base
 from api.tests import test_front_proposal as front_tests
 from api.tests.test_model_failure_never_locks import ReadingClient
 from api.tests.town_seed import fixed_town
+from api.tests.test_compound_line import ALineWithTwoActsDoesBoth
 from api.tests.test_model_chain import CALL, FakeCloud, haiku_reply, ok
 from api.tests.test_npc_initiative import call_kinds
 
@@ -42,7 +45,7 @@ class TestHaikuUnknownUsage(unittest.TestCase):
         self.addCleanup(folder.cleanup)
         path = Path(folder.name) / "play" / "spend.json"
         spend = model_chain.HaikuSpend(path, FixedClock())
-        chain = model_chain.ModelChain([model_chain.haiku("k", spend)], transport=httpx.MockTransport(FakeCloud(haiku=plan)),
+        chain = model_chain.ModelChain([model_chain.haiku("k", spend)], transport=httpx.MockTransport(cast(Any, FakeCloud(haiku=plan))),
                                        now=FixedClock())
         local = {"message": {"role": "assistant", "content": "{}"}}
         chain.chat(CALL, lambda: local)
@@ -57,7 +60,8 @@ class TestHaikuUnknownUsage(unittest.TestCase):
                            ("not json", httpx.Response(200, text="<html>"))):
             with self.subTest(plan=name):
                 counted = self.counter(plan)
-                self.assertIsNotNone(counted)
+                if counted is None:
+                    self.fail("the call was not counted")
                 self.assertEqual(counted[1], CALL["options"]["num_predict"])
                 body = model_chain.haiku_body(CALL)
                 self.assertGreaterEqual(counted[0], len(json.dumps(body["messages"])) // 4)
@@ -66,6 +70,8 @@ class TestHaikuUnknownUsage(unittest.TestCase):
         reply = haiku_reply()
         reply.pop("usage")
         counted = self.counter(ok(reply))
+        if counted is None:
+            self.fail("the call was not counted")
         self.assertEqual(counted[1], CALL["options"]["num_predict"])
         self.assertGreater(counted[0], 0)
 
@@ -114,8 +120,8 @@ class TestTheCallCeiling(unittest.TestCase):
                 self.ask(adapter)
 
     def test_the_most_a_turn_may_make_is_three(self):
-        self.assertEqual(ollama_adapter.turn_call_cap((), most=True), 3)
-        self.assertEqual(ollama_adapter.turn_call_cap(()), ollama_adapter.MAX_MODEL_CALLS_PER_TURN)
+        self.assertEqual(ollama_adapter.turn_call_cap([], most=True), 3)
+        self.assertEqual(ollama_adapter.turn_call_cap([]), ollama_adapter.MAX_MODEL_CALLS_PER_TURN)
 
     def test_the_third_call_of_the_rest_of_a_line_is_allowed_once(self):
         """D-419 (Kadir S20 a): 'the rest of the line' and a stock answer may take the third call."""
@@ -196,7 +202,7 @@ class TestTheLiveSmokes(unittest.TestCase):
         from api.tests import playable_living_world_v1_review
         for module in (live_neverwinter_canon_smoke, live_phase7_lore_smoke, live_playable_living_world_v1_smoke,
                        playable_living_world_v1_review):
-            self.assertEqual(module.MAX_MODEL_CALLS_PER_TURN, ollama_adapter.turn_call_cap((), most=True), module)
+            self.assertEqual(module.MAX_MODEL_CALLS_PER_TURN, ollama_adapter.turn_call_cap([], most=True), module)
 
     def test_the_long_incident_smoke_reads_the_canon_script_limit(self):
         text = (TESTS / "live_incident_long_smoke.py").read_text(encoding="utf-8")
@@ -266,6 +272,9 @@ class TestTheHealthWarning(unittest.TestCase):
 class TestThreeCallTelemetry(unittest.IsolatedAsyncioTestCase):
     """D-418: a turn of a front reading, a narration and an initiative says three calls in its telemetry."""
 
+    npc: Any  # the borrowed set-up below fills these in
+    world: Any
+    reply: Any
     asyncSetUp = base.DialogueRuntimeTests.asyncSetUp
     asyncTearDown = base.DialogueRuntimeTests.asyncTearDown
     setup_free = base.DialogueRuntimeTests.setup_free
@@ -298,6 +307,15 @@ class TestTheRefusedTurn(unittest.IsolatedAsyncioTestCase):
     """D-405 and D-408: a lost provider in the turn's own reading refuses the line and changes nothing; every refused
     line still leaves a row in the play measurement files."""
 
+    app: Any  # the borrowed set-up below fills these in
+    store: Any
+    manager: Any
+    session_id: Any
+    session: Any
+    route_file: Any
+    http: Any
+    turn_url: Any
+    client: Any
     asyncSetUp = front_tests.FrontTable.asyncSetUp
     asyncTearDown = front_tests.FrontTable.asyncTearDown
     campaign_with_npc = front_tests.FrontTable.campaign_with_npc
@@ -308,13 +326,13 @@ class TestTheRefusedTurn(unittest.IsolatedAsyncioTestCase):
 
     async def begin(self):
         with fixed_town(self, 2701):
-            await front_tests.FrontTable.begin(self)
+            await front_tests.FrontTable.begin(cast(Any, self))
         self.client = ReadingClient()
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
 
     def everything(self):
         stored = self.store.get_campaign(self.manager.get(self.session_id).campaign_id)
-        return (len(stored.history), stored.payload["engine_save"]), self.session.serialize_game_state(),             self.session.rng.getstate()
+        return (len(stored.history), stored.payload["engine_save"]), self.session.serialize_game_state(), self.session.rng.getstate()
 
     def usage(self):
         path = self.route_file.with_name(f"{self.route_file.stem}.usage{self.route_file.suffix}")
@@ -352,6 +370,113 @@ class TestTheRefusedTurn(unittest.IsolatedAsyncioTestCase):
         await self.line(self.LINE)
         self.assertNotIn("outcome", self.usage()[-1])
         self.assertNotEqual(self.routes()[-1]["status"], "refused")
+
+
+class TestTheThirdCallInATurn(unittest.IsolatedAsyncioTestCase):
+    """D-419 (Kadir S20 a): a turn that already spent two calls (the reading and the first answer) gives the rest of the
+    line and a stock answer the third call, and never a fourth."""
+
+    app: Any  # the borrowed set-up below fills these in
+    client: Any
+    npc: Any
+    session: Any
+    asyncSetUp = front_tests.FrontTable.asyncSetUp
+    asyncTearDown = front_tests.FrontTable.asyncTearDown
+    campaign_with_npc = front_tests.FrontTable.campaign_with_npc
+    open_job = front_tests.FrontTable.open_job
+    line = front_tests.FrontTable.line
+    routes = front_tests.FrontTable.routes
+    table = ALineWithTwoActsDoesBoth.table
+    held = ALineWithTwoActsDoesBoth.held
+
+    async def begin(self):
+        with fixed_town(self, 2702):
+            await front_tests.FrontTable.begin(cast(Any, self))
+
+    def ask(self):
+        return self.app.state.ollama_adapter.chat(model=ollama_adapter.MODEL_NAME, messages=[{"role": "user", "content": "x"}])
+
+    def a_fourth_call_is_refused(self):
+        with self.assertRaisesRegex(RuntimeError, "budget"):
+            self.ask()
+        self.refused = True
+
+    def two_calls_spent_before(self, owner):
+        """The turn has made its reading and one answer by the time `owner` runs; after it, the budget is checked."""
+        self.refused = False
+
+        def wrapped(*args, **kwargs):
+            self.ask()
+            out = owner(*args, **kwargs)
+            self.a_fourth_call_is_refused()
+            return out
+
+        return wrapped
+
+    async def test_the_rest_of_a_line_read_again_takes_the_third_call(self):
+        await self.table(lambda t: {"kind": "consume", "item_id": t.food, "also_says": "şarabı içiyorum"},
+                         lambda t: {"kind": "consume", "item_id": t.wine})
+        with patch.object(game, "_the_rest_of_the_line", self.two_calls_spent_before(game._the_rest_of_the_line)):
+            await self.line("yemeği yiyorum ve şarabı içiyorum")
+        self.assertNotIn("Şarap", self.held(), "the rest was read and done on the third call")
+        self.assertEqual((self.client.chat_calls, len(self.front_calls())), (3, 2))
+        self.assertTrue(self.refused, "a fourth call is refused")
+
+    async def test_the_rest_said_to_a_person_gets_the_persons_own_line_on_the_third_call(self):
+        await self.table(lambda t: {"kind": "consume", "item_id": t.food, "also_says": "Marek'e şehri soruyorum"},
+                         lambda t: {"kind": "speak_to", "person_id": t.npc["id"]})
+        with patch.object(game, "_the_rest_of_the_line", self.two_calls_spent_before(game._the_rest_of_the_line)):
+            reply = await self.line("yemeği yiyorum, Marek'e şehri soruyorum", "Şehir kalabalıktır.")
+        self.assertIn("Şehir kalabalıktır.", reply["narration"])
+        self.assertEqual(self.client.chat_calls, 3)
+        self.assertTrue(self.refused, "a fourth call is refused")
+
+    def front_calls(self):
+        return [schema for schema in self.client.schemas if "front" in (schema.get("properties") or {})]
+
+    async def stock_turn(self, *, named_word=None, spend=1):
+        await self.begin()
+        self.client.front = {"kind": "speak_to", "person_id": self.npc["id"]}
+        stock = game._GENERIC_NO_CHANGE_RESPONSE
+        real = game._dispatch_player_turn
+        modes = []
+        self.refused = False
+
+        def owner(*args, **kwargs):
+            modes.append(args[7] if len(args) > 7 else kwargs.get("interaction_mode"))
+            if len(modes) > 1:
+                out = real(*args, **kwargs)
+                self.a_fourth_call_is_refused()
+                return out
+            for _ in range(spend):
+                self.ask()
+            self.session._named_word = named_word
+            return {"messages": self.session.messages, "narration": game._stock(stock), "model_calls": 0,
+                    "action_result": {"action": "narrative", "status": "resolved", "success": True,
+                                      "state_changes": [], "direct_response": stock}}
+
+        with patch("game._dispatch_player_turn", owner):
+            reply = await self.line("sana diyorum, burda ne dönüyor", "Benden uzak dur, derim.")
+        return reply, modes
+
+    async def test_a_stock_answer_after_two_calls_is_asked_again_on_the_third(self):
+        reply, modes = await self.stock_turn()
+        self.assertEqual(modes[1:], ["say"], "the person was asked again")
+        self.assertIn("Benden uzak dur, derim.", reply["narration"])
+        self.assertEqual(self.client.chat_calls, 3)
+        self.assertTrue(self.refused, "a fourth call is refused")
+
+    async def test_a_stock_answer_for_a_name_nobody_answers_to_is_asked_again_while_a_normal_call_is_left(self):
+        """The guard on a named word is only for the third call: with a normal call left the person is asked, as before."""
+        reply, modes = await self.stock_turn(named_word="Zerdüşt", spend=0)
+        self.assertEqual(modes[1:], ["say"])
+        self.assertIn("Benden uzak dur, derim.", reply["narration"])
+
+    async def test_a_stock_answer_for_a_name_nobody_answers_to_never_takes_the_third_call(self):
+        reply, modes = await self.stock_turn(named_word="Zerdüşt", spend=1)
+        self.assertEqual(len(modes), 1)
+        self.assertEqual(self.client.chat_calls, 2)
+        self.assertNotIn("Benden uzak dur, derim.", reply["narration"])
 
 
 if __name__ == "__main__":

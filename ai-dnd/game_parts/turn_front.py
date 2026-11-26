@@ -932,16 +932,17 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     """
     session = game._session()
     text = result.get("narration") if isinstance(result, dict) else None
+    from api import ollama_adapter
     if (not isinstance(text, str) or not game._only_stock(text)
             or session.world_state.get("combat", {}).get("active")
-            or getattr(session, "_named_word", None)):  # D-419: a name nobody here answers to keeps Python's line
+            or (getattr(session, "_named_word", None) and not ollama_adapter.model_calls_left())):  # D-419: a name nobody here answers to keeps Python's line, unless a normal call is left (as before)
         return result
     hearer = game._stock_hearer(result, player_input, target_id)
     if hearer is None:
         return result
-    from api import ollama_adapter
+    action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
     if (snapshot is not None and interaction_mode != "say" and ollama_adapter.model_calls_left(third=True)  # D-419 (S20 a)
-            and not result.get("action_result", {}).get("state_changes")):
+            and not action_result.get("state_changes")):
         person = hearer["id"]
         session._restore_runtime_snapshot(snapshot)
         session._thread_gate_done = True
