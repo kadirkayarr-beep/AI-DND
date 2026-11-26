@@ -87,11 +87,34 @@ test('unresolved409ShowsRecovery: the shared error mapper (undo, save, level-up)
   assert.equal(friendlyError(refusal, 'Bu tur artık geri alınamıyor.'), recovery.unresolvedActionMessage(refusal));
   assert.doesNotMatch(friendlyError(other409, 'Bu tur artık geri alınamıyor.'), /kesinleşmemiş/);
 });
+test('ambientRefusalReleasesLockAndWarns: the ambient route turns the refusal into a warning and drops its pending request', () => {
+  const state = { pendingAmbientActionRef: { current: 'req' }, ambientActionRequest: 'req', notice: null, ambientActionError: false };
+  const handled = recovery.handleAmbientActionError(refusal, 'req', {
+    pendingRef: state.pendingAmbientActionRef,
+    setRequest: (v) => { state.ambientActionRequest = v; },
+    setNotice: (v) => { state.notice = v; },
+    setError: (v) => { state.ambientActionError = v; },
+  });
+  assert.equal(handled, true);
+  assert.equal(state.pendingAmbientActionRef.current, null, 'the pending ref lock is released');
+  assert.equal(state.ambientActionRequest, null);
+  assert.equal(state.notice.tone, 'warning');
+  assert.equal(state.notice.detail, recovery.unresolvedActionMessage(refusal));
+  assert.equal(state.ambientActionError, false, 'not shown as a network failure');
+  // another error keeps the old path: error flag set, lock untouched
+  const s2 = { ref: { current: 'req' }, err: false, req: 'req' };
+  recovery.handleAmbientActionError(other409, 'req', { pendingRef: s2.ref, setRequest: (v) => { s2.req = v; }, setNotice: () => { throw new Error('no notice'); }, setError: (v) => { s2.err = v; } });
+  assert.equal(s2.err, true); assert.equal(s2.ref.current, 'req');
+  // a stale request is ignored
+  const s3 = { ref: { current: 'newer' }, err: false };
+  recovery.handleAmbientActionError(refusal, 'old', { pendingRef: s3.ref, setRequest: () => { throw new Error('stale'); }, setNotice: () => { throw new Error('stale'); }, setError: () => { s3.err = true; } });
+  assert.equal(s3.ref.current, 'newer'); assert.equal(s3.err, false);
+});
 test('unresolved409ShowsRecovery: spell preparation, species action, quest and ambient routes map the refusal', async () => {
   const prep = await vite.ssrLoadModule('/src/lib/spell-preparation.ts');
   assert.equal(prep.prepareRefusalText(refusal), recovery.unresolvedActionMessage(refusal));
   const read = (name) => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8');
-  for (const file of ['components/species-trait-controls.tsx', 'pages/game/world-panels.tsx', 'pages/game-browser.tsx']) {
+  for (const file of ['components/species-trait-controls.tsx', 'pages/game/world-panels.tsx']) {
     assert.match(read(file), /unresolvedActionMessage\(/, `${file} maps the refusal through action-recovery`);
   }
 });

@@ -177,3 +177,26 @@ export function unresolvedActionMessage(error: unknown): string | null {
     ? 'Bu kampanyada sonucu henüz kesinleşmemiş bir hamle var (başka bir sekme veya önceki oturum). Bu işlem uygulanmadı. Önce o hamlenin durumunu sunucudan kontrol et ya da bilinçli olarak vazgeç.'
     : null;
 }
+
+/** The ambient-event route's refusal handling (D-180): a stale request is ignored; an `unresolved_action` refusal frees the lock and warns; anything else raises the error flag. Returns true when it was the refusal. */
+export function handleAmbientActionError<R>(
+  error: unknown,
+  request: R,
+  io: {
+    pendingRef: { current: R | null };
+    setRequest: (value: null) => void;
+    setNotice: (notice: { tone: 'warning'; title: string; detail: string }) => void;
+    setError: (value: true) => void;
+  },
+): boolean {
+  if (io.pendingRef.current !== request) return false;
+  const blocked = unresolvedActionMessage(error);
+  if (!blocked) {
+    io.setError(true);
+    return false;
+  }
+  io.pendingRef.current = null;
+  io.setRequest(null);
+  io.setNotice({ tone: 'warning', title: 'Tamamlanmamış bir hamle var', detail: blocked });
+  return true;
+}

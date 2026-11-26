@@ -7,7 +7,7 @@ import { preparesSpells } from '@/lib/spell-preparation';
 import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopControls, shopProbeKey } from '@/components/shop-panel';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved } from '@/lib/pending-action';
-import { askServer, findUnresolvedOnServer, RecoveryTimeoutError, settlePending, unresolvedActionFrom, unresolvedActionMessage, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
+import { askServer, findUnresolvedOnServer, RecoveryTimeoutError, settlePending, handleAmbientActionError, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useStoryScroll } from '@/pages/game/use-story-scroll';
 import { useQueryClient } from '@tanstack/react-query';
@@ -701,16 +701,12 @@ export default function GameBrowser() {
           }
         },
         onError: (error) => {
-          if (pendingAmbientActionRef.current !== request) return;
-          // An earlier action of the campaign is still open: nothing was applied, and it is not a network failure.
-          const blocked = unresolvedActionMessage(error);
-          if (blocked) {
-            pendingAmbientActionRef.current = null;
-            setAmbientActionRequest(null);
-            setNotice({ tone: 'warning', title: 'Tamamlanmamış bir hamle var', detail: blocked });
-            return;
-          }
-          setAmbientActionError(true);
+          handleAmbientActionError(error, request, {
+            pendingRef: pendingAmbientActionRef,
+            setRequest: setAmbientActionRequest,
+            setNotice,
+            setError: setAmbientActionError,
+          });
         },
       },
     );
