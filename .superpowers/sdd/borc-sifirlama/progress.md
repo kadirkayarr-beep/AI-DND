@@ -20,3 +20,4 @@ Task G1.2: complete (branch task/borc-g12-20261126, head f6f59c4d, merge 3f65ba7
 Task G1.6: complete (branch task/borc-g16-20261126, head a336aa12, merge 79390bba)
 Task G1.7: complete (branch task/borc-g17-20261126, head 485f3bb6, merge f97afe77)
 Task G1.3: complete (branch task/borc-g13-20261126, head 08ecabab, merge 322eb7ec)
+Task G1.8: complete (branch task/borc-g18-20261126, head 1e978cdc, merge 5886f800)
