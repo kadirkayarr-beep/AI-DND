@@ -26,3 +26,27 @@ Task DK1.2: complete (branch task/borc-dk12-20261126, head d5aa5402, merge ffd92
 Task DK1.A: complete (branch task/borc-dk1a-20261126, head b0596a63015556a5477536b9e6e03fadd5c9116d, merge 2d6e77bc8ffe553804ba75689725753faa40aea0)
 
 Task DK1.B: complete (branch task/borc-dk1b-20261126, head 1ce42a4bf57137b82a7e3447b18fe03b5d93aa35, merge 205f151af75a8d568b7755046f61231c783c9f5a)
+
+## DK1 fix (wf_14daa5f5-5e2) — 2026-11-26
+- Regate green: K2 all exit 0/allowed, K4 only 2 lines, neither real growth (test_front_voice pyright 88 = main's own 88; skylos no result, out of DK1 scope). K5 green both flags (869/457/114).
+- Pyright measured like-for-like vs origin/main: main 15176, wave 15142 (report gate-20261126-dalga1/pyright-method.md). DK1 +78 was mostly env artifact.
+- dilim0-ui CRLF failure did not reproduce (wave 53/53).
+- Approval list (may loosen, equal strictness claimed): DK1.B census exemption renamed to _click_and_stage (same exception, new name); dilim0-ui c14/c15 rewritten via *StartingLevelControl.
+- Ruling: BLE001 in routes_ambient cleared by re-raise restructure, not noqa — reviewer approved, noted noqa might be more honest; behaviour same — if wrong, one-line revert.
+- Ruling: skylos left out of DK1 verdict — tool times out (grep budget), already so on 2026-11-25 baseline — if wrong, skylos rerun at wave 5 end gate.
+- K6: wave PR opened. oynayış bekliyor: no main merge before Kadir plays >=10 min.
+- CI red on PR #179 (run 45879604330, shard 4, twice, so not a flake): test_roadmap_b01.test_baseline_pins_verified_sources_and_locks — lockfile digest pin stale after G1.5 (audit fix) and D-607 (package removal) changed the lock on purpose. Evidence: gate-20261126-dalga1/ci-red-45879604330 (logs + zip). Root commits 91935555, d5aa5402.
+- DK1.C ac883bd9 (merge 2e3d250b): source-baseline.json lock digest 66c82a6b... -> 4ec37613... (= CRLF digest of the committed lock). Approval list (may loosen): pin refreshed, still exact.
+- Ruling: no independent review for DK1.C — one-line data pin, no money/save/undo, CI is the red-green proof — if wrong, one-line revert.
+- Ruling (finding): local slot runs pass with both old and new digest, so slots cannot check this test (slot copy of lock or baseline not synced); K5 missed it for that reason. Parked under D-612 (slot sync of web deps), not a new row — if wrong, add a row at wave 2.
+- PR #179 CI green at 2e3d250b (run 45882945373). Wave 1 K6 done; K7 oynayış bekliyor.
+- Ruling: Wave 2 not started — CLAUDE.md play gate (no play: next slice does not start) outranks the plan's 'continue under 90%'; wave 2 would stack on unplayed wave 1 and pile up play debt — if wrong, cost is idle hours, start wave 2 on Kadir's word. Weekly 69% at 2026-11-26 22:3x.
+
+## Wave 2 — 2026-11-26
+- Kadir 2026-11-26: "Dalga 2 te başla" (wave 1 not played yet). Wave 2 branch borc/dalga-2-20261126 stacked on wave 1 head 2e3d250b; its PR waits for wave 1 merge and play O1-O7.
+- Ruling: wave 2 in rounds; round 1 = A: G2.1,G2.2,G2.4,G2.5,G2.6,G2.7 / B: G2.3,G2.10,G2.11,G2.24,G2.12,G2.17; check weekly usage before round 2 (stop new tasks at 88%) — wave 1 real cost ~7 points for 8 tasks + gate — if wrong, a round stops early at the cap.
+- Ruling: implementers also check gate tools (ruff/radon/vulture) on touched files before DONE, to avoid a DK2 K4 red like DK1 — if wrong, cost is a few minutes per task.
+Task G2.1: complete (branch task/borc-g21-20261126, head 5ddf104b, merge 88b3e471)
+Task G2.3: complete (branch task/borc-g23-20261126, head a005f166, merge 1f4cff5f)
+Task G2.2: complete (branch task/borc-g22-20261126, head 1b9612dd, merge 433545bf)
+Task G2.4: complete (branch task/borc-g24-20261126, head 2a66f2ff, merge 011def9d)
