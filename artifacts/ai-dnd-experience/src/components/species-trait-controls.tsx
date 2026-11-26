@@ -4,7 +4,7 @@ import { applyGameState, nextRevision } from '@/lib/game-state-gate';
 import { stableTurnActionId, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE } from '@/lib/action-reconciliation';
 import { currentAccountOwner } from '@/lib/account-session';
 import { readPending } from '@/lib/pending-action';
-import { askServer } from '@/lib/action-recovery';
+import { askServer, unresolvedActionMessage } from '@/lib/action-recovery';
 import { useRef, useState } from 'react';
 import { readFighterProjection } from '@/components/fighter-controls';
 import { readPaladinProjection } from '@/components/paladin-controls';
@@ -239,7 +239,7 @@ export function SpeciesTraitControls({
         try { window.sessionStorage.removeItem(retryKey); } catch { /* no persisted retry */ }
         pendingRequest.current = null;
         setRetryInput(null);
-        setFailure('Bu seçim uygulanmadı. Durumunu kontrol edip başka bir seçim yapabilirsin.');
+        setFailure(unresolvedActionMessage(error) ?? 'Bu seçim uygulanmadı. Durumunu kontrol edip başka bir seçim yapabilirsin.');
       } else {
         setFailure(RETRY_MESSAGE);
       }

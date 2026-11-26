@@ -38,20 +38,20 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
         await self.http.aclose()
 
     async def test_client_cannot_send_xp_level_or_hit_points(self):
-        created = await self.http.post("/api/sessions")
+        created = await self.http.post("/api/game/sessions")
         self.assertEqual(created.status_code, 200, created.text)
         session_id = created.json()["session_id"]
         for field, value in (("xp", 300), ("level", 4), ("current_hp", 99)):
             with self.subTest(field=field):
                 response = await self.http.post(
-                    f"/api/sessions/{session_id}/turn",
+                    f"/api/game/sessions/{session_id}/turn",
                     json={"action_id": str(uuid4()), "message": "Bekle", field: value},
                 )
                 self.assertEqual(response.status_code, 422)
                 self.assertNotIn(str(value), response.text)
 
     async def test_turn_exposes_only_a_server_level_up(self):
-        created = await self.http.post("/api/sessions")
+        created = await self.http.post("/api/game/sessions")
         session_id = created.json()["session_id"]
         session = self.manager.get(session_id, principal=TEST_PLAYER).game_session
 
@@ -63,7 +63,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = no_award
         missed = await self.http.post(
-            f"/api/sessions/{session_id}/turn",
+            f"/api/game/sessions/{session_id}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(missed.status_code, 200, missed.text)
@@ -88,7 +88,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = awarded
         gained = await self.http.post(
-            f"/api/sessions/{session_id}/turn",
+            f"/api/game/sessions/{session_id}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(gained.status_code, 200, gained.text)

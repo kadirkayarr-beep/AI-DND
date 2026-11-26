@@ -19,7 +19,7 @@ import os
 import tempfile  # noqa: F401
 import contextlib  # noqa: F401
 import contextvars
-import functools
+import functools, logging
 import sys
 import types
 from uuid import uuid4  # noqa: F401
@@ -337,8 +337,8 @@ def _speech_debug_trail(record):
         entry = {"at": _datetime.datetime.now(_datetime.timezone.utc).isoformat(), **record}
         with open(path, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
-    except Exception:
-        return
+    except Exception as error:
+        logging.getLogger(__name__).warning("Speech debug trail could not be written (error_type=%s)", type(error).__name__)
 
 
 from game_parts.turn_front import _has_session, _carry_out_thread_turn, _thread_gate, _world_snapshot, _changed_state_fields, _execute_intent_internal, _hideout_check, _adventure_scene_turn, _adventure_check_reply, _everyday_action_turn, _local_place_turn, _intent_infrastructure_result, _clear_turn_transients  # noqa: F401
@@ -397,7 +397,7 @@ from game_parts.places import _scene_feature_match, _scene_names, _variation_ind
 from game_parts.turn_front import _tell_the_coin, _the_rest_of_the_line, _person_answers_stock, _last_call, combat_refusal_turn, _approach_turn, player_cannot_act_turn, _reads_as_address, _addressed_in, _front_recovery, _front_step, _defer_spoken_coin_offer, _record_spoken_coin_response, _economic_listing, _front_economic_offer, _purchase_refused, _hand_over_coin, _coin_without_a_reading, _blow_stands, _blow_in_the_words, _ask_about_the_blow, _heavy_allowed, _ask_before_the_heavy, _answered_heavy_question, _ask_which_move, _narrated_person, front_read_ahead, _front_offer_gate, _line_gives, _front_consume  # noqa: F401
 
 
-from game_parts.turn_front import _front_wield, _coin_not_parcel, _names_no_parcel, _front_hand_over, _front_work, _take_names_a_job, _front_take, _sleep_after_walk, _front_route_turn  # noqa: F401
+from game_parts.turn_front import _front_wield, _coin_not_parcel, _names_no_parcel, _front_hand_over, _front_work, _take_names_a_job, _front_take, _sleep_after_walk, _front_route_turn, _the_place_meant  # noqa: F401
 
 
 from game_parts.resolved_narration import _narrate_resolved_turn  # noqa: F401
@@ -470,12 +470,6 @@ from game_parts.turn_speech import _ts_price_reply_commit  # noqa: F401
 from game_parts.turn_speech import _ts_accepted_text  # noqa: F401
 from game_parts.turn_speech import _ts_finalize_text  # noqa: F401
 from game_parts.turn_speech import _ts_town_response  # noqa: F401
-from game_parts.turn_dispatch_steps import _td_scene_plan_direct  # noqa: F401
-from game_parts.turn_dispatch_steps import _td_parcel_board  # noqa: F401
-from game_parts.turn_dispatch_steps import _td_strike_fallen  # noqa: F401
-from game_parts.turn_dispatch_steps import _td_fallen_address  # noqa: F401
-from game_parts.turn_dispatch_steps import _td_end_conversation  # noqa: F401
-from game_parts.turn_dispatch_steps import _td_combat_mode  # noqa: F401
 from game_parts.living_world_steps import _lw_presence_look  # noqa: F401
 from game_parts.living_world_steps import _lw_scene_answer  # noqa: F401
 from game_parts.living_world_steps import _lw_scene_referent  # noqa: F401
@@ -510,20 +504,10 @@ from game_parts.intent_steps import _pi_npc_dialogue_schema  # noqa: F401
 from game_parts.intent_steps import _pi_require_conversation  # noqa: F401
 from game_parts.intent_steps import _pi_recent_scene  # noqa: F401
 from game_parts.intent_steps import _pi_base_prompt  # noqa: F401
-from game_parts.narration_steps import _dm_return_details  # noqa: F401
-from game_parts.narration_steps import _dm_json_candidate  # noqa: F401
-from game_parts.narration_steps import _dm_user_prompt  # noqa: F401
-from game_parts.narration_steps import _dm_npc_dialogue  # noqa: F401
-from game_parts.narration_steps import _dm_anchored_inquiry  # noqa: F401
-from game_parts.narration_steps import _dm_shop_creation  # noqa: F401
-from game_parts.narration_steps import _dm_direct_query  # noqa: F401
-from game_parts.narration_steps import _dm_travel_guidance  # noqa: F401
-from game_parts.narration_steps import _fn_npc_target_check  # noqa: F401
-from game_parts.narration_steps import _fn_history_target  # noqa: F401
-from game_parts.narration_steps import _fn_history_claim_gate  # noqa: F401
-from game_parts.narration_steps import _fn_speech_guard  # noqa: F401
-from game_parts.narration_steps import _fn_unsafe_repair  # noqa: F401
-from game_parts.narration_steps import _fn_lore_rejected  # noqa: F401
+from game_parts.narration_steps import _dm_return_details, _dm_json_candidate, _dm_user_prompt, _dm_npc_dialogue, _dm_anchored_inquiry, _dm_shop_creation, _dm_direct_query, _dm_travel_guidance, _fn_npc_target_check, _fn_history_target, _fn_history_claim_gate, _fn_speech_guard, _fn_unsafe_repair, _fn_lore_rejected, _adm_claims_unsupported_gate, _adm_refs_unsupported_gate, _adm_lore_claim_guidance  # noqa: F401
+from game_parts.turn_dispatch_steps import _td_scene_plan_direct, _td_parcel_board, _td_strike_fallen, _td_fallen_address, _td_end_conversation, _td_combat_mode, _dpt_validate_combat_request, _dpt_surrendered_spell_question, _dpt_native_exploration_command, _dpt_out_of_combat_commands, _dpt_free_dialogue, _dpt_bag_read, _dpt_narrative_spell, _dpt_owner_reply, _dpt_run_in_action_scope, _dpt_run_without_action_id, _dpt_flight, _dpt_stand_down, _dpt_active_combat_response, _dpt_equipment_economy, _dpt_ends_in_speech, _dpt_front_step_read, _dpt_fallen_turn, _dpt_natural_inventory_query, _dpt_front_gate, _dpt_adventure_scene, _dpt_grounded_local_act, _dpt_local_place_or_everyday  # noqa: F401
+from game_parts.turn_run_steps import _rpt_scene_parent_living, _rpt_action_result_status, _rpt_lore_gate_interaction, _rpt_lore_gate_answerable, _rpt_experimental_dialogue_npc, _rpt_canonical_profile_question, _rpt_shop_request_import, _rpt_interaction_hint_information, _rpt_target_id_combat, _rpt_character_reply_action, _rpt_topic_name_topic, _rpt_local_dialogue_local, _rpt_interaction_mode_say, _rpt_walked_up_walked, _rpt_planned_direct_planned, _rpt_scene_plan_scene, _rpt_local_npc_place, _rpt_character_current_hp, _rpt_scene_detail_proposals, _rpt_speech_debug_trail, _rpt_speech_checks_name, _rpt_compound_speech_npc, _rpt_conversation_resolution_conversation, _rpt_accepted_npc_created, _rpt_accepted_npc_create_2, _rpt_preparsed_scene_intent, _rpt_interaction_mode_say_2, _rpt_deferred_referent_next, _rpt_selected_npc_canonical, _rpt_preparsed_scene_intent_2, _rpt_allow_new_features, _rpt_allow_new_npcs, _rpt_npc_place_recommendation, _rpt_supported_lore_response, _rpt_work_answer_shop, _rpt_interaction_hint_interaction, _rpt_character_reply_known, _rpt_spell_reading_engine, _rpt_world_subject_question, _rpt_action_result_verified, _rpt_action_result_status_2, _rpt_turned_down_what, _rpt_accepted_model_speech, _rpt_after_speech_after, _rpt_action_result_action, _rpt_spoken_reference_bool, _rpt_ledger_status_supported, _rpt_compound_speech_talk, _rpt_answer_person_return, _rpt_action_result_status_3, _rpt_result_action_dialogue, _rpt_person_living_world  # noqa: F401
+from game_parts.narration_safety_steps import _nsd_speech_fields_narration, _nsd_door_open_claim, _nsd_kap_input_text, _nsd_outcome_success_critical, _nsd_outcome_failure_critical, _nsd_any_phrase_text, _nsd_quest_transition_re, _nsd_hard_claims_canonical, _nsd_npc_target_re, _nsd_unsupported_transfer_re, _nsd_travel_result_unsupported, _nsd_unsupported_goal_re, _nsd_input_verb_suffixes, _nsd_agency_prefixes_cek, _nsd_second_person_verb, _nsd_action_outcome_mechanical, _nsd_pre_agency_claims, _nsd_npc_speech_quoted, _nsd_greeting_only_quoted, _nsd_action_result_action, _nsd_known_place_forms, _nsd_speaker_label_label, _nsd_combat_lifecycle_quoted, _nsd_completed_player_arrival, _nsd_arrival_sentences_re, _nsd_held_object_held, _nsd_registered_names_str, _nsd_inventory_transfer_re, _nsd_unsolicited_offer_re, _nsd_forced_player_action, _nsd_observe_result_action, _nsd_travel_result_action, _nsd_npc_target_re_2, _nsd_committed_travel_action, _nsd_uncommitted_departure_re, _nsd_elapsed_claim_claimed, _nsd_elapsed_claim_re, _nsd_resurrection_re_search, _nsd_speaker_pattern_rf, _nsd_allowed_names_normalize  # noqa: F401
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"
@@ -558,7 +542,7 @@ def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_P
 
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
-_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.intent_steps", "game_parts.living_world_steps", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.narration_steps", "game_parts.new_game", "game_parts.places", "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_dispatch_steps", "game_parts.turn_exits", "game_parts.turn_finish", "game_parts.turn_front", "game_parts.turn_front_steps", "game_parts.turn_shop_guards", "game_parts.turn_speech")
+_PART_MODULES = ("game_parts.character_rules", "game_parts.coin", "game_parts.combat_flow", "game_parts.dialogue", "game_parts.intent", "game_parts.intent_steps", "game_parts.living_world_steps", "game_parts.living_world_turn", "game_parts.lore", "game_parts.narration", "game_parts.narration_safety", "game_parts.narration_safety_steps", "game_parts.narration_steps", "game_parts.new_game", "game_parts.places", "game_parts.resolved_narration", "game_parts.savefile", "game_parts.text_rules_a", "game_parts.text_rules_b", "game_parts.turn", "game_parts.turn_dispatch_steps", "game_parts.turn_exits", "game_parts.turn_finish", "game_parts.turn_front", "game_parts.turn_front_steps", "game_parts.turn_run_steps", "game_parts.turn_shop_guards", "game_parts.turn_speech")
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
                           if isinstance(value, types.FunctionType)
                           and (value.__module__ == __name__ or value.__module__ in _PART_MODULES))

@@ -83,7 +83,6 @@ export default defineConfig({
       override: {
         operations: {
           playGameTurn: { zod: { coerce: sharedZodCoerce, strict: { body: true } } },
-          playLegacyTurn: { zod: { coerce: sharedZodCoerce, strict: { body: true } } },
           createCampaign: { zod: { strict: { body: true } } },
           createLegacyCampaign: { zod: { strict: { body: true } } },
           // Empty noncaster choices must not swallow invalid objects in the union.
@@ -93,9 +92,9 @@ export default defineConfig({
         },
         zod: {
           // Orval resolves `auto` from lib/api-spec/package.json, which has no
-          // zod dependency, so orval >= 8.23 falls back to Zod 4 syntax while
-          // the catalog installs zod 3. Pin to match the catalog.
-          version: 3,
+          // zod dependency, so orval >= 8.23 picks its default syntax while
+          // the catalog installs zod 4. Pin to match the catalog.
+          version: 4,
           coerce: sharedZodCoerce,
         },
         useDates: true,

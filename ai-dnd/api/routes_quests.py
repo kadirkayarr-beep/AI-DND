@@ -134,19 +134,11 @@ def register_quest_routes(
         "/api/game/sessions/{session_id}/quests/{quest_id}/accept",
         response_model=QuestCommandResult,
     )
-    @application.post(
-        "/api/sessions/{session_id}/quests/{quest_id}/accept",
-        response_model=QuestCommandResult,
-    )
     def accept_quest(session_id: str, quest_id: str) -> dict[str, Any]:
         return _quest_command(session_id, quest_id, "accept")
 
     @application.post(
         "/api/game/sessions/{session_id}/quests/{quest_id}/cancel",
-        response_model=QuestCommandResult,
-    )
-    @application.post(
-        "/api/sessions/{session_id}/quests/{quest_id}/cancel",
         response_model=QuestCommandResult,
     )
     def cancel_quest(session_id: str, quest_id: str) -> dict[str, Any]:

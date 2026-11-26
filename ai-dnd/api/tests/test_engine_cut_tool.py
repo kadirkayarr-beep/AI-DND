@@ -687,10 +687,21 @@ class TurnExitsLiftTests(unittest.TestCase):
         import ast
         part = self._funcs("turn_dispatch_steps.py")
         found = {n.name: n for n in part.body if isinstance(n, ast.FunctionDef)}
-        self.assertEqual(set(found), {"_td_combat_mode", "_td_end_conversation", "_td_fallen_address",
-                                      "_td_parcel_board", "_td_scene_plan_direct", "_td_strike_fallen"})
+        self.assertEqual(set(found), {"_td_combat_mode", "_td_end_conversation", "_td_fallen_address", "_td_parcel_board", "_td_scene_plan_direct", "_td_strike_fallen"}
+                         | self.G18_DISPATCH_CUTS)
         for fn in found.values():
             self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
+
+    # G1.8 (D-530): blocks cut out of _dispatch_player_turn with cut_block.py (cut_check CHANGED 0).
+    # DK1.A: three more split out of _dpt_out_of_combat_commands to bring its radon rank back to B (gate growth fix).
+    G18_DISPATCH_CUTS = {"_dpt_active_combat_response", "_dpt_adventure_scene", "_dpt_bag_read", "_dpt_ends_in_speech",
+                         "_dpt_grounded_local_act", "_dpt_local_place_or_everyday",
+                         "_dpt_equipment_economy", "_dpt_fallen_turn", "_dpt_flight",
+                         "_dpt_free_dialogue", "_dpt_front_gate", "_dpt_front_step_read",
+                         "_dpt_narrative_spell", "_dpt_native_exploration_command", "_dpt_natural_inventory_query",
+                         "_dpt_out_of_combat_commands", "_dpt_owner_reply", "_dpt_run_in_action_scope",
+                         "_dpt_run_without_action_id", "_dpt_stand_down", "_dpt_surrendered_spell_question",
+                         "_dpt_validate_combat_request"}
 
     def test_procedural_entity_ids_reads_the_world_it_is_given(self):
         import game

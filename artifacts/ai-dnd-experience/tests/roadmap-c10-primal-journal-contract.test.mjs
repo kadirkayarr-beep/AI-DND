@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {PlayGameTurnResponse,PlayLegacyTurnResponse,PlayGameTurnParams,PlayLegacyTurnParams} from '../../../lib/api-zod/src/generated/api.ts';
+import {PlayGameTurnResponse,PlayGameTurnParams} from '../../../lib/api-zod/src/generated/api.ts';
 
 // Ordinary populated JSON journal: every pre-existing date-time field is a
 // wire string, never a Date produced by browser-side state mutation.
@@ -12,7 +12,7 @@ export const journal={
  quests:[{quest_id:'abf0ccf8-3b08-4fd7-b657-4a2324ed6dc0',title:'Kayıt',description:'Kayıt tamamlandı.',status:'completed',giver_npc_id:'npc_001',objectives:[],created_at:'2026-10-29T16:03:00Z',updated_at:'2026-10-29T17:03:00Z',completed_at:'2026-10-29T17:04:00Z'}],
 };
 export const dateFields={discovered_locations:['first_discovered_at','last_visited_at'],known_npcs:['first_met_at','last_seen_at'],notable_events:['created_at'],quests:['created_at','updated_at','completed_at']};
-for(const [name,response] of [['canonical',PlayGameTurnResponse],['legacy',PlayLegacyTurnResponse]]){
+for(const [name,response] of [['canonical',PlayGameTurnResponse]]){
  test(`${name} ordinary populated journal preserves all eight ISO timestamp coercions`,()=>{
   const parser=response.shape.state.shape.journal;
   const parsed=parser.safeParse(journal);
@@ -28,7 +28,7 @@ for(const [name,response] of [['canonical',PlayGameTurnResponse],['legacy',PlayL
   }
  });
 }
-for(const [name,parser] of [['canonical',PlayGameTurnParams],['legacy',PlayLegacyTurnParams]]){
+for(const [name,parser] of [['canonical',PlayGameTurnParams]]){
  test(`${name} session parameter retains inherited string coercion`,()=>{
   const id='5df78dbd-3908-4a4d-bd91-1888fe1ccc0c';
   assert.equal(parser.parse({session_id:new String(id)}).session_id,id);

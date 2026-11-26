@@ -22,12 +22,12 @@ const preview = (target, counts, extra = {}) => ({ session_id: 'session', campai
 
 let helper, projection, ui, controls, levelUp, panel, vite, React, render;
 before(async () => {
-  helper = await import('../src/lib/monk-starting-creation.ts');
+  helper = await import('../src/lib/simple-class-starting-creation.ts');
   projection = await import('../src/lib/monk-projection.ts');
   process.env.PORT ||= '4187'; process.env.BASE_PATH ||= '/';
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
-  ui = await vite.ssrLoadModule('/src/components/monk-starting-creation.tsx');
+  ui = await vite.ssrLoadModule('/src/components/simple-class-starting-creation.tsx');
   controls = await vite.ssrLoadModule('/src/components/monk-controls.tsx');
   levelUp = await vite.ssrLoadModule('/src/components/level-up-controls.tsx');
   panel = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');
@@ -110,7 +110,7 @@ test('starting components show the live levels and the server scope, and choosin
   const select = byId(tree, 'monk-starting-level');
   select.props.onChange({ target: { value: '4' } }); assert.equal(picked, undefined);
   select.props.onChange({ target: { value: '3' } }); assert.equal(picked, 3);
-  const html = render(React.createElement(ui.MonkStartingScope, { metadata: helper.readMonkStartingCreationOptions(raw5()), level: 5 }));
+  const html = render(React.createElement(ui.MonkStartingLevelControl, { draft: draftN(5), metadata: helper.readMonkStartingCreationOptions(raw5()), onChange: () => {}, onRetry: () => {} }));
   assert.match(html,/>1 özellik</);assert.doesNotMatch(html,/Stunning Strike supported/);assert.match(html,/Bu seviyede oyunda işleyenler/); assert.match(html,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(html,/Higher-start equipment pending/); assert.doesNotMatch(html, /Focus supported/);
   let next;
   const choices = nodes(ui.MonkStartingChoices({ draft: draftN(3, { subclassId: '' }), metadata: helper.readMonkStartingCreationOptions(raw5()), onChange: d => next = d }));

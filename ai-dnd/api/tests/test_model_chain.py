@@ -1475,9 +1475,9 @@ class TheHttpSurface(unittest.IsolatedAsyncioTestCase):
         self.assertFalse({"gemini-3.5-flash-lite", "claude-haiku-5-5"} & set(SUPPORTED_LOCAL_MODELS))
 
     async def turn(self, narrate):
-        created = (await self.http.post("/api/sessions")).json()
+        created = (await self.http.post("/api/game/sessions")).json()
         self.manager.get(created["session_id"]).game_session.run_player_turn = narrate
-        return await self.http.post(f"/api/sessions/{created['session_id']}/turn", json={"action_id": str(uuid4()), "message": "Bekle"})
+        return await self.http.post(f"/api/game/sessions/{created['session_id']}/turn", json={"action_id": str(uuid4()), "message": "Bekle"})
 
     async def test_the_turn_log_names_the_provider_that_answered(self):
         self.adapter._chain = chain_for(FakeCloud(gemini=ok(gemini_reply())))

@@ -134,7 +134,7 @@ class ItemUse(unittest.TestCase):
 
     def test_front_requires_a_listed_bag_id(self):
         listed = {"people": [], "offers": [], "bag": front_proposal._bag(self.world)}
-        self.assertEqual(front_proposal.validate({"front": {"kind": "consume", "item_id": "beer1"}}, listed),
+        self.assertEqual(front_proposal.validate({"front": {"kind": "consume", "item_id": "beer1", "timing": "now"}}, listed),
                          {"kind": "consume", "item": "beer1"})
         for identity in ("missing", "none", None):
             self.assertIsNone(front_proposal.validate({"front": {"kind": "consume", "item_id": identity}}, listed))

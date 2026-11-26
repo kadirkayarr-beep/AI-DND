@@ -52,7 +52,6 @@ catalog:
   '@vitejs/plugin-react': ^5.0.4
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
-  drizzle-orm: ^0.45.2
   framer-motion: ^12.23.24
   lucide-react: ^0.545.0
   # Must be this exact version because expo requires it
@@ -62,9 +61,9 @@ catalog:
   tailwind-merge: ^3.3.1
   tailwindcss: ^4.1.14
   tsx: ^4.21.0
-  vite: ^7.3.2
+  vite: ^7.3.7
   wouter: ^3.3.5
-  zod: ^3.25.76
+  zod: ^4.6.6
 
 autoInstallPeers: false
 
@@ -75,6 +74,13 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  # G1.5: dev-chain advisories (pnpm audit); ranges target only the vulnerable majors.
+  "fast-uri@>=3.0.0 <3.1.9": "^3.1.9"
+  "markdown-it@<14.3.3": "^14.3.3"
+  "source-map-js@<1.2.2": "^1.2.2"
+  "postcss-selector-parser@<6.1.5": "^6.1.5"
+  "brace-expansion@>=4.0.0 <5.0.12": "^5.0.12"
+  "minimatch@>=7.0.0 <11.0.1": "^11.0.1"
   # replit uses linux-x64 only, we can exclude most other platforms.
   # win32-x64 builds are deliberately NOT excluded (esbuild, rollup, lightningcss,
   # tailwind oxide): the local Windows player path needs them to run tests/build.

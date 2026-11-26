@@ -4,8 +4,6 @@ import json
 import living_world
 import local_dialogue
 import re
-import campaign_time
-import combat_lifecycle
 import npc_statements
 
 
@@ -484,14 +482,9 @@ def _narration_safety_decision(
         len(narration.casefold()) - len(speech_fields[0].casefold())
         if speech_fields is not None else None
     )
-    if (
-        isinstance(action_result, dict)
-        and action_result.get("status") == "experimental_attributed_speech"
-        and game._experimental_private_npc_disclosure(
-            narration, world_state, npc_target=npc_target, speech_fields=speech_fields
-        )
-    ):
-        return reject("NPC_PRIVATE_PROFILE_DISCLOSURE")
+    _exit = game._nsd_action_result_action(action_result=action_result, narration=narration, npc_target=npc_target, reject=reject, speech_fields=speech_fields, world_state=world_state)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     # A greeting does not authorize reopening a disputed past conversation.
     # Evaluate the NPC's actual quoted reply, not keywords anywhere in the
@@ -500,25 +493,9 @@ def _narration_safety_decision(
         r"(?:merhaba|selam|selamlar|gunaydin|iyi gunler|iyi aksamlar)",
         game._normalize_turkish_typos(player_input),
     ))
-    if greeting_only:
-        for quoted in re.findall(r"['\"“‘]([^'\"”’]{3,220})['\"”’]", narration):
-            spoken = game._normalize_turkish_typos(quoted)
-            if (
-                re.search(r"\b(?:gormedim|duymadim|hatirlamiyorum|"
-                          r"hatirlamadim|soylemedim|konusmadik)\b", spoken)
-                and not re.search(r"\b(?:merhaba|selam|gunaydin|"
-                                  r"hos geldin\w*|iyi gunler|iyi aksamlar)\b", spoken)
-            ):
-                return reject("UNRELATED_GREETING_REPLY", quoted)
-
-        # Editorial summaries of a scene are not in-world NPC responses.
-        meta = re.search(
-            r"\bbu\s+(?:kisa\s+)?(?:etkilesim|konusma|sahne)\b"
-            r".{0,130}\b(?:orneg\w*|yansitir\w*)\b",
-            game._normalize_turkish_typos(narration),
-        )
-        if meta:
-            return reject("META_NARRATOR_COMMENTARY", meta.group(0))
+    _exit = game._nsd_greeting_only_quoted(greeting_only=greeting_only, narration=narration, reject=reject)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     for npc in world_state.get("npcs", []):
         if not isinstance(npc, dict):
@@ -540,16 +517,10 @@ def _narration_safety_decision(
                 if game._entity_reference_in_text(identity, identity_view):
                     return reject("HIDDEN_NPC_IDENTITY_DISCLOSURE", identity)
     action_result = action_result or {}
-    elapsed_claim = re.search(
-        r"((?:\d+|bir|iki|üç|dört|beş|altı|yarım)\s+(?:saniye|dakika|saat|gün))"
-        r"\s+(?:geçti|geçiyor|sonra|boyunca)",
-        narration, re.IGNORECASE,
-    )
-    if elapsed_claim:
-        claimed = campaign_time.requested_duration(elapsed_claim.group(1))
-        verified = action_result.get("time_result", {}).get("elapsed_seconds", 0)
-        if claimed != verified:
-            return reject("UNVERIFIED_ELAPSED_TIME", elapsed_claim.group(0))
+    elapsed_claim = game._nsd_elapsed_claim_re(narration=narration)
+    _exit = game._nsd_elapsed_claim_claimed(action_result=action_result, elapsed_claim=elapsed_claim, reject=reject)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     if action_result.get("action") == "attack":
         # Same facts as the deterministic combat sentence, not the same words.
         import narration_claims
@@ -633,18 +604,9 @@ def _narration_safety_decision(
         # only catches names of NPCs already in the world; an invented speaker
         # who exists nowhere must not pass either.
         speaker_label = re.match(r"\s*([^\s:,\"“”']{2,40})\s*:\s*[\"“]", narration)
-        if speaker_label:
-            label = game._normalize_turkish_typos(speaker_label.group(1).casefold())
-            allowed_labels = {
-                game._normalize_turkish_typos(target_name.casefold()),
-                game._normalize_turkish_typos(
-                    str(living_world.public_npc_name(npc_target) or "").casefold()
-                ),
-            }
-            if label and label not in allowed_labels:
-                return reject(
-                    "WRONG_NPC_SPEAKER_ATTRIBUTION", speaker_label.group(1)
-                )
+        _exit = game._nsd_speaker_label_label(npc_target=npc_target, reject=reject, speaker_label=speaker_label, target_name=target_name)
+        if _exit is not game._TURN_FALL_THROUGH:
+            return _exit
         first_person_identities = re.finditer(
             r"\b(?:(?i:ben)\s+|(?i:benim\s+adım|adım|ismim)\s+)"
             r"([A-ZÇĞİÖŞÜ][a-zçğıöşü'’-]{1,})\b(?=\s*[,!.?])",
@@ -652,12 +614,7 @@ def _narration_safety_decision(
         )
         for first_person_identity in first_person_identities:
             claimed_name = first_person_identity.group(1)
-            allowed_names = {
-                game._normalize_turkish_typos(target_name.casefold()),
-                game._normalize_turkish_typos(
-                    str(living_world.public_npc_name(npc_target) or "").casefold()
-                ),
-            }
+            allowed_names = game._nsd_allowed_names_normalize(npc_target=npc_target, target_name=target_name)
             if claimed_name and not npc_speech_boundary.matches_speaker_identity(claimed_name, allowed_names):
                 return reject(
                     "WRONG_NPC_SPEAKER_ATTRIBUTION",
@@ -673,12 +630,7 @@ def _narration_safety_decision(
                 continue
             norm_other = game._normalize_turkish_typos(other_name.casefold())
             norm_narration = game._normalize_turkish_typos(text)
-            speaker_pattern = (
-                rf"\b{re.escape(norm_other)}\b.{{0,40}}(?:der|yanit\s+verir|cevap\s+verir|fisildar|konusur|seslenir|soyler)\b|"
-                rf"\b{re.escape(norm_other)},\s*[\"“]|"
-                rf"[\"“][^\"”]{{1,200}}[\"”]\s*(?:diye\s+)?(?:der|yanit\s+verir|cevap\s+verir|fisildar|konusur|seslenir|soyler)\s+{re.escape(norm_other)}\b|"
-                rf"\b{re.escape(norm_other)}\s+sana\s+.{{0,40}}(?:diye\s+)?(?:hitap\s+eder|seslenir|der|yanit\s+verir)\b"
-            )
+            speaker_pattern = game._nsd_speaker_pattern_rf(norm_other=norm_other)
             match = re.search(speaker_pattern, norm_narration)
             if match:
                 return reject("WRONG_NPC_SPEAKER_ATTRIBUTION", other_name)
@@ -791,45 +743,11 @@ def _narration_safety_decision(
         and action_result.get("status") == "experimental_attributed_speech"
     )
     conditional = None
-    if not npc_speech:
-        quoted_spans = [
-            (quoted.start(), quoted.end())
-            for quoted in re.finditer(r'"[^"]*"|“[^”]*”', text)
-        ]
-        # A person's quoted "istersen" is an offer in their voice, not a choice
-        # the narrator makes for the player; only unquoted text is rejected.
-        conditional = next(
-            (
-                found for found in re.finditer(
-                    r"\b(?:istersen|dilersen|açtıysan|başardıysan)\b"
-                    r"|\beğer\b.{0,80}\b\w*(?:rsen|rsanız)\b",
-                    text,
-                )
-                if not any(start <= found.start() < end for start, end in quoted_spans)
-            ),
-            None,
-        )
+    conditional = game._nsd_npc_speech_quoted(conditional=conditional, npc_speech=npc_speech, text=text)
     if conditional:
         return reject("UNSUPPORTED_PLAYER_CHOICE", conditional.group(0))
 
-    # Resolve clear canonical claims before the more general player-agency
-    # matcher so diagnostics identify the actual state contradiction.
-    pre_agency_claims = (
-        ("CANONICAL_HP_CONTRADICTION",
-         r"\b(?:hp|isabet puan\w*|can puan\w*|sağlık puan\w*)\b.{0,24}\b\d+\b|"
-         r"\b\d+\s*(?:hp|isabet puan\w*|can puan\w*)\b"),
-        ("CANONICAL_DAMAGE_CONTRADICTION",
-         r"\b\d+\s*(?:puan\s+)?hasar\b.{0,25}\b(?:al\w*|ver\w*|uğra\w*)"),
-        ("CANONICAL_REWARD_CONTRADICTION",
-         r"\b(?:\d+\s*(?:altın|gp)|(?:altın|gp)\s+\d+)\b.{0,35}"
-         r"\b(?:kazan\w*|al\w*|elde et\w*|bul\w*)|"
-         r"\b(?:kazan\w*|al\w*|elde et\w*)\b.{0,35}\b\d+\s*(?:altın|gp)\b"),
-        ("CANONICAL_XP_CONTRADICTION",
-         r"\b(?:deneyim puan\w*|xp)\b.{0,35}\b(?:kazan\w*|al\w*|elde et\w*)|"
-         r"\b(?:kazan\w*|al\w*|elde et\w*)\b.{0,35}\b(?:deneyim puan\w*|xp)\b"),
-        ("CANONICAL_LEVEL_CONTRADICTION",
-         r"\b(?:seviye atla\w*|level up|seviye\w* yüksel\w*)\b"),
-    )
+    pre_agency_claims = game._nsd_pre_agency_claims()
     for reason_code, pattern in pre_agency_claims:
         claims = (
             list(re.finditer(pattern, text))
@@ -843,22 +761,9 @@ def _narration_safety_decision(
             ):
                 continue
             return reject(reason_code, claim.group(0))
-    if (action_outcome or game._mechanical_outcome(player_input)) in (
-        "failure", "critical_failure"
-    ):
-        failed_check_claim = re.search(
-            r"başarılı olur|başarıya ulaşır|başarır|kazanırsın|"
-            r"izleri bul\w*|gizli geçidi bul\w*|hedefi tespit ed\w*",
-            text,
-        )
-        if failed_check_claim:
-            return reject("SKILL_RESULT_CONTRADICTION", failed_check_claim.group(0))
-        reported_find = re.search(
-            r"fark ed|goruyorsun|buluyorsun|secebiliyorsun",
-            game._normalize_turkish_typos(text),
-        )
-        if reported_find:
-            return reject("SKILL_RESULT_CONTRADICTION", reported_find.group(0))
+    _exit = game._nsd_action_outcome_mechanical(action_outcome=action_outcome, player_input=player_input, reject=reject, text=text)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     arrival_text = living_world._text_outside_quotes(narration)
     current_location = world_state.get("location")
@@ -867,16 +772,8 @@ def _narration_safety_decision(
         isinstance(current_record, dict)
         and current_record.get("type") == "city"
     ) or living_world.scene_kind(world_state, current_location) == "city"
-    uncommitted_departure = re.search(
-        r"\b(?:sehrin|kasabanin|yerlesimin)(?:\s+sinirl\w*)?\s+"
-        r"(?:disina|otesine)\s+(?:cik\w*|gec\w*)\b",
-        game._normalize_turkish_typos(arrival_text.casefold()),
-    )
-    committed_travel = (
-        action_result.get("action") == "travel"
-        and action_result.get("status") == "completed"
-        and action_result.get("success") is True
-    )
+    uncommitted_departure = game._nsd_uncommitted_departure_re(arrival_text=arrival_text)
+    committed_travel = game._nsd_committed_travel_action(action_result=action_result)
     if current_is_city and uncommitted_departure and not committed_travel:
         return reject("CANONICAL_LOCATION_CONTRADICTION", uncommitted_departure.group(0))
 
@@ -917,25 +814,9 @@ def _narration_safety_decision(
     if game._unsupported_available_quest_claim(narration):
         return reject("UNSUPPORTED_QUEST_CLAIM", "quest availability")
 
-    # Suffixes alone are not proof of player agency in Turkish. Only reject
-    # clear actions, commitments, speech, or movement; sensory language and
-    # ordinary nouns such as "tütün" are not treated as verbs.
-    second_person_verb = re.compile(
-        r"\b(?!kadın\b|adın\b|çadırın\b|yardımın\b|sırrın\b)"
-        r"([a-zçğıöşü]{2,}?)(?:dın|din|dun|dün|(?<=[çfhkpsşt])(?:tın|tin|tun|tün)|"
-        r"yorsun|ıyorsun|iyorsun|uyorsun|üyorsun|arsın|ersin|"
-        r"ırsın|irsin|ursun|ürsün|mışsın|mişsin|muşsun|müşsün|"
-        r"dınız|diniz|dunuz|dünüz|(?<=[çfhkpsşt])(?:tınız|tiniz|tunuz|tünüz)|"
-        r"sınız|siniz|sunuz|sünüz|acaksın|eceksin)\b"
-    )
+    second_person_verb = game._nsd_second_person_verb()
     player_action_text = text
-    # Quoted words are somebody's speech, not the narrator committing the
-    # player; that holds with or without a resolved addressee.
-    if npc_target or re.search(r'"[^"]+"|“[^”]+”', text):
-        quotes = re.compile(r'"[^"]*"|“[^”]*”|‘[^’]*’|\'[^\']*\'')
-        player_action_text = quotes.sub(
-            lambda quoted: " " * len(quoted.group(0)), text
-        )
+    player_action_text = game._nsd_npc_target_re_2(npc_target=npc_target, player_action_text=player_action_text, text=text)
     player_action_text = npc_speech_boundary.mask_spoken_questions(
         player_action_text, spoken_start
     )
@@ -951,48 +832,16 @@ def _narration_safety_decision(
             re.escape(npc_name) + r"\s+mi\s+dedin[?!.]*",
             normalized_action_text,
         ) is not None
-    travel_result = (
-        action_result.get("action") == "travel"
-        and action_result.get("status") == "completed"
-        and action_result.get("success") is True
-    )
-    observe_result = (
-        action_result.get("action") == "explore"
-        and action_result.get("status") == "resolved"
-        and action_result.get("explore_type") == "observe"
-    )
-    agency_prefixes = (
-        "cek", "cikar", "savur", "vur", "saldir", "sapla", "firlat", "it",
-        "tekme", "soyle", "konus", "anlat", "itiraf", "fisilda", "bagir",
-        "sor", "yanitla", "de", "git", "gel", "yuru", "kos", "ilerle",
-        "ilerli",
-        "yaklas", "don", "gir", "cik", "gec", "kaybol", "saklan", "atla",
-        "tirman", "yuz", "kac", "otur", "kalk", "al", "ver", "ic", "ye",
-        "giy", "kullan", "tasi", "ac", "kapat", "imzala", "guven", "inan",
-        "dusun", "karar", "kabul", "onay", "anlas", "suphelen", "sec",
-        "ara", "bul",
-        "tercih", "vaat", "soz"
-    )
+    travel_result = game._nsd_travel_result_action(action_result=action_result)
+    observe_result = game._nsd_observe_result_action(action_result=action_result)
+    agency_prefixes = game._nsd_agency_prefixes_cek()
     travel_prefixes = (
         "ulas", "var", "gir", "git", "yuru", "gec", "ilerle", "don", "yaklas"
     )
     if action_result.get("proposal_required"):
         # This walk is told before it happens, so its present-tense verbs are the walk itself.
         travel_prefixes += ("gid", "ilerl", "uzakl", "yonel")
-    input_verb_suffixes = tuple(sorted((
-        "iyorum", "ıyorum", "uyorum", "üyorum",
-        "ıyorsun", "iyorsun", "uyorsun", "üyorsun",
-        "ıyor", "iyor", "uyor", "üyor",
-        "ıyordum", "iyordum", "uyordum", "üyordum",
-        "dım", "dim", "dum", "düm", "tım", "tim", "tum", "tüm",
-        "dın", "din", "dun", "dün", "tın", "tin", "tun", "tün",
-        "di", "dı", "du", "dü", "ti", "tı", "tu", "tü",
-        "yorum",
-        "erim", "arım", "irim", "ırım", "ürüm", "urum",
-        "eceğim", "acağım", "eceksin", "acaksın",
-        "ayip", "eyip", "yip", "yup",
-        "mak", "mek",
-    ), key=len, reverse=True))
+    input_verb_suffixes = game._nsd_input_verb_suffixes()
     input_verb_stems = set()
     for word in re.findall(
         r"[a-zçğıöşü]+", game._normalize_turkish_typos(input_text)
@@ -1075,18 +924,10 @@ def _narration_safety_decision(
     if mental_state_trigger:
         return reject("INVENTED_PLAYER_MENTAL_STATE", mental_state_trigger)
 
-    unsupported_goal = re.search(
-        r"\b(?:izini|yolunu|gizli yolu|kaynağı)\b.{0,55}"
-        r"\b(?:bulmak|aramak|takip etmek)\b.{0,75}"
-        r"\b(?:gitmelisin|gitmelisiniz|aramalısın|aramalısınız|bulmalısın|bulmalısınız)\b",
-        text,
-    )
-    if travel_result and unsupported_goal and not re.search(
-        r"\b(?:izini|yolunu|gizli yolu|kaynağı)\b.{0,55}"
-        r"\b(?:bul|ara|takip et)\w*",
-        input_text,
-    ):
-        return reject("INVENTED_PLAYER_OBJECTIVE", unsupported_goal.group(0))
+    unsupported_goal = game._nsd_unsupported_goal_re(text=text)
+    _exit = game._nsd_travel_result_unsupported(input_text=input_text, reject=reject, travel_result=travel_result, unsupported_goal=unsupported_goal)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     for sitting in re.finditer(r"\bbirlikte\s+(otur\w*)\b", text):
         if (
@@ -1104,30 +945,15 @@ def _narration_safety_decision(
         ):
             continue
         return reject("INVENTED_PLAYER_ACTION", sitting.group(0))
-    forced_player_action = re.search(
-        r"\b(?:seni|sana)\b.{0,50}"
-        r"\b(?:oturt\w*|içir\w*|yedir\w*|giydir\w*|aldır(?!m|ış)\w*|kaldır\w*)\b",
-        text,
-    )
+    forced_player_action = game._nsd_forced_player_action(text=text)
     if forced_player_action:
         return reject("INVENTED_PLAYER_ACTION", forced_player_action.group(0))
-    unsolicited_offer = re.search(
-        r"\b(?:içelim|yiyelim|oturalım|kahve iç|bira iç|şarap iç|yemek ye|"
-        r"ne içmek istersin|ne içersin|içmek ister misin|bir şey içmek ister misin)\b",
-        text,
-    )
+    unsolicited_offer = game._nsd_unsolicited_offer_re(text=text)
     if unsolicited_offer and not npc_speech and not any(
         term in input_text for term in ("iç", "yemek", "bira", "kahve", "şarap", "otur")
     ):
         return reject("UNSOLICITED_PLAYER_CHOICE", unsolicited_offer.group(0))
-    unsupported_transfer = re.compile(
-        r"\b(?:kahve|bira(?!z)|şarap|yemek|bardak|kadeh|eşya|silah|kılıç|"
-        r"tılsım|mühür|iksir|altın|(?:han[ıi]n\s+)?anahtar)\w*\b.{0,55}?"
-        r"\b(?P<transfer_verb>önüne bırak\w*|eline ver\w*|sana uzat\w*|"
-        r"uzat\w*|bırak\w*|ikram et\w*|ver\w*|hediye et\w*|"
-        r"envanterine eklen\w*|teslim et\w*)",
-        re.IGNORECASE,
-    )
+    unsupported_transfer = game._nsd_unsupported_transfer_re()
     for transfer_claim in unsupported_transfer.finditer(text):
         if game._is_explicitly_negated_transfer(transfer_claim, text):
             continue
@@ -1140,11 +966,7 @@ def _narration_safety_decision(
             transfer_claim.group(0), action_result
         ):
             return reject("UNSUPPORTED_ITEM_TRANSFER", transfer_claim.group(0))
-    inventory_transfer = re.compile(
-        r"\benvanter\w*.{0,55}?\b(?:eklen\w*|aktarıl\w*|çıkarıl\w*|"
-        r"cikaril\w*|girer\w*|ekle\w*)",
-        re.IGNORECASE,
-    )
+    inventory_transfer = game._nsd_inventory_transfer_re()
     for transfer_claim in inventory_transfer.finditer(text):
         if game._is_explicitly_negated_transfer(transfer_claim, text):
             continue
@@ -1161,34 +983,11 @@ def _narration_safety_decision(
     ):
         return reject("UNSUPPORTED_ITEM_TRANSFER", generic_transfer.group(0))
 
-    if npc_target:
-        if re.search(r"\b(?:adın ne|ismin ne|barmenin adı ne)\b", input_text):
-            asks_player_name = re.search(
-                r"\b(?:sana|oyuncuya)\b.{0,70}\b(?:sorar|soruyor|diye sorar)\b"
-                r".{0,70}\b(?:adın|ismin)\s+ne\b",
-                text,
-            )
-            if asks_player_name:
-                return reject("NPC_REPLY_MISMATCH", asks_player_name.group(0))
-        if re.search(
-            r"\b(?:burada ne zamandır|kaç yıldır|ne kadar süredir)\b"
-            r".{0,50}\b(?:çalış|burada|taverna)",
-            input_text,
-        ):
-            has_relevant_reply = re.search(
-                r"\b(?:yıl\w*|ay\w*|gün\w*|çalış\w*|uzun süredir|bir süredir|"
-                r"yeni başladım|bilmiyorum|hatırlamıyorum|emin değilim|"
-                r"doğrulanmış bilgi yok)\b",
-                text,
-            )
-            if not has_relevant_reply:
-                return reject("NPC_REPLY_MISMATCH")
+    _exit = game._nsd_npc_target_re(input_text=input_text, npc_target=npc_target, reject=reject, text=text)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
-    registered_names = {
-        str(npc.get("name", "")).casefold()
-        for npc in world_state.get("npcs", [])
-        if npc.get("name")
-    }
+    registered_names = game._nsd_registered_names_str(world_state=world_state)
     registered_name_tokens = {
         part for name in registered_names for part in name.split()
     }
@@ -1199,14 +998,7 @@ def _narration_safety_decision(
         game._normalize_turkish_typos(place) for place in known_places if place
     }
     for place in tuple(known_place_forms):
-        known_place_forms.update(
-            place + suffix
-            for suffix in (
-                "i", "u", "a", "e", "in", "un", "nin", "nun",
-                "da", "de", "ta", "te", "dan", "den", "tan", "ten",
-                "la", "le", "yla", "yle",
-            )
-        )
+        game._nsd_known_place_forms(known_place_forms=known_place_forms, place=place)
     name_patterns = game._NARRATED_NAME_PATTERNS
     unseen_people = game._unseen_registered_names(world_state)
     import npc_speech_boundary
@@ -1265,22 +1057,12 @@ def _narration_safety_decision(
     held_object = game._unregistered_held_object(world_state, narration)
     held_action = action_result.get("action") if isinstance(action_result, dict) else None
     held_outcome = action_result.get("outcome") if isinstance(action_result, dict) else None
-    if held_object and (
-        held_action == "narrative"
-        or held_outcome in {"failure", "critical_failure"}
-    ):
-        return reject("UNREGISTERED_PERSISTENT_OBJECT", held_object)
+    _exit = game._nsd_held_object_held(held_action=held_action, held_object=held_object, held_outcome=held_outcome, reject=reject)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
-    arrival_sentences = re.split(
-        r"(?<=[.!?;,:])\s+|\s+\b(?:ama|ancak|fakat|oysa|ve|ya da|yoksa)\b\s+",
-        arrival_text,
-        flags=re.IGNORECASE,
-    )
-    completed_player_arrival = re.compile(
-        r"\b(?:vardin|variyorsun|ulastin|ulasiyorsun|geldin|geliyorsun|"
-        r"girdin|giriyorsun|bulundun|bulunuyorsun|icindesin|iceridesin|"
-        r"varis\s+gercekles\w*)\b"
-    )
+    arrival_sentences = game._nsd_arrival_sentences_re(arrival_text=arrival_text)
+    completed_player_arrival = game._nsd_completed_player_arrival()
     for location_id, location in world_state.get("locations", {}).items():
         if location_id == current_location:
             continue
@@ -1340,32 +1122,7 @@ def _narration_safety_decision(
         if present_action:
             return reject("CANONICAL_NPC_LOCATION_CONTRADICTION", npc_name)
 
-    # Major canonical mutations are not free-form narration. This list targets
-    # explicit state changes while leaving sensory weather and scenery prose open.
-    hard_claims = (
-        ("CANONICAL_HP_CONTRADICTION",
-         r"\b(?:hp|isabet puan\w*|can puan\w*|sağlık puan\w*)\b.{0,24}\b\d+\b|"
-         r"\b\d+\s*(?:hp|isabet puan\w*|can puan\w*)\b"),
-        ("CANONICAL_DAMAGE_CONTRADICTION",
-         r"\b\d+\s*(?:puan\s+)?hasar\b.{0,25}\b(?:al\w*|ver\w*|uğra\w*)"),
-        ("CANONICAL_REWARD_CONTRADICTION",
-         r"\b(?:\d+\s*(?:altın|gp)|(?:altın|gp)\s+\d+)\b.{0,35}"
-         r"\b(?:kazan\w*|al\w*|elde et\w*|bul\w*)|"
-         r"\b(?:kazan\w*|al\w*|elde et\w*)\b.{0,35}\b\d+\s*(?:altın|gp)\b"),
-        ("CANONICAL_XP_CONTRADICTION",
-         r"\b(?:deneyim puan\w*|xp)\b.{0,35}\b(?:kazan\w*|al\w*|elde et\w*)|"
-         r"\b(?:kazan\w*|al\w*|elde et\w*)\b.{0,35}\b(?:deneyim puan\w*|xp)\b"),
-        ("CANONICAL_LEVEL_CONTRADICTION",
-         r"\b(?:seviye atla\w*|level up|seviye\w* yüksel\w*)\b"),
-        ("CANONICAL_SPELL_CONTRADICTION",
-         r"\b(?:ateş|ışık|yıldırım|buz|koruma|iyileştirme)\s+büyüsü\b"
-         r".{0,45}\b(?:belir\w*|oluş\w*|etki et\w*|vur\w*)"),
-        ("CANONICAL_WEATHER_CHANGE",
-         r"\b(?:yağmur|kar|fırtına|sis)\b.{0,35}\b(?:başla\w*|din\w*|dur\w*|"
-         r"kesil\w*|güçlen\w*)|"
-         r"\b(?:başla\w*|din\w*|dur\w*|kesil\w*)\b.{0,35}"
-         r"\b(?:yağmur|kar|fırtına|sis)\b"),
-    )
+    hard_claims = game._nsd_hard_claims_canonical()
     for reason_code, pattern in hard_claims:
         claims = (
             list(re.finditer(pattern, text))
@@ -1381,12 +1138,7 @@ def _narration_safety_decision(
             return reject(reason_code, claim.group(0))
 
     quest_outcomes = action_result.get("quest_outcomes")
-    quest_transition = re.search(
-        r"\b(?:görev|görevi|hedef|amaç)\b.{0,55}"
-        r"\b(?:tamamlandı|tamamladın|bitirdin|kabul ettin|iptal edildi|"
-        r"ilerledi|ilerletildi|başladı)\b",
-        text,
-    )
+    quest_transition = game._nsd_quest_transition_re(text=text)
     if quest_transition and not quest_outcomes:
         return reject("CANONICAL_QUEST_CONTRADICTION", quest_transition.group(0))
 
@@ -1406,100 +1158,40 @@ def _narration_safety_decision(
         if not defeated or not npc_name:
             continue
         normalized_name = game._normalize_turkish_typos(npc_name.casefold())
-        resurrection = re.search(
-            rf"(?<![a-z0-9çğıöşü]){re.escape(normalized_name)}(?![a-z0-9çğıöşü])"
-            r".{0,55}\b(?:ayaga kalk\w*|gozlerini ac\w*|hayata don\w*|"
-            r"yeniden canlan\w*|konus\w*|saldir\w*)",
-            game._normalize_turkish_typos(text),
-        )
+        resurrection = game._nsd_resurrection_re_search(normalized_name=normalized_name, text=text)
         if resurrection:
             return reject("DEFEATED_ENTITY_RESURRECTION", npc_name)
 
-    if any(phrase in text for phrase in (
-        "duvar çatırdar", "duvar çatlar", "duvar yıkılır", "duvar kırılır",
-        "kapı parçalanır", "kapı kırılır", "karakterin ölür", "öldün",
-        "uçmaya başlarsın", "envanterine eklenir", "envanterinden çıkar"
-    )):
-        return reject("CANONICAL_STATE_CONTRADICTION")
+    _exit = game._nsd_any_phrase_text(reject=reject, text=text)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     outcome = action_outcome or game._mechanical_outcome(player_input)
-    if outcome in ("failure", "critical_failure"):
-        contradicted_success = re.search(
-            r"başarılı olur|başarıya ulaşır|başarır|kazanırsın|"
-            r"izleri bul\w*|gizli geçidi bul\w*|"
-            r"hedefi tespit ed\w*",
-            text,
-        )
-        if contradicted_success:
-            return reject("SKILL_RESULT_CONTRADICTION", contradicted_success.group(0))
-    if outcome in ("success", "critical_success"):
-        contradicted_failure = re.search(r"başarısız olur|başaramaz", text)
-        if contradicted_failure:
-            return reject("SKILL_RESULT_CONTRADICTION", contradicted_failure.group(0))
-        unmoved = game._UNMOVED.search(game._normalize_turkish_typos(text)) if action_result.get("skill") == "Intimidation" else None
-        if unmoved:
-            return reject("SKILL_RESULT_CONTRADICTION", unmoved.group(0))  # D-226: a won scare moves the person
-    if ("kapı" in input_text or "kilit" in input_text) and outcome in (
-        "failure", "critical_failure"
-    ):
-        opened_door = re.search(
-            r"(?:kapı|kapısı|giriş).{0,35}(?:açılır|aralanır|açık olur)",
-            text,
-        )
-        if opened_door:
-            return reject("DOOR_RESULT_CONTRADICTION", opened_door.group(0))
+    _exit = game._nsd_outcome_failure_critical(outcome=outcome, reject=reject, text=text)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
+    _exit = game._nsd_outcome_success_critical(action_result=action_result, outcome=outcome, reject=reject, text=text)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
+    _exit = game._nsd_kap_input_text(input_text=input_text, outcome=outcome, reject=reject, text=text)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     door = game._current_door()
-    if door:
-        open_claim = re.search(
-            r"(?:kapı|kapısı|giriş)\b.{0,35}\b"
-            r"(?:açıldı|açılır|açık|aralandı|aralanır|kırıldı|parçalandı)\b",
-            text,
-        )
-        closed_claim = re.search(
-            r"(?:kapı|kapısı|giriş)\b.{0,35}\b(?:kapalı|kilitli)\b",
-            text,
-        )
-        if open_claim and not door["open"]:
-            return reject("DOOR_STATE_CONTRADICTION", open_claim.group(0))
-        if closed_claim and door["open"]:
-            return reject("DOOR_STATE_CONTRADICTION", closed_claim.group(0))
-        broken_claim = re.search(
-            r"(?:kapı|kapısı)\b.{0,35}\b(?:kırıldı|parçalandı|yıkıldı)",
-            text,
-        )
-        if broken_claim and not door.get("broken", False):
-            return reject("DOOR_STATE_CONTRADICTION", broken_claim.group(0))
-        unlocked_claim = re.search(
-            r"(?:kilit|kapı|kapısı)\b.{0,35}\b(?:açıldı|kilitsiz|çözüldü)",
-            text,
-        )
-        if unlocked_claim and door["locked"]:
-            return reject("DOOR_STATE_CONTRADICTION", unlocked_claim.group(0))
-        locked_claim = re.search(
-            r"(?:kilit|kapı|kapısı)\b.{0,35}\bkilitli\b",
-            text,
-        )
-        if locked_claim and not door["locked"]:
-            return reject("DOOR_STATE_CONTRADICTION", locked_claim.group(0))
+    _exit = game._nsd_door_open_claim(door=door, reject=reject, text=text)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     import narration_claims
     verdict = narration_claims.assess(narration, game._narration_fact_packet(action_result))
     if verdict["reject"]:
         return reject(verdict["reason"] or "NARRATION_CLAIM_REJECTED", verdict.get("span"))
 
-    # Attributed words may be rumors; the optional narrator field is not speech.
-    # Reuse the narrator's existing lore authority, never the model's claim IDs.
-    if speech_fields is not None and game._narration_has_unsupported_lore_claim(
-        speech_fields[1], [],
-        game._prepare_lore_authority_context(getattr(game._session(), "lore_authority_context", None)),
-        world_state,
-    ):
-        return {**reject("UNVERIFIED_LORE_CLAIM"), "source_field": "stage_direction"}
+    _exit = game._nsd_speech_fields_narration(reject=reject, speech_fields=speech_fields, world_state=world_state)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
-    if combat_lifecycle.quoted_or_conditional_not_attack(game._session(), player_input):
-        folded_narration = narration_claims.fold(narration)
-        fight = re.search(r"\b(?:saldir|savun)\w*|\bkan\b", folded_narration)
-        if fight:
-            return reject("REPORTED_NON_ATTACK", fight.group(0))
+    _exit = game._nsd_combat_lifecycle_quoted(narration=narration, narration_claims=narration_claims, player_input=player_input, reject=reject)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     return accept()

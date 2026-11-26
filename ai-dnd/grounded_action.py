@@ -3417,6 +3417,8 @@ def resolve_turn(session, player_input: Any, *, interaction_mode=None, target_id
                     },
                 }
     snapshot = copy.deepcopy(world)
+    decision: str
+    payload: Any  # the shape depends on the decision: (run, target) for info, (run, options[, question]) for clarify, an _execute tuple
     try:
         decision, payload = (
             grounded_places._decide_listed_walk(session, player_input, listed_place["id"], listed_place["inside"],
@@ -3810,28 +3812,36 @@ def _spoken_label(option: dict[str, Any]) -> str:
     return "yakındaki " + (living_world.public_npc_role(record) or "biri").casefold()
 
 
+def _places_said_aloud(session) -> set[Any]:
+    """D-335: a place a person named aloud is heard of even when the shown narration never quoted it."""
+    return {row.get("place_id") for row in session.world_state.get("heard_rumours") or [] if isinstance(row, dict)}
+
+
 def worth_naming(session, line: str, options: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """What a question back may name: what the player saw or heard of, and first of all the place the line itself names."""
     folded = living_world.normalize_text(line)
     heard = living_world.normalize_text(" ".join(str(row.get("content")) for row in session.messages
                                                  if isinstance(row, dict) and row.get("role") == "assistant"))
     places = session.world_state.get("locations", {})
+    said = _places_said_aloud(session)
 
     def named(option):
         words = living_world.normalize_text(option["label"]).split()
         return option["kind"] == "place" and len(words) > 1 and all(word[:4] in folded for word in words)
 
     def known(option):
-        return (option["kind"] != "place" or (places.get(option["id"]) or {}).get("visited")
+        return (option["kind"] != "place" or (places.get(option["id"]) or {}).get("visited") or option["id"] in said
                 or living_world.normalize_text(option["label"]) in heard)
 
     first = [option for option in options if named(option)]
     return [*first, *(option for option in options if option not in first and known(option))]
 
 
-def _finish_clarification(run: _Run, options) -> dict[str, Any]:
+def _finish_clarification(run: _Run, options, question: str | None = None) -> dict[str, Any]:
     labels = [_spoken_label(o) for o in options][:4]
-    if not labels:
+    if question:
+        text = question
+    elif not labels:
         text = clarification_text(run.session)
     elif len(labels) == 1:
         text = f"{tr_case.upper_first(labels[0])} mi demek istiyorsun?"

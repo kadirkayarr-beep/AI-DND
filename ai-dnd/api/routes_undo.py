@@ -27,10 +27,6 @@ def register_undo_routes(application: FastAPI, *, get_record: Any, ensure_usable
         "/api/game/sessions/{session_id}/undo",
         response_model=TurnUndoResponse,
     )
-    @application.post(
-        "/api/sessions/{session_id}/undo",
-        response_model=TurnUndoResponse,
-    )
     def undo_last_turn(session_id: str, request: TurnUndoRequest) -> dict[str, Any]:
         """Undo the last completed turn and its effects; keep it as history evidence."""
         record = get_record(session_id)

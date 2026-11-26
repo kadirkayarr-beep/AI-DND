@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type RefObject } from 'react';
+import { useState, type CSSProperties, type Ref } from 'react';
 import { CircleHelp, MessageCircle, RotateCcw, Swords } from 'lucide-react';
 import type { SkillCheckResult } from '@workspace/api-client-react';
 import { SkillCheckResultCard } from '@/components/skill-check-result';
@@ -56,7 +56,7 @@ export function Transcript({
   onJumpToNewResponse,
 }: {
   entries: TranscriptEntry[];
-  scrollRef: RefObject<HTMLDivElement | null>;
+  scrollRef: Ref<HTMLDivElement>;
   onScroll: () => void;
   readingPreferences?: ReadingPreferences;
   resultCue?: string;

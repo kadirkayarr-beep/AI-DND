@@ -116,7 +116,7 @@ class TransientNarrationMemoryAcceptanceTests(unittest.IsolatedAsyncioTestCase):
                 base_url="http://testserver",
             ) as client:
                 response = await client.post(
-                    f"/api/sessions/{session_id}/turn",
+                    f"/api/game/sessions/{session_id}/turn",
                     json={"action_id": str(uuid4()), "message": PLAYER_MESSAGE},
                 )
 

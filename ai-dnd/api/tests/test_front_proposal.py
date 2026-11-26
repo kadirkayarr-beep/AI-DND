@@ -262,6 +262,13 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.front_calls(), [])
         self.assertEqual(self.routes()[-1]["route"], "skipped:hideout")
 
+    async def test_dash_command_logged_as_command_not_empty(self):
+        """D-245: a slash command is no empty line; the route log says so."""
+        await self.begin()
+        await self.line("/help")
+        self.assertEqual(self.routes()[-1]["route"], "skipped:command")
+        self.assertEqual(self.front_calls(), [])
+
     async def test_a_no_the_model_misread_as_a_yes_is_still_a_no(self):
         await self.begin()
         self.offer()

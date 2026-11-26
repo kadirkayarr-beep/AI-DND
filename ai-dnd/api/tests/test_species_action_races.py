@@ -523,7 +523,7 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
             # Resume may refresh metadata; replay is compared to post-resume rows.
             await assert_replay(client, reopened_manager, reopened_store, resumed_sid)
 
-    async def assert_species_race(self, case, *, compat=False):
+    async def assert_species_race(self, case):
         created = await self.create_campaign()
         campaign_id = created["campaign_id"]
         seed = self.manager.get(created["session_id"]).game_session
@@ -553,8 +553,7 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
         elif case == "distinct":
             losing["action_id"] = str(uuid4())
         changed = case in ("changed_action", "changed_form")
-        prefix = "/api/sessions" if compat else "/api/game/sessions"
-        urls = [f"{prefix}/{sid}/species-actions" for sid in ids]
+        urls = [f"/api/game/sessions/{sid}/species-actions" for sid in ids]
         clients = [httpx.AsyncClient(
             transport=httpx.ASGITransport(app=create_app(session_manager=manager, authenticator=FixedAuthenticator(TEST_PLAYER))),
             base_url="http://species-race",
@@ -707,8 +706,8 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
     async def test_changed_species_ability_race_conflicts_and_rolls_back(self):
         await self.assert_species_race("changed_action")
 
-    async def test_changed_species_form_race_conflicts_on_compat_route(self):
-        await self.assert_species_race("changed_form", compat=True)
+    async def test_changed_species_form_race_conflicts_and_rolls_back(self):
+        await self.assert_species_race("changed_form")
 
     async def test_identical_species_payload_race_stays_stale_then_replays(self):
         await self.assert_species_race("identical")

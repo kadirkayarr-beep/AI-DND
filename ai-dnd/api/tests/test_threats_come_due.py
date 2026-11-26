@@ -368,7 +368,7 @@ class AtTheTable(Table):
         await self.line("evet", "Dene de görelim.")
         self.assertTrue(links(self.world), self.routes())
         self.assertEqual(links(self.world)[0]["kind"], world_happenings.GUARDED)
-        self.assertEqual(self.client.chat_calls - before, 2)
+        self.assertEqual(self.client.chat_calls - before, 1)  # D-263: the yes plays the stored reading; only the speech call is made
 
     async def test_the_one_who_just_arrived_is_who_a_bare_question_goes_to(self):
         link = await self.threat()

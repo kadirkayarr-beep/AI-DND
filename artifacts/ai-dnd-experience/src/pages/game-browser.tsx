@@ -7,13 +7,15 @@ import { preparesSpells } from '@/lib/spell-preparation';
 import { ECONOMIC_MESSAGES, EconomicOfferCard, EconomicPrepareControls, ShopControls, shopProbeKey } from '@/components/shop-panel';
 import { reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { closePending, createIntentKey, readPending, resumePending, speciesActionUnresolved } from '@/lib/pending-action';
-import { askServer, findUnresolvedOnServer, RecoveryTimeoutError, settlePending, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
+import { askServer, findUnresolvedOnServer, RecoveryTimeoutError, settlePending, handleAmbientActionError, unresolvedActionFrom, type RecoveryApi, type ServerVerdict } from '@/lib/action-recovery';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useStoryScroll } from '@/pages/game/use-story-scroll';
 import { useQueryClient } from '@tanstack/react-query';
 import { type CombatLogEntry } from '@/components/combat-panel';
 import { mergeCombatHistory } from '@/lib/combat-history';
 import { retainCombatTarget } from '@/lib/combat-ui-contract';
-import { clippedControlOverflow, keyboardInset, transcriptFollowsBottom } from '@/lib/play-viewport';
+import { transcriptFollowsBottom } from '@/lib/play-viewport';
+import { useKeyboardInset } from '@/pages/game/use-keyboard-inset';
 import { removeAdvisoryCache, writeAdvisoryCache } from '@/lib/advisory-cache';
 import {
   ambientFollowUpMove,
@@ -434,30 +436,8 @@ export default function GameBrowser() {
   const [ambientActionRequest, setAmbientActionRequest] = useState<AmbientEventActionRequest | null>(null);
   const [ambientActionError, setAmbientActionError] = useState(false);
   const pendingAmbientActionRef = useRef<AmbientEventActionRequest | null>(null);
-  const storyScrollRef = useRef<HTMLDivElement>(null);
-  const wasAtBottom = useRef(true);
-  const storyLayoutRef = useRef<{ width: number; height: number; contentHeight: number; top: number } | null>(null);
-  const storyLayoutScrollTopRef = useRef<number | null>(null);
-  // The reader's own wheel, touch, key, pointer or focus move inside the story.
-  const readerInputAt = useRef(-Infinity);
-  const readerIsScrolling = () => performance.now() - readerInputAt.current < 500;
-  const readStoryLayout = (node: HTMLDivElement) => ({
-    width: node.clientWidth, height: node.clientHeight, contentHeight: node.scrollHeight, top: node.scrollTop,
-  });
-  const seenEntryCount = useRef(0);
-  const isStoryNearBottom = (node: HTMLDivElement) => {
-    const hasOwnScroll = node.scrollHeight > node.clientHeight + 2
-      && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY);
-    return hasOwnScroll
-      ? node.scrollHeight - node.scrollTop - node.clientHeight < 80
-      : node.getBoundingClientRect().bottom <= window.innerHeight + 80;
-  };
-  const scrollStoryToBottom = (node: HTMLDivElement) => {
-    const hasOwnScroll = node.scrollHeight > node.clientHeight + 2
-      && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY);
-    if (hasOwnScroll) node.scrollTop = node.scrollHeight;
-    else node.lastElementChild?.scrollIntoView({ block: 'end', behavior: 'auto' });
-  };
+  useKeyboardInset(phase, sessionId);
+  const { storyScrollRef, attachStory, wasAtBottom, handleStoryScroll } = useStoryScroll({ entries, phase, sessionId, setResultCue, setNewResponseEntryIndex });
   const previousCombatActive = useRef<boolean | null>(null);
 
   useEffect(() => {
@@ -521,109 +501,6 @@ export default function GameBrowser() {
       setNotice({ tone: 'warning', title: 'Oturum yeniden açılmalı', detail: 'Kayıtlı macerayı defterden seçerek güvenli biçimde sürdürebilirsin.' });
     }
   }, [sessionId, stateQuery.error, stateQuery.isError]);
-
-  useEffect(() => {
-    const node = storyScrollRef.current;
-    const grew = entries.length > seenEntryCount.current;
-    seenEntryCount.current = entries.length;
-    if (!entries.length || !node) return;
-    if (transcriptFollowsBottom(wasAtBottom.current)) {
-      scrollStoryToBottom(node);
-      return;
-    }
-    if (grew) setResultCue(`Yeni sonuç geldi. ${entries.length}`);
-  }, [entries]);
-  useEffect(() => {
-    const node = storyScrollRef.current;
-    const content = node?.querySelector('[data-testid="transcript-local"]');
-    if (!node || !content || typeof ResizeObserver === 'undefined') return;
-    storyLayoutRef.current = readStoryLayout(node);
-    const observer = new ResizeObserver(() => {
-      const previous = storyLayoutRef.current;
-      const current = readStoryLayout(node);
-      if (previous && (previous.width !== current.width || previous.height !== current.height
-        || previous.contentHeight !== current.contentHeight)) {
-        // A resize can clamp scrollTop and queue scroll after this callback.
-        if (previous.top !== current.top) storyLayoutScrollTopRef.current = current.top;
-      }
-      storyLayoutRef.current = current;
-      if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
-    });
-    // The reader can shrink without changing the transcript content box.
-    observer.observe(node);
-    observer.observe(content);
-    const noteReaderInput = () => { readerInputAt.current = performance.now(); };
-    const readerInputs = ['wheel', 'touchstart', 'touchmove', 'keydown', 'pointerdown', 'focusin'];
-    readerInputs.forEach(type => node.addEventListener(type, noteReaderInput, { passive: true }));
-    return () => {
-      observer.disconnect();
-      readerInputs.forEach(type => node.removeEventListener(type, noteReaderInput));
-    };
-  }, [entries.length]);
-  useEffect(() => {
-    if (phase !== 'adventure' || !sessionId) return;
-    const shell = document.querySelector<HTMLElement>('.play-shell');
-    const viewport = window.visualViewport;
-    if (!shell || !viewport) return;
-    const apply = () => {
-      const inset = keyboardInset(window.innerHeight, viewport.height, viewport.offsetTop);
-      shell.style.setProperty('--keyboard-inset', `${inset}px`);
-      if (inset <= 0) {
-        shell.scrollTop = 0;
-        return;
-      }
-      window.requestAnimationFrame(() => {
-        const send = shell.querySelector<HTMLElement>('[data-testid="button-send-turn"]');
-        if (!send) return;
-        const container = send.closest<HTMLElement>('.app-main') ?? shell;
-        const overflow = clippedControlOverflow(
-          send.getBoundingClientRect().bottom,
-          container.getBoundingClientRect().bottom,
-          window.innerHeight - inset,
-        );
-        if (overflow > 1) container.scrollTop += overflow;
-      });
-    };
-    apply();
-    viewport.addEventListener('resize', apply);
-    viewport.addEventListener('scroll', apply);
-    return () => {
-      viewport.removeEventListener('resize', apply);
-      viewport.removeEventListener('scroll', apply);
-    };
-  }, [phase, sessionId]);
-
-  const handleStoryScroll = (event?: { currentTarget: EventTarget | null }) => {
-    const node = storyScrollRef.current;
-    if (!node) return;
-    // Moving the document does not express reading intent in this own scroller.
-    if (event?.currentTarget === window && node.scrollHeight > node.clientHeight + 2
-      && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)) return;
-    const previous = storyLayoutRef.current;
-    const current = readStoryLayout(node);
-    storyLayoutRef.current = current;
-    const layoutScrollTop = storyLayoutScrollTopRef.current;
-    storyLayoutScrollTopRef.current = null;
-    // Layout can dispatch scroll before ResizeObserver. Keep the preference
-    // from before that resize; genuine same-layout scrolling still updates it.
-    // A scroll the reader is making is theirs even when layout changes with it.
-    const readerScroll = readerIsScrolling();
-    if (readerScroll) readerInputAt.current = performance.now();
-    if (!readerScroll && ((previous && (previous.width !== current.width || previous.height !== current.height
-      || previous.contentHeight !== current.contentHeight)) || layoutScrollTop === node.scrollTop)) {
-      if (transcriptFollowsBottom(wasAtBottom.current)) scrollStoryToBottom(node);
-      return;
-    }
-    wasAtBottom.current = isStoryNearBottom(node);
-    if (wasAtBottom.current) {
-      setNewResponseEntryIndex(null);
-      setResultCue('');
-    }
-  };
-  useEffect(() => {
-    window.addEventListener('scroll', handleStoryScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleStoryScroll);
-  }, [phase, sessionId]);
 
   const jumpToNewResponse = (focusTarget = false) => {
     if (newResponseEntryIndex === null) return;
@@ -823,10 +700,13 @@ export default function GameBrowser() {
             }
           }
         },
-        onError: () => {
-          if (pendingAmbientActionRef.current === request) {
-            setAmbientActionError(true);
-          }
+        onError: (error) => {
+          handleAmbientActionError(error, request, {
+            pendingRef: pendingAmbientActionRef,
+            setRequest: setAmbientActionRequest,
+            setNotice,
+            setError: setAmbientActionError,
+          });
         },
       },
     );
@@ -1403,7 +1283,7 @@ export default function GameBrowser() {
                 onEconomyCommand={(text, command) => submitTurn(text, command, 'do')}
                 sending={turnSending}
                 notice={notice}
-                scrollRef={storyScrollRef}
+                scrollRef={attachStory}
                 onScroll={handleStoryScroll}
                 resultCue={resultCue}
                 newResponseEntryIndex={newResponseEntryIndex}

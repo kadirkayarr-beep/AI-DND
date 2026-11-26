@@ -193,6 +193,24 @@
     "_rn_not_narration_only": [
       "money"
     ],
+    "_rpt_action_result_verified": [
+      "money"
+    ],
+    "_rpt_allow_new_features": [
+      "money"
+    ],
+    "_rpt_allow_new_npcs": [
+      "money"
+    ],
+    "_rpt_shop_request_import": [
+      "money"
+    ],
+    "_rpt_turned_down_what": [
+      "money"
+    ],
+    "_rpt_work_answer_shop": [
+      "money"
+    ],
     "_run_player_turn_internal": [
       "money"
     ],

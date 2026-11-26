@@ -189,7 +189,7 @@ class ArrivalWiring(_ArrivalApi):
     async def test_walk_and_speak_line_gives_the_call_to_speech(self):
         # the front reading is on and names the smithy: it spends one call, so one is left and the speech keeps it
         reply = await self.turn("demirhaneye gidip bir nal istiyorum", arrival="Ocak.", spoken="Bekle biraz.",
-                                front={"kind": "go_to", "place_id": self.place_of("smithy")})
+                                front={"kind": "go_to", "place_id": self.place_of("smithy"), "timing": "now"})
         self.assertEqual(reply.status_code, 200, reply.text)
         self.assertNotIn("arrival", self.client.kinds)
         self.assertLessEqual(len(self.client.kinds), 2)

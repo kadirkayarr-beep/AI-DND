@@ -24,7 +24,7 @@ class DungeonTests(NativeBase):
     def reject(self, text):
         before = self.state()
         action = str(uuid4())
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json={
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json={
             "message": text, "action_id": action})
         self.assertEqual(response.status_code, 400, response.text)
         self.assertEqual(self.state(), before)
@@ -79,10 +79,10 @@ class DungeonTests(NativeBase):
         self.call("/dungeon enter")
         body, accepted = self.call("/dungeon exit entry_hall")
         before = self.state()
-        replay = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+        replay = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(replay.json(), accepted)
         self.assertEqual(self.state(), before)
-        conflict = self.client.post(f"/api/sessions/{self.sid}/turn", json={
+        conflict = self.client.post(f"/api/game/sessions/{self.sid}/turn", json={
             **body, "message": "/dungeon exit hall_entry"})
         self.assertEqual(conflict.status_code, 409)
         self.assertEqual(self.state(), before)
@@ -95,7 +95,7 @@ class DungeonTests(NativeBase):
             self.assertEqual(session.world_state["location"], owner.HALL)
             self.assertEqual(session.world_state[owner.KEY], self.session.world_state[owner.KEY])
             loaded = copy.deepcopy(session.serialize_game_state())
-            replay = client.post(f"/api/sessions/{sid}/turn", json=body)
+            replay = client.post(f"/api/game/sessions/{sid}/turn", json=body)
             self.assertEqual(replay.json(), dict(accepted, session_id=sid))
             self.assertEqual(session.serialize_game_state(), loaded)
 
@@ -104,7 +104,7 @@ class DungeonTests(NativeBase):
         other = self.create_campaign()
         session = self.manager.get(other["session_id"]).game_session
         before = copy.deepcopy((session.serialize_game_state(), session.rng.getstate()))
-        denied = self.client.post(f"/api/sessions/{other['session_id']}/turn", json={
+        denied = self.client.post(f"/api/game/sessions/{other['session_id']}/turn", json={
             "message": "/dungeon exit entry_hall", "action_id": str(uuid4())})
         self.assertEqual(denied.status_code, 400)
         self.assertEqual((session.serialize_game_state(), session.rng.getstate()), before)
@@ -116,11 +116,11 @@ class DungeonTests(NativeBase):
         body = {"message": "/dungeon enter", "action_id": str(uuid4())}
         store = self.manager._campaign_store
         with patch.object(store, "save_campaign", side_effect=CampaignStorageError("test")):
-            failed = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+            failed = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertGreaterEqual(failed.status_code, 400)
         self.assertEqual(self.state(), before)
         self.assertIsNone(self.manager.get_turn_action(self.manager.get(self.sid), body["action_id"]))
-        accepted = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+        accepted = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(accepted.status_code, 200, accepted.text)
         self.assertEqual(self.session.world_state["location"], owner.ENTRY)
 
@@ -130,11 +130,11 @@ class DungeonTests(NativeBase):
         body = {"message": "/dungeon exit entry_hall", "action_id": str(uuid4())}
         with patch.object(self.manager._campaign_store, "save_campaign",
                           side_effect=CampaignStorageError("test")):
-            response = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+            response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertGreaterEqual(response.status_code, 400)
         self.assertEqual(self.state(), before)
         self.assertIsNone(self.manager.get_turn_action(self.manager.get(self.sid), body["action_id"]))
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(self.session.world_state["location"], owner.HALL)
 

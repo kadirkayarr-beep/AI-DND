@@ -46,6 +46,8 @@ class RefusalCensus(unittest.TestCase):
                     continue
                 if rel == "api/routes_turn.py" and node.name == "refuse_before_commit":
                     continue  # the HTTP panel text of the turn route, moved here from api/main.py (D-531 stage 4)
+                if rel == "api/routes_ambient.py" and node.name == "_click_and_stage":
+                    continue  # the HTTP panel text of a refused ambient click, moved here from api/main.py (D-531 stage 5)
                 called = {sub.func.attr for sub in ast.walk(node) if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute)
                           and isinstance(sub.func.value, ast.Name) and sub.func.value.id == "refusals"}
                 if "text_for" in called and "note" not in called:

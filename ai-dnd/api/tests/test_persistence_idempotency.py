@@ -5570,7 +5570,6 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         before = self.snapshot(record)
         for path, body in (
             (f"/api/game/sessions/{sid}/turn", {"message": "Etrafa bak."}),
-            (f"/api/sessions/{sid}/turn", {"message": "Etrafa bak."}),
             (f"/api/game/sessions/{sid}/species-actions", {"action": "short_rest"}),
             (f"/api/game/sessions/{sid}/spellcasting/prepare", {"close": True}),
         ):

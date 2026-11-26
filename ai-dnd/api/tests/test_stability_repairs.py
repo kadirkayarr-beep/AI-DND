@@ -761,7 +761,7 @@ class ApiRecoveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.headers["x-ai-dnd-instance"], str(os.getpid()))
 
     async def test_failed_restore_closes_the_session_and_skips_save(self):
-        created = await self.http.post("/api/sessions")
+        created = await self.http.post("/api/game/sessions")
         session_id = created.json()["session_id"]
         with patch("api.main._restore_session", side_effect=RuntimeError("restore failed")):
             response = await self.http.post(
@@ -769,7 +769,7 @@ class ApiRecoveryTests(unittest.IsolatedAsyncioTestCase):
             )
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["detail"]["code"], "session_restore_failed")
-        follow = await self.http.get(f"/api/sessions/{session_id}/state")
+        follow = await self.http.get(f"/api/game/sessions/{session_id}/state")
         self.assertEqual(follow.status_code, 409)
         self.assertFalse(self.manager.get(session_id).usable)
 

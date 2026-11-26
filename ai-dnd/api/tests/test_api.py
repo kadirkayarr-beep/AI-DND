@@ -91,7 +91,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         await self.http.aclose()
 
     async def create_session(self):
-        response = await self.http.post("/api/sessions")
+        response = await self.http.post("/api/game/sessions")
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
@@ -182,10 +182,10 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         first_session.world_state["location"] = "forest"
 
         first_state = (await self.http.get(
-            f"/api/sessions/{first['session_id']}/state"
+            f"/api/game/sessions/{first['session_id']}/state"
         )).json()
         second_state = (await self.http.get(
-            f"/api/sessions/{second['session_id']}/state"
+            f"/api/game/sessions/{second['session_id']}/state"
         )).json()
         self.assertEqual(first_state["character"]["current_hp"], 2)
         self.assertEqual(first_state["location"], "forest")
@@ -200,7 +200,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         created = await self.create_session()
         session = self.manager.get(created["session_id"]).game_session
         response = await self.http.get(
-            f"/api/sessions/{created['session_id']}/state"
+            f"/api/game/sessions/{created['session_id']}/state"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), serialize_session_state(session))
@@ -211,7 +211,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
     async def test_blank_player_message_is_rejected(self):
         created = await self.create_session()
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": " \t  "},
         )
         self.assertEqual(response.status_code, 422)
@@ -233,7 +233,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = existing_pipeline
         player_message = "  Ormana bakıyorum  "
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": player_message},
         )
         self.assertEqual(response.status_code, 200, response.text)
@@ -256,7 +256,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         for field, value in forbidden_values.items():
             with self.subTest(field=field):
                 response = await self.http.post(
-                    f"/api/sessions/{session_id}/turn",
+                    f"/api/game/sessions/{session_id}/turn",
                     json={"action_id": str(uuid4()), "message": "Bekle", field: value},
                 )
                 self.assertEqual(response.status_code, 422)
@@ -264,10 +264,10 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_unknown_session_returns_404(self):
         state_response = await self.http.get(
-            "/api/sessions/not-a-real-session/state"
+            "/api/game/sessions/not-a-real-session/state"
         )
         turn_response = await self.http.post(
-            "/api/sessions/not-a-real-session/turn",
+            "/api/game/sessions/not-a-real-session/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(state_response.status_code, 404)
@@ -281,7 +281,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             self.manager.get(created["session_id"]).game_session
         )
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(response.status_code, 503)
@@ -297,7 +297,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         self.fake_client.list_error = "private-token-sentinel"
         created = await self.create_session()
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(response.status_code, 503)
@@ -316,7 +316,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = broken_engine
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(response.status_code, 500)
@@ -339,7 +339,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = engine_that_uses_the_bound_client
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(response.status_code, 503)
@@ -361,7 +361,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = excessive_model_turn
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(response.status_code, 500)
@@ -383,7 +383,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             {"OLLAMA_HOST": host, "OLLAMA_PROXY_TOKEN": token},
         ):
             response = await self.http.post(
-                f"/api/sessions/{created['session_id']}/turn",
+                f"/api/game/sessions/{created['session_id']}/turn",
                 json={"action_id": str(uuid4()), "message": "Bekle"},
             )
         self.assertEqual(response.status_code, 200, response.text)
@@ -395,7 +395,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         created = await self.create_session()
         sentinel = "token-submitted-as-extra-field"
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle", "OLLAMA_PROXY_TOKEN": sentinel},
         )
         self.assertEqual(response.status_code, 422)
@@ -433,7 +433,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = engine_with_telemetry
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Etrafıma bakıyorum"},
         )
         self.assertEqual(response.status_code, 200, response.text)
@@ -471,7 +471,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = forged_telemetry_turn
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(response.status_code, 500)
@@ -496,7 +496,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             return {"action_result": {}, "narration": f"Handled: {message}"}
 
         session.run_player_turn = slow_turn
-        path = f"/api/sessions/{created['session_id']}/turn"
+        path = f"/api/game/sessions/{created['session_id']}/turn"
         responses = await asyncio.gather(
             self.http.post(path, json={"action_id": str(uuid4()), "message": "Birinci"}),
             self.http.post(path, json={"action_id": str(uuid4()), "message": "İkinci"}),
@@ -525,11 +525,11 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             session.run_player_turn = rendezvous_turn
         responses = await asyncio.gather(
             self.http.post(
-                f"/api/sessions/{first['session_id']}/turn",
+                f"/api/game/sessions/{first['session_id']}/turn",
                 json={"action_id": str(uuid4()), "message": "A"},
             ),
             self.http.post(
-                f"/api/sessions/{second['session_id']}/turn",
+                f"/api/game/sessions/{second['session_id']}/turn",
                 json={"action_id": str(uuid4()), "message": "B"},
             ),
         )
@@ -558,7 +558,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = engine_that_times_out
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(calls, [1])
@@ -584,7 +584,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = engine_with_one_narration
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "İçeriye bakıyorum."},
         )
         self.assertEqual(response.status_code, 200, response.text)
@@ -600,7 +600,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             "narration": "Bekledin.",
         }
         response = await self.http.post(
-            f"/api/sessions/{created['session_id']}/turn",
+            f"/api/game/sessions/{created['session_id']}/turn",
             json={"action_id": str(uuid4()), "message": "Bekle"},
         )
         self.assertEqual(response.status_code, 200, response.text)

@@ -103,8 +103,6 @@ def register_level_up_read_routes(
 ) -> None:
     @application.get("/api/game/sessions/{session_id}/level-up", response_model=LevelUpPreviewResponse,
                      operation_id="getGameSessionLevelUp")
-    @application.get("/api/sessions/{session_id}/level-up", response_model=LevelUpPreviewResponse,
-                     include_in_schema=False)
     def preview_earned_level_up(session_id: str) -> dict[str, Any]:
         record = get_record(session_id)
         with record.turn_lock:

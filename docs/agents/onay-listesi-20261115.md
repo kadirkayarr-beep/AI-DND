@@ -559,3 +559,99 @@ Not (Opus, Minor): `InvalidDeathModeError` artık `CampaignError` olduğu için 
 |---|---|---|
 | `test_refusal_census.test_every_text_for_caller_also_notes` | yalnız `api/routes_turn.py` içindeki `refuse_before_commit` işlevi atlanır (HTTP panel metni, kuralın tek istisnası; api/main.py'den buraya taşındı). Dosyanın geri kalanı kurala bağlı: `note` çağırmayan yeni bir `text_for` çağıranı yakalanır (bozma koşusu pt4f-mut-census kırmızı). api/main.py'nin dosya muafiyeti eskisi gibi | sıkılaşma (işlev düzeyinde muafiyet) |
 | `scripts/quality_gate/size_lock.json` | `api/main.py` 2309 -> 1473, `api/main.py::create_app` 1711 -> 883; yeni uzun işlev anahtarı yok (routes_turn'deki en uzun işlev 98 satır) | sıkılaşma |
+
+## 31. G1.1: okuma Stealth/Athletics/Perception adlandırabilir (dal `task/borc-g11-20261126`)
+
+| Test / kilit | Değişiklik | İşaret |
+|---|---|---|
+| `test_d094_model_check` | "kontrol yok" örnekleri Stealth/Athletics yerine Sleight of Hand/Acrobatics oldu; CHECKS eşitliği iki dilime bölündü (Stealth, Athletics, Perception artık CHECKS içinde). Sınır yeniden tanımlandı, eşit sıkılıkta | gevşetme olabilir (sınır yeniden tanımı) |
+
+## 32. G1.4: ambient ve kampanya rotaları create_app'ten çıktı, eski /api/sessions takma adları kalktı (dal `task/borc-g14-20261126`)
+
+D-531 (create_app 883 -> 477 satır; `api/routes_ambient.py`, `api/routes_campaigns.py`) ve D-532 (on eski `/api/sessions` takma adı ve `resolve_species_trait_action_compat` silindi; `openapi.yaml` ve iki üretilmiş istemci yenilendi).
+
+| Test / kilit | Değişiklik | İşaret |
+|---|---|---|
+| `main_route_table.json`, `main_openapi_golden.json` | eski `/api/sessions...` yolları tablodan ve şemadan çıktı; kanonik `/api/game/sessions...` yolları aynı | gevşetme olabilir (sınır yeniden tanımı: eski takma adlar artık yok) |
+| `scripts/quality_gate/size_lock.json` | `api/main.py` 1473 -> 1057, `api/main.py::create_app` 883 -> 477 | sıkılaşma |
+| `test_refusal_census` | yalnız `api/routes_ambient.py` içindeki `_resolve` işlevi atlanır (reddedilen ambient tıklamasının HTTP panel metni, api/main.py'den taşındı) | gevşetme olabilir (istisna yeni dosyaya taşındı) |
+| `test_persistence_idempotency` | eski `/api/sessions/{sid}/turn` probu çıkarıldı; kanonik yol probu duruyor | gevşetme olabilir (bir prob eksildi) |
+| `test_api`, `test_authored_dungeon`, `test_bounded_encounter`, `test_exploration_*`, `test_http_auth_gate`, `test_clerk_http`, `test_contract_parity`, `test_species_action_races`, `test_spells_v1`, `test_xp_v1` ve öteki HTTP testleri, TS `roadmap-c06/c10/c19` sözleşme testleri | yol dizgisi `/api/sessions` -> `/api/game/sessions`; beklentiler eşit sıkılıkta (yeniden yazım) | eşit sıkılık (inceleme listesi: test_species_action_races, test_http_auth_gate, test_clerk_http, test_contract_parity, test_persistence_idempotency, TS c06/c10/c19) |
+| `live_smoke.py`, `security_gate.py` | yollar `/api/game/sessions...`; ölü `/api/sessions/{id}/turn` probu çıkarıldı, tur probu `/api/game` üzerinde kaldı | eşit sıkılık |
+| yeni testler | `test_main_route_aliases` (rota tablosunda yinelenen yöntem+yol yok, eski takma ad yok, live_smoke ve security_gate yolları var), ambient rota çıkışları, ölümde günlük yazılmaz, bir tur `turn_index`'i bir adım ilerletir ve Geri Al geri yükler | ekleme |
+
+Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_reckless dış fikstür çalışma zamanlarında duruyor (eski ölü kod; silinmedi, bildirildi). Kadir onayı: bekliyor.
+
+
+## G1.5 (borc-sifirlama): kullanilmayan npm paketleri ve aciklar
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `artifacts/ai-dnd-experience/tests/game-name.test.mjs` | `../ai-dnd-web/...` okuyan 4 dal (index.html, game-browser.tsx, artifact.toml, package.json adi) kaldirildi; ai-dnd-web paketi silindi. `ai-dnd-experience` icin ayni kontroller ayni sikilikta duruyor | eşit sıkılık (kapsam kuculdu, paket yok) |
+| `ai-dnd/scripts/development_checks.py` `protected_path` | `artifacts/ai-dnd-web/src/` oneki cikarildi (paket yok) | eşit sıkılık |
+| `ai-dnd/scripts/quality_gate/baselines/knip.json`, `fallow.json` | silinen uc paketin girdileri cikarildi (213 + 141 satir); yalniz kuculdu | gevşetme degil |
+| `pnpm-workspace.yaml` | zod ^3.25.76 -> ^4.6.6, vite ^7.3.2 -> ^7.3.7; dev zinciri icin 6 `overrides` (fast-uri, markdown-it, source-map-js, postcss-selector-parser, brace-expansion, minimatch) | guvenlik, gevşetme degil |
+| `lib/api-spec/orval.config.ts`, `lib/api-zod/src/generated/api.ts` | zod soz dizimi 3 -> 4; api.ts yeniden uretildi (hicbir kod icinden kullanilmiyor) | uretilen dosya |
+| yeni test | `artifacts/ai-dnd-experience/tests/workspace-hygiene.test.mjs` (olu paketler yok, zod >=4.6.6, vite loopback) | ekleme |
+| `ai-dnd/api/tests/test_quality_ratchet.py` `test_ui_baselines_exist_and_are_counts` | alt sinir knip 300 -> 100, fallow 250 -> 110 (taban dosyalari 332 -> 119 ve 271 -> 130 girdiye kuculdu; alt sinir tabanlarin ~%85'i, "bos degil" kontrolu ayni) | gevşetme olabilir (sinir yeniden tanimlandi) |
+
+## G1.6 (borc-sifirlama): karakter yaratma ekrani, baslangic bileseni ve katalog
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `artifacts/ai-dnd-experience/src/{components,lib}/{fighter,monk,rogue}-starting-creation.{tsx,ts}` | alti dosya silindi; yerine `simple-class-starting-creation.tsx` ve `.ts` (bir sinif tablosu: ad, alt sinif kimligi). Eski adlar (`FighterStartingChoices`, `readFighterStartingCreationOptions` ...) ayni imzayla dis ad olarak duruyor. Mesaj metinleri ve veri-testid degerleri ayni | eşit sıkılık |
+| `tests/roadmap-c14-fighter-ui`, `c15-monk-ui`, `c18-rogue-ui`, `dilim0-ui` | yalniz modul yolu degisti (yeni birlesik dosya); iddialar ayni | eşit sıkılık |
+| `tests/roadmap-c06-barbarian-start2-ui`, `start3-ui`, `start45-ui`, `roadmap-c10-starting-equipment-ui` | ekranin `handleSubmit` / `startingValidation` kodunu calistiran duzenek artik tek `startingCreationPayload` ve `startingSources` verir (eskiden sinif basina bir islev). Ayni paketler, ayni reddetmeler; start2'deki "yanlis sahibe yonlendirme" sahte islevleri yerine gercek dagitici sinifi dogru sahibe goturuyor (Barbarian seviye 2 ok:true, sahte caster sahibi olmadan) | eşit sıkılık (sahte yerine gercek yol) |
+| `tests/character-creation.test.mjs` (iki test) | `value="Fighter"` gibi gizli secim kutusu `option` degerleri yerine gorunen sinif kartinin `data-class-key` ozelligi okunur (D-559, D-573); ayni sinif kimlikleri ayni sikilikta | eşit sıkılık |
+| `character-creation-screen.tsx` | gizli eski test blogu (`select-character-race`, `select-character-class`, `button-mode-custom`) ve bagli olu `mode` durumu silindi; yeni `data-class-key` ozelligi; gonderilen istekten `race` anahtari cikti (sunucu `species` ile ayni karakteri kuruyor, `test_creation_without_race_key_is_identical`) | davranis: istekten bir anahtar eksildi |
+| `character-catalog-defaults.ts` | cevrimdisi katalogda Wizard `spells_count` 4 -> 6 (sunucu katalogu 6; ayni deger testle korunuyor) | gercek sapma duzeltmesi |
+| `ai-dnd/scripts/quality_gate/baselines/knip.json`, `fallow.json` | alti anahtarin yolu yeni birlesik dosyaya tasindi; sayilar ayni | gevşetme degil |
+| `ai-dnd/scripts/quality_gate/size_lock.json` | `character-creation-screen.tsx` 2514 -> 2482 | yalniz kuculdu |
+| `artifacts/ai-dnd-experience/package.json` | `test:standard` listesine uc yeni test dosyasi eklendi | ekleme |
+| yeni testler | `starting-creation-payload.test.mjs` (sinif tablosu), `creation-screen-split.test.mjs`, `default-catalog-matches-server.test.mjs`; `test_creation_without_race_key_is_identical` | ekleme |
+| `owner-play1-ui.test.mjs` (G1.6 duzeltme turu) | "starting level sits above the class cards" testi ayni sirayi (blok, kontrol, kartlar) artik `creation-steps/class-step.tsx` icinde okuyor; sinif adimi ayri bilesen oldu | ayni siki, gevsetme degil |
+| `roadmap-c10-starting-equipment-ui.test.mjs` (G1.6 duzeltme turu) | `StartingEquipmentNotice` cagri sayisi (2) ve oznitelikleri artik ekran + `creation-steps/equipment-step.tsx` birlikte taranarak sayiliyor; `packageGoods` kaynak eslemeleri iki dosyanin birlesiminde | ayni siki, gevsetme degil |
+| `creation-screen-split.test.mjs` | yeni test: dort adim (tur, sinif, gecmis, ekipman) ayri bilesen, ekranda satir ici kopya yok | ekle |
+| `size_lock.json` | `character-creation-screen.tsx` 2482 -> 2110 | yalniz kuculdu |
+| arac (repo disi) | `AI-DND-TOOLS/slot_web.sh`: `AI_DND_SERVER_ROOT` ayari (yedek `slot_web.sh.bak-g16-20261126`); yuva 2 web bagimliliklari G1.5 kilit dosyasina yenilendi (`AI-DND-TOOLS/slot_deps_g16.sh`, kaldirilan uc calisma alani `/root/aidnd-env-2/web-old-g15` altina tasindi) | arac degisikligi |
+| `tests/play-viewport.test.mjs` (G1.7, iki test) | "the same move without any reader input is still layout and keeps following" ve "reader input that is long past does not claim a later layout scroll": eski test 1 piksellik yerlesim degisikligiyle gelen 3700 piksellik oksuz kaydirmayi "yerlesim" sayip alta atiyordu (D-088 hatasi); simdi yerlesim degisikligi konumu aciklayan (gorunum alttan en fazla degisen boyut kadar uzakta) kaydirma yerlesim sayilir, digeri okur kaydirmasi | gevşetme degil, davranis degisti (D-088); gevşetme olabilir diye isaretli |
+| `tests/play-viewport.test.mjs` | takip koşum duzenegi (`storyFollowHarness`) `tests/helpers/story-follow-harness.mjs` dosyasina tasindi, ayni kod; kaynak okuyucu artik `src/pages/game/*.ts` dosyalarini da okur | tasima, eşit sıkılık |
+| `tests/turn-reconciliation.test.mjs` | tur-yeteneği koşum ortamina `unresolvedActionMessage` enjekte edildi (kaynak artik onu cagiriyor) | tasima |
+| `tests/story-scroll-follow.test.mjs` | yeni: D-088, D-089, D-090, D-180, D-574 testleri; `package.json` `test:standard` listesine eklendi | ekleme |
+
+## G1.3 (borc-sifirlama): eylem basina zamanlama
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_d109_timing.py` `test_a_reply_with_no_timing_reads_as_now` -> `test_a_reply_with_no_timing_is_not_now` | D-262: `timing` alani yoksa/bossa/liste disindaysa "now" sayilmiyor (eskiden now sayiliyordu); test tersine cevrildi | siklasti (gevşetme degil) |
+| `test_d094_model_check.py` `reading()`, `test_item_use.py`, `test_quest_item_take.py`, `test_world_keeps_its_word.py` `ReadingClient` | sahte okumalara `"timing": "now"` eklendi (sema zaten zorunlu kiliyor; yeni varsayilan "now degil") | eşit sıkılık |
+| `test_threats_come_due.py` `test_the_reading_of_the_line_finds_the_player_threat_with_no_extra_call` | "evet" turunda model cagrisi 2 -> 1 (D-263: ilk okuma yeniden oynatilir, ikinci okuma yok) | davranis degisikligi, siklasti |
+| yeni testler | `test_d109_timing.TestEachActInALineHasItsOwnWhen` (8 test), `test_an_act_takes_its_own_timing_or_the_lines`, `test_front_proposal.test_dash_command_logged_as_command_not_empty` | ekleme |
+| `ai-dnd/scripts/quality_gate/size_lock.json` | degismedi (`_front_step` 235 satirda kaldi) | - |
+| `test_arrival_wiring.py` go_to sahte okuma, `test_compound_line.py` `OneFrontAfterAnother` | sahte okumalara `"timing": "now"` eklendi (incelemeden sonra; zamansiz okuma artik "now" degil, bu yuzden test yolu degismisti). Sikilik ayni | gevsetme degil |
+| yeni testler (inceleme duzeltmesi) | `test_a_later_blow_on_a_line_read_as_no_lasting_act_is_words_to_that_person`, `test_unclear_persuasion_yes_replays_the_reading_and_rolls_the_check` | ekleme |
+
+## G1.8 (borc-sifirlama): uzun tur islevleri ve karmasiklik ratchet'i
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_engine_cut_tool.py` `test_the_dispatch_step_helpers_exist_and_are_short` | `turn_dispatch_steps.py` icin sabit ad kumesi 6 adtan 25 ada genisledi (`G18_DISPATCH_CUTS`: `_dispatch_player_turn`'dan tur-bolme aracıyla kesilen 19 blok; hepsi hala 151 satirdan kisa) | gevşetme olabilir (ad listesi genisledi; her yardimci icin kisa-islev sinirı ayni) |
+| `ai-dnd/api/tests/test_engine_parts_pilot.py` `test_the_wrapper_filter_reads_an_explicit_part_list` | `_PART_MODULES` listesine `game_parts.narration_safety_steps` ve `game_parts.turn_run_steps` eklendi | gevşetme olabilir (yeni iki parca dosyasi) |
+| `ai-dnd/api/tests/test_narration_source_record.py` `ENGINE_PART_REPORTERS` | `game_parts/turn_run_steps.py` eklendi (`_run_player_turn_internal`'dan kesilen bloklar kaynagi anıyor; yeni deger yok) | gevşetme olabilir (raporlayici listesi) |
+| `ai-dnd/api/tests/engine_split_locks/sensitive.json` | 6 yeni ad eklendi (`_rpt_shop_request_import`, `_rpt_allow_new_features`, `_rpt_allow_new_npcs`, `_rpt_work_answer_shop`, `_rpt_action_result_verified`, `_rpt_turned_down_what`; neden `money`) — para kelimesi geciyor diye isaretlendi, kod aynen tasindi (cut_check CHANGED 0) | siklasti (kilit yalniz buyur; Opus inceleme sart) |
+| `ai-dnd/api/tests/engine_split_locks/size_budget.json` | `game.py` 1164->1148, `narration_safety.py` 1505->1197, `turn.py` 2318->1804; uzun islevler: `_run_player_turn_internal` 1553->1154, `_narration_safety_decision` 1054->748, `_dispatch_player_turn` 348->238, `ask_dungeon_master` 299->282 | kilit kuculdu |
+| `ai-dnd/scripts/quality_gate/baselines/radon.json` (yeni) + `ratchet.py` `parse_radon` + `tools.json` radon 6.0.1 | radon cc ratchet'i: E/F (karmasiklik >= 31) islev sayisi ve her birinin karmasikligi yalniz kucuLUR; D-592 S18 (b) cevabiyla kalan 192 E/F islev wontfix, kapi onlari buyutemez | gevşetme olabilir (D-592: kalan F/E islevler bolunmuyor, yalniz sinirlaniyor) |
+| yeni testler | `test_turn_long_functions_pin` (karakterizasyon + `test_fallbacks_log_when_forced`), `test_quality_ratchet.TestRadonRatchet` (DK1.A: test_quality_radon.py oraya taşındı, deptry DEP001 büyümesin diye; testler aynen) | ekleme |
+| D-530 kapanis durumu | Kesimden sonra uc islev hala 151 satir sinirinin ustunde: `game_parts/turn.py::_run_player_turn_internal` 1154 (once 1553, radon cc 392), `game_parts/narration_safety.py::_narration_safety_decision` 748 (once 1054, cc 236), `game_parts/turn.py::_dispatch_player_turn` 238 (once 348, cc 115). Tur-bolme araci kalan bloklari reddetti (sinif C return / kosullu girdi). `size_budget.json` anahtarlari kaldi; satir `kapandi` degil `kismen (<sha>; 1154/748/238 satir)` olmali | gevşetme olabilir (uc islev bu planda sinira inmiyor; boyut yalniz kuculur, daha fazla kesim ayri is) |
+
+## DK1.A (borc-sifirlama): Dalga 1 kapisi K4 buyume duzeltmesi
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_engine_cut_tool.py` `G18_DISPATCH_CUTS` | 3 ad eklendi: `_dpt_adventure_scene`, `_dpt_grounded_local_act`, `_dpt_local_place_or_everyday` (`_dpt_out_of_combat_commands` radon C 20 -> B; davranis ayni, kod yalniz boluldu) | gevşetme olabilir (sabit ad kumesi genisledi) |
+| `ai-dnd/api/tests/engine_split_locks/surface.json` | 4 yeni ad: yukaridaki 3 + `_the_place_meant` (`_local_place_turn` radon D 27 -> C; D-299 sorusu yeni yardimciya tasindi) | gevşetme olabilir (yuzey kilidi 4 ad buyudu) |
+| `ai-dnd/game.py` | iki mevcut `from game_parts... import` satirina o 4 ad eklendi; satir sayisi ayni | -  |
+| `ai-dnd/api/tests/test_quality_radon.py` | silindi; icerigi (`TestRadonRatchet`, 7 test, ayni sikilik) `test_quality_ratchet.py` sonuna tasindi (deptry DEP001 `quality_gate` 5 -> 3) | tasima, gevsetme degil |
+| test siniflari `TestTheReadingMayNameAWorldCheck`, `TestTheEngineRollsTheWorldTry`, `TestATheftWithWordsAfterItIsStillATry`, `TestEachActInALineHasItsOwnWhen`, `TestVaguePlaces`, `TestRadonRatchet`, `TestTurnLongFunctionsPin`, `TestTurnIndexAndUndoPin` | adlarina `Test` on eki (vulture `unused class` bulgusu: `Test*` siniflari yoksayilir); testler ayni | ad degisikligi |
+| `test_turn_long_functions_pin.py`, `test_compare_baseline.py`, `test_d094_world_rolls.py`, `test_d331_vague_places.py`, `test_d109_timing.py` | ruff B905/SIM117, bandit B404/B603/B101, pyright Optional/attribute hatalari icin test kodu duzeltildi (`zip(strict=True)`, birlesik `with`, `subprocess` yerine ayni islemde `runpy`, `patch.object(create=True)`, `self.fail` ile daraltma); iddialar ayni | eşit sıkılık (zip artik uzunluk farkinda da kirmizi) |
+| `ai-dnd/api/tests/engine_split_locks/patch_census.json` + `docs/engine-split/patch-census.md` | `patch_census.py --write`: yeni `test_dk1a_split_pins.py` 7 yeni yama hedefi ekledi (`_everyday_action_turn`, `_take_names_a_job`, `_spoken_rest_of_turn`, `_scene_observation_proposal_turn`, `_front_offer_gate`, `_front_consume`, `_front_work`); hedefler 107 -> 114 | gevşetme olabilir (yama yuzeyi 7 ad buyudu; yalniz test, motor degismedi) |

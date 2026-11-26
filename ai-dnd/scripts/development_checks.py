@@ -110,7 +110,7 @@ def exit_code(checks):
 
 
 def protected_path(path):
-    if path.startswith("artifacts/ai-dnd-experience/src/") or path.startswith("artifacts/ai-dnd-web/src/"):
+    if path.startswith("artifacts/ai-dnd-experience/src/"):
         return True
     if not path.startswith("ai-dnd/") or not path.endswith(".py"):
         return False

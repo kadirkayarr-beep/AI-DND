@@ -457,7 +457,7 @@ class WriterBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(saved_rows(self.store.path, campaign_id), before)
 
     async def test_a_session_without_a_campaign_keeps_working(self):
-        response = await self.http.post("/api/sessions")
+        response = await self.http.post("/api/game/sessions")
         self.assertEqual(response.status_code, 200, response.text)
         record = self.manager.get(response.json()["session_id"])
         self.assertIsNone(record.campaign_id)
@@ -672,6 +672,7 @@ ENGINE_REPORTERS = ("game.py", "dialogue_runtime.py")
 # game.py split: a game_parts file that mentions the source must be named here, as a move task moves the code (pinned, like
 # test_talk_mode_writers); the value scan above already reads every part through engine_source_text().
 ENGINE_PART_REPORTERS = ("game_parts/turn.py",  # _run_player_turn_internal moved there (game.py split T6.2)
+                         "game_parts/turn_run_steps.py",  # G1.8: blocks cut out of _run_player_turn_internal moved there
                          "game_parts/turn_finish.py",  # turn split T4: finish_turn's body (_finish_turn) moved there
                          "game_parts/resolved_narration.py",  # turn split T5: _narrate_resolved_turn moved there
                          "game_parts/dialogue.py")  # D-332: the one-shot speech repair labels its answer with the model value

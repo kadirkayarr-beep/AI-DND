@@ -1,5 +1,6 @@
 import { CharacterPanel, InventoryPanel } from '@/components/character-panel';
 import { unresolvedElsewhere } from '@/lib/pending-action';
+import { unresolvedActionMessage } from '@/lib/action-recovery';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
@@ -234,6 +235,7 @@ function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sess
         setCommandNotice(result.outcome ? 'Görev kabul edildi.' : 'Görev durumu değişmedi.');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
+      onError: (error) => { const blocked = unresolvedActionMessage(error); if (blocked) setCommandNotice(blocked); },
     },
   });
   const cancelQuest = useCancelGameQuest({
@@ -245,6 +247,7 @@ function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sess
         setCommandNotice(result.outcome ? 'Görev iptal edildi.' : 'Görev durumu değişmedi.');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
+      onError: (error) => { const blocked = unresolvedActionMessage(error); if (blocked) setCommandNotice(blocked); },
     },
   });
   const { journal } = state;
@@ -370,7 +373,7 @@ function JournalPanel({ state, sessionId, campaignId }: { state: GameState; sess
         onCancel={(questId) => { if (!questBlocked()) cancelQuest.mutate({ sessionId, questId }); }}
         acceptPending={acceptQuest.isPending}
         cancelPending={cancelQuest.isPending}
-        hasError={acceptQuest.isError || cancelQuest.isError}
+        hasError={(acceptQuest.isError && !unresolvedActionMessage(acceptQuest.error)) || (cancelQuest.isError && !unresolvedActionMessage(cancelQuest.error))}
         commandNotice={commandNotice}
         adventures={state.campaign_adventures}
         questLog={state.quest_log}

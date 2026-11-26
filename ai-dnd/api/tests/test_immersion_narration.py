@@ -124,7 +124,7 @@ class CourtyardNarrationTests(NativeBase):
         self.assertNotIn('başlat', result['narration'])
         self.assertFalse(self.session.world_state['combat']['active'])
         before=self.canonical()
-        replay=self.client.post(f'/api/sessions/{self.sid}/turn',json=body)
+        replay=self.client.post(f'/api/game/sessions/{self.sid}/turn',json=body)
         self.assertEqual(replay.status_code,200)
         self.assertEqual(replay.json(),result)
         self.assertEqual(self.canonical(),before)

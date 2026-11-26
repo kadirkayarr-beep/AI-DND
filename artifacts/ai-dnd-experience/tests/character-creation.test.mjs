@@ -177,8 +177,9 @@ test('presents genuine player choices for class, species, background, and alignm
   assert.ok(html.includes('>Sihirbaz<'));
   assert.ok(!html.includes('Savaşçı (Fighter)'));
   assert.ok(!html.includes('Büyücü (Wizard)'));
-  assert.ok(html.includes('value="Fighter"'));
-  assert.ok(html.includes('value="Wizard"'));
+  // D-559 / D-573: the class ids are read from the visible class cards, not from a hidden select.
+  assert.ok(html.includes('data-class-key="Fighter"'));
+  assert.ok(html.includes('data-class-key="Wizard"'));
   assert.ok(html.includes('d10 Can Zarı'));
   // Plan part C: the old whole-character "Rastgele" button is gone; each step has its own die.
   assert.ok(!html.includes('button-mode-random'));
@@ -560,9 +561,9 @@ test('class cards use shared presentation labels and keep class ids', () => {
   assert.ok(!html.includes('Büyücü (Wizard)'));
   assert.ok(!html.includes('Hırsız (Rogue)'));
   assert.ok(!html.includes('Büyücü (Sorcerer)'));
-  assert.ok(html.includes('value="Wizard"'));
-  assert.ok(html.includes('value="Rogue"'));
-  assert.ok(html.includes('value="Sorcerer"'));
+  assert.ok(html.includes('data-class-key="Wizard"'));
+  assert.ok(html.includes('data-class-key="Rogue"'));
+  assert.ok(html.includes('data-class-key="Sorcerer"'));
 });
 
 test('background cards show existing Turkish skill names without translating unknown tools', () => {

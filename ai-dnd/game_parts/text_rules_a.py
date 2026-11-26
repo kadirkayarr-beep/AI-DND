@@ -131,7 +131,7 @@ _COVER = re.compile(
 # One's own thing hidden on oneself ("hançerimi kolumun içine gizliyorum") is Sleight of Hand, not a hide (D-176).
 _OWN_THING_HIDDEN = re.compile(r"\b(?!kendim)\w{2,}m[iu]\s+(?:\w+\s+){0,4}?(?:gizl|sakl)\w*")
 
-_READING_CHECKS = frozenset({"Intimidation", "Deception", "Persuasion", "Insight"})
+_READING_CHECKS = frozenset({"Intimidation", "Deception", "Persuasion", "Insight", "Stealth", "Athletics", "Perception"})
 
 # Ordinary Turkish sentence openers; capitalized at a sentence start they are
 # not person names even when a descriptor word follows ("Belki muhafıza sor").

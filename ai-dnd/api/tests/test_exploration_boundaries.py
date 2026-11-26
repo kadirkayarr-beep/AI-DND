@@ -46,7 +46,7 @@ class BoundaryTests(NativeBase):
         with patch.object(self.session.rng, "randint", return_value=1):
             timed_gameplay.advance_walking(self.session, 10 * 3600)
         before = self.canonical()
-        view = self.client.get(f"/api/sessions/{self.sid}/state").json()["expedition"]
+        view = self.client.get(f"/api/game/sessions/{self.sid}/state").json()["expedition"]
         self.assertEqual([save["dc"] for save in view["extended_travel_saves"]], [11, 12])
         self.assertEqual(view["extended_travel_saves"][1]["modifier_breakdown"]["circumstantial_modifier"], -2)
         self.assertEqual(self.canonical(), before)
@@ -87,13 +87,13 @@ class BoundaryTests(NativeBase):
                 self.assertEqual(world["campaign_time"]["elapsed_seconds"] - before, seconds)
                 self.assertEqual(world["tracking"]["status"], "REACQUIRED")
                 before = self.canonical()
-                replay = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+                replay = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
                 self.assertEqual(replay.json(), reply)
                 self.assertEqual(self.canonical(), before)
 
     def test_missing_trail_rejected_without_time_or_rng(self):
         before = self.canonical()
-        reply = self.client.post(f"/api/sessions/{self.sid}/turn", json={
+        reply = self.client.post(f"/api/game/sessions/{self.sid}/turn", json={
             "message": "/travel track hidden", "action_id": str(uuid4())})
         self.assertEqual(reply.status_code, 400)
         self.assertEqual(before, self.canonical())
@@ -122,7 +122,7 @@ class BoundaryTests(NativeBase):
         self.lock_fixture("good", "simple")
         self.session.world_state["inventory"] = []
         before = self.canonical()
-        result = self.client.post(f"/api/sessions/{self.sid}/turn", json={
+        result = self.client.post(f"/api/game/sessions/{self.sid}/turn", json={
             "message": "/explore door standard_gate unlock", "action_id": str(uuid4())})
         self.assertEqual(result.status_code, 400)
         self.assertEqual(before, self.canonical())
