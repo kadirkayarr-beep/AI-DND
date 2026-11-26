@@ -22,6 +22,7 @@ from pydantic import BaseModel, ValidationError
 from api import action_contract, failure_policy, runtime_recovery
 from api.auth import (
     AuthenticationError,
+    FixedAuthenticator,
     OidcAuthenticator,
     Principal,
     current_principal,
@@ -34,6 +35,7 @@ from api.auth import (
     select_authenticator,
 )
 from api.auth_diagnostics import enabled_for_request, safe_failure_category
+from api.campaign_errors import campaign_http_exception
 import campaign_time
 import combat_lifecycle  # noqa: F401 - kept for tests that patch api.main.combat_lifecycle.<attr>
 import scheduled_events
@@ -74,9 +76,6 @@ from api.narrative_memory import update_narrative_memory  # noqa: F401 - api.rou
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignError,
-    CampaignNotActiveError,
-    CampaignNotFoundError,
-    CampaignStorageError,
     CampaignStaleError,
     SaveLanded,
 )
@@ -569,14 +568,18 @@ def create_app(
             warm_up()
     install_narrative_context_adapter(game)
 
+    if authenticator is _UNSET:
+        authenticator = select_authenticator(os.environ)
+    # D-314: anything but local play, the fixed test authenticator and none (OIDC, Clerk, fail-closed) has no docs routes.
+    hosted = authenticator is not None and type(authenticator) not in (LocalPlayAuthenticator, FixedAuthenticator)
+    docs = {"docs_url": None, "redoc_url": None, "openapi_url": None} if hosted else {}
     application = FastAPI(
         title="AI-DND API",
         version="1.0.0",
         description="Thin HTTP adapter for the canonical Python AI-DND engine.",
+        **docs,
     )
     application.state.session_manager = manager
-    if authenticator is _UNSET:
-        authenticator = select_authenticator(os.environ)
     application.state.authenticator = authenticator
     application.state.ollama_adapter = adapter
     cloud_chain = getattr(adapter, "cloud_chain", None)
@@ -586,6 +589,13 @@ def create_app(
 
     @application.middleware("http")
     async def require_verified_principal(request: Any, call_next: Any) -> Any:
+        # D-313: a body over the limit is refused by its declared length, unread.
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > MAX_REQUEST_BYTES:
+            return JSONResponse(status_code=413, content={"detail": {
+                "code": "request_too_large",
+                "message": "The request body is too large.",
+            }})
         path = request.url.path
         verifier = application.state.authenticator
         # Local play proves locality on every path, public ones included.
@@ -672,51 +682,6 @@ def create_app(
         ensure_usable(record)
         return record
 
-    def campaign_http_exception(error: CampaignError) -> HTTPException:
-        if isinstance(error, CampaignStaleError):
-            return HTTPException(status_code=409, detail={
-                "code": "campaign_stale", "message": str(error),
-            })
-        if isinstance(error, CampaignNotFoundError):
-            return HTTPException(
-                status_code=404,
-                detail={
-                    "code": "campaign_not_found",
-                    "message": "Bu macera kaydı bulunamadı.",
-                },
-            )
-        if isinstance(error, CampaignCorruptError):
-            return HTTPException(
-                status_code=409,
-                detail={
-                    "code": "campaign_unavailable",
-                    "message": "Bu macera kaydı güvenli biçimde yüklenemedi.",
-                },
-            )
-        if isinstance(error, CampaignNotActiveError):
-            return HTTPException(
-                status_code=409,
-                detail={
-                    "code": "campaign_not_active",
-                    "message": "Bu macera için açık bir oturum bulunamadı.",
-                },
-            )
-        if isinstance(error, CampaignStorageError):
-            return HTTPException(
-                status_code=503,
-                detail={
-                    "code": "campaign_storage_unavailable",
-                    "message": "Macera kaydı şu anda güvenli biçimde saklanamıyor.",
-                },
-            )
-        return HTTPException(
-            status_code=500,
-            detail={
-                "code": "campaign_error",
-                "message": "Macera işlemi tamamlanamadı.",
-            },
-        )
-
     def action_archived_error() -> HTTPException:
         # R08: the action WAS applied; only its stored reply was archived. It is refused, never re-run, never treated as new.
         return HTTPException(status_code=409, detail={
@@ -767,10 +732,13 @@ def create_app(
     @application.get("/api/game/health", response_model=HealthResponse, response_model_exclude_none=True)
     @application.get("/api/health", response_model=HealthResponse, response_model_exclude_none=True)
     def health(response: Response) -> HealthResponse:
+        model = adapter.model_name if adapter is not None else MODEL_NAME
+        if hosted:  # D-314: no model chain, spend warning or process id for the public
+            return HealthResponse(model=model)
         response.headers["X-AI-DND-Instance"] = str(os.getpid())
         spend_warning = getattr(adapter, "spend_warning", None)
         return HealthResponse(
-            model=adapter.model_name if adapter is not None else MODEL_NAME,
+            model=model,
             model_chain=getattr(adapter, "model_chain", None),
             spend_warning=spend_warning() if callable(spend_warning) else None,
         )
@@ -1039,6 +1007,8 @@ def _suggestion_principal() -> Principal:
         )
     return principal
 
+
+MAX_REQUEST_BYTES = 256 * 1024
 
 _PUBLIC_API_PATHS = frozenset({
     "/api/health",

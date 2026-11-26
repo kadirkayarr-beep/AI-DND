@@ -10,7 +10,6 @@
   "radon|ambient_event_catalog.py|cc|select_ambient_event": 31,
   "radon|api/campaign_journal.py|cc|update_campaign_journal": 69,
   "radon|api/campaign_journal.py|cc|validate_campaign_journal": 101,
-  "radon|api/character_creation.py|cc|configure_character": 231,
   "radon|api/lore_authority/freeze_admission.py|cc|admit_record": 46,
   "radon|api/lore_authority/registry.py|cc|LoreRegistry.retrieve_lore_context": 99,
   "radon|api/model_chain.py|cc|_shaped": 32,

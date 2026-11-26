@@ -1,0 +1,622 @@
+{
+"Barbarian|A|A": [
+3100,
+[
+"B\u00fcy\u00fck Balta (Greataxe)",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Explorer's Pack",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"b8a7d78c6eb0f68b"
+],
+"Barbarian|A|B": [
+6500,
+[
+"B\u00fcy\u00fck Balta (Greataxe)",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Explorer's Pack"
+],
+"caaf81c39ad1eaae"
+],
+"Barbarian|B|A": [
+9100,
+[
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"7a5757e338cc07ee"
+],
+"Barbarian|B|B": [
+12500,
+[],
+"d36f5f13a987aef2"
+],
+"Fighter|A|A": [
+2600,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Zindan \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"0f6d6cac5e4180b0"
+],
+"Fighter|A|B": [
+6000,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Zindan \u00c7antas\u0131"
+],
+"80757ec0cf3a3b41"
+],
+"Fighter|B|A": [
+2600,
+[
+"Deri Z\u0131rh",
+"Uzun Yay & 20 Ok",
+"2 K\u0131sa K\u0131l\u0131\u00e7",
+"Zindan \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"80524f59243d932e"
+],
+"Fighter|B|B": [
+6000,
+[
+"Deri Z\u0131rh",
+"Uzun Yay & 20 Ok",
+"2 K\u0131sa K\u0131l\u0131\u00e7",
+"Zindan \u00c7antas\u0131"
+],
+"d62f7dcf57223998"
+],
+"Fighter|C|A": [
+2600,
+[
+"Greatsword",
+"A\u011f\u0131r Tatar Yay\u0131 & 20 Ok",
+"Macera \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"a8f0cb146068d0c6"
+],
+"Fighter|C|B": [
+6000,
+[
+"Greatsword",
+"A\u011f\u0131r Tatar Yay\u0131 & 20 Ok",
+"Macera \u00c7antas\u0131"
+],
+"5e385ce0cc476fac"
+],
+"Monk|A|A": [
+2700,
+[
+"M\u0131zrak (Spear)",
+"5 Han\u00e7er",
+"Zindan \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"65ae9bfbac7f7a35"
+],
+"Monk|A|B": [
+6100,
+[
+"M\u0131zrak (Spear)",
+"5 Han\u00e7er",
+"Zindan \u00c7antas\u0131"
+],
+"b2565875a3f8fa20"
+],
+"Monk|B|A": [
+2700,
+[
+"\u00c7eyrek Asa",
+"10 Dart",
+"Macera \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"84a929ab4c0c0738"
+],
+"Monk|B|B": [
+6100,
+[
+"\u00c7eyrek Asa",
+"10 Dart",
+"Macera \u00c7antas\u0131"
+],
+"09dbd0982ccc93f6"
+],
+"Paladin|A|A": [
+2500,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Kutsal Sembol",
+"Rahip \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"9685d235d27fa8e9"
+],
+"Paladin|A|B": [
+5900,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Kutsal Sembol",
+"Rahip \u00c7antas\u0131"
+],
+"61f3f3aca9db7c35"
+],
+"Paladin|B|A": [
+2500,
+[
+"Pul Z\u0131rh",
+"B\u00fcy\u00fck K\u0131l\u0131\u00e7",
+"5 Cirit",
+"Kutsal Sembol",
+"Macera \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"5866da358126ee43"
+],
+"Paladin|B|B": [
+5900,
+[
+"Pul Z\u0131rh",
+"B\u00fcy\u00fck K\u0131l\u0131\u00e7",
+"5 Cirit",
+"Kutsal Sembol",
+"Macera \u00c7antas\u0131"
+],
+"8c0f2e92ea1ff92b"
+],
+"Rogue|A|A": [
+2400,
+[
+"Deri Z\u0131rh",
+"K\u0131sa K\u0131l\u0131\u00e7",
+"2 Han\u00e7er",
+"H\u0131rs\u0131z Aletleri",
+"H\u0131rs\u0131z \u00c7antas\u0131",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"b74ab41120543978"
+],
+"Rogue|A|B": [
+5800,
+[
+"Deri Z\u0131rh",
+"K\u0131sa K\u0131l\u0131\u00e7",
+"2 Han\u00e7er",
+"H\u0131rs\u0131z Aletleri",
+"H\u0131rs\u0131z \u00c7antas\u0131"
+],
+"146510634feae054"
+],
+"Rogue|B|A": [
+2400,
+[
+"Deri Z\u0131rh",
+"K\u0131sa Yay & 20 Ok",
+"2 Han\u00e7er",
+"H\u0131rs\u0131z Aletleri",
+"Zindan \u00c7antas\u0131",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"8ce86a5577abdb43"
+],
+"Rogue|B|B": [
+5800,
+[
+"Deri Z\u0131rh",
+"K\u0131sa Yay & 20 Ok",
+"2 Han\u00e7er",
+"H\u0131rs\u0131z Aletleri",
+"Zindan \u00c7antas\u0131"
+],
+"bcff17fcdcfdbff3"
+],
+"Sorcerer|A|A": [
+4400,
+[
+"2 Han\u00e7er",
+"Kristal B\u00fcy\u00fc Oda\u011f\u0131",
+"Zindan \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"c80709e5e904bf3b"
+],
+"Sorcerer|A|B": [
+7800,
+[
+"2 Han\u00e7er",
+"Kristal B\u00fcy\u00fc Oda\u011f\u0131",
+"Zindan \u00c7antas\u0131"
+],
+"b092d2d17e234659"
+],
+"Sorcerer|B|A": [
+4400,
+[
+"Hafif Tatar Yay\u0131 & 20 Ok",
+"2 Han\u00e7er",
+"Macera \u00c7antas\u0131",
+"H\u0131rs\u0131z Aletleri",
+"Koyu Renkli Pelerin",
+"Levye"
+],
+"bdc06007d6e38f37"
+],
+"Sorcerer|B|B": [
+7800,
+[
+"Hafif Tatar Yay\u0131 & 20 Ok",
+"2 Han\u00e7er",
+"Macera \u00c7antas\u0131"
+],
+"ab9a181a6073ffd2"
+],
+"random|1": [
+3400,
+[
+"Me\u00e7 (Rapier)",
+"Deri Z\u0131rh",
+"Lavta (Lute)",
+"Diplomat \u00c7antas\u0131",
+"Lavta (M\u00fczik Aleti)",
+"G\u00f6steri Kost\u00fcm\u00fc",
+"Ayna"
+],
+"279a5133dd639066"
+],
+"random|10": [
+3400,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Kutsal Sembol",
+"Rahip \u00c7antas\u0131",
+"\u0130pek Giysiler",
+"M\u00fch\u00fcr Y\u00fcz\u00fc\u011f\u00fc",
+"Soy K\u00fct\u00fc\u011f\u00fc Belgesi"
+],
+"6e2da1c73e1d9f12"
+],
+"random|11": [
+2000,
+[
+"Pul Z\u0131rh",
+"2 K\u0131sa K\u0131l\u0131\u00e7",
+"Uzun Yay & 20 Ok",
+"Sadak",
+"Zindan \u00c7antas\u0131",
+"Haritac\u0131 Seti",
+"Yolcu Pusulas\u0131",
+"S\u0131cak Tutacak Pelerin",
+"\u0130p (15 metre)"
+],
+"4ab95684f7e1dc40"
+],
+"random|12": [
+3000,
+[
+"Deri Z\u0131rh",
+"Asa Odak",
+"2 Han\u00e7er",
+"G\u00f6lgeler Kitab\u0131",
+"Bilgin \u00c7antas\u0131",
+"Sahte M\u00fch\u00fcr Seti",
+"G\u00f6steri\u015fli Giysi",
+"\u0130\u015faretli Zarlar"
+],
+"1738f2409c669cdd"
+],
+"random|13": [
+3000,
+[
+"Deri Z\u0131rh",
+"Asa Odak",
+"2 Han\u00e7er",
+"G\u00f6lgeler Kitab\u0131",
+"Bilgin \u00c7antas\u0131",
+"Sahte M\u00fch\u00fcr Seti",
+"G\u00f6steri\u015fli Giysi",
+"\u0130\u015faretli Zarlar"
+],
+"54b575038da597f0"
+],
+"random|14": [
+2000,
+[
+"\u00c7eyrek Asa",
+"B\u00fcy\u00fc Odak Ta\u015f\u0131 (K\u00fcre)",
+"B\u00fcy\u00fc Kitab\u0131 (Spellbook)",
+"Bilgin \u00c7antas\u0131",
+"Hattat Tak\u0131m\u0131",
+"Par\u015f\u00f6men ve M\u00fcrekkep",
+"Kadim Bir Teori Kitab\u0131"
+],
+"75ee31a3d0f3fc87"
+],
+"random|15": [
+2400,
+[
+"Deri Z\u0131rh",
+"K\u0131sa K\u0131l\u0131\u00e7",
+"2 Han\u00e7er",
+"H\u0131rs\u0131z Aletleri",
+"H\u0131rs\u0131z \u00c7antas\u0131",
+"Y\u0131pranm\u0131\u015f Yolcu Pelerini",
+"Yol Haritas\u0131"
+],
+"b80c72ac2b353634"
+],
+"random|16": [
+2000,
+[
+"Pul Z\u0131rh",
+"2 K\u0131sa K\u0131l\u0131\u00e7",
+"Uzun Yay & 20 Ok",
+"Sadak",
+"Zindan \u00c7antas\u0131",
+"Haritac\u0131 Seti",
+"Yolcu Pusulas\u0131",
+"S\u0131cak Tutacak Pelerin",
+"\u0130p (15 metre)"
+],
+"39acdb6c351db66c"
+],
+"random|17": [
+2400,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Zindan \u00c7antas\u0131",
+"Birlik Sanca\u011f\u0131 Par\u00e7as\u0131",
+"Zar Seti",
+"Askeri Pelerin"
+],
+"cbb7ce48d7370348"
+],
+"random|18": [
+3000,
+[
+"Deri Z\u0131rh",
+"Asa Odak",
+"2 Han\u00e7er",
+"G\u00f6lgeler Kitab\u0131",
+"Bilgin \u00c7antas\u0131",
+"Sahte M\u00fch\u00fcr Seti",
+"G\u00f6steri\u015fli Giysi",
+"\u0130\u015faretli Zarlar"
+],
+"2ee132fe63d42c0e"
+],
+"random|19": [
+3400,
+[
+"Me\u00e7 (Rapier)",
+"Deri Z\u0131rh",
+"Lavta (Lute)",
+"Diplomat \u00c7antas\u0131",
+"Lavta (M\u00fczik Aleti)",
+"G\u00f6steri Kost\u00fcm\u00fc",
+"Ayna"
+],
+"b6bb849ab698a62a"
+],
+"random|2": [
+3400,
+[
+"Me\u00e7 (Rapier)",
+"Deri Z\u0131rh",
+"Lavta (Lute)",
+"Diplomat \u00c7antas\u0131",
+"Lavta (M\u00fczik Aleti)",
+"G\u00f6steri Kost\u00fcm\u00fc",
+"Ayna"
+],
+"f5be18da541219b4"
+],
+"random|20": [
+3000,
+[
+"Deri Z\u0131rh",
+"Asa Odak",
+"2 Han\u00e7er",
+"G\u00f6lgeler Kitab\u0131",
+"Bilgin \u00c7antas\u0131",
+"Sahte M\u00fch\u00fcr Seti",
+"G\u00f6steri\u015fli Giysi",
+"\u0130\u015faretli Zarlar"
+],
+"2fdcae59906e73ce"
+],
+"random|21": [
+2000,
+[
+"\u00c7eyrek Asa",
+"B\u00fcy\u00fc Odak Ta\u015f\u0131 (K\u00fcre)",
+"B\u00fcy\u00fc Kitab\u0131 (Spellbook)",
+"Bilgin \u00c7antas\u0131",
+"Hattat Tak\u0131m\u0131",
+"Par\u015f\u00f6men ve M\u00fcrekkep",
+"Kadim Bir Teori Kitab\u0131"
+],
+"5c678307b1674b4a"
+],
+"random|22": [
+4000,
+[
+"B\u00fcy\u00fck Balta (Greataxe)",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Explorer's Pack",
+"Marangoz Aletleri",
+"Sa\u011flam \u0130\u015f Giysisi",
+"Demir Orak"
+],
+"c2cc158bab5a6535"
+],
+"random|23": [
+4000,
+[
+"B\u00fcy\u00fck Balta (Greataxe)",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Handaxe",
+"Explorer's Pack",
+"Marangoz Aletleri",
+"Sa\u011flam \u0130\u015f Giysisi",
+"Demir Orak"
+],
+"fab941b3c31c091f"
+],
+"random|24": [
+2300,
+[
+"G\u00fcrz (Mace)",
+"Pul Z\u0131rh",
+"Kalkan",
+"Kutsal Sembol",
+"Rahip \u00c7antas\u0131",
+"Calligrapher's Supplies",
+"Dua Kitab\u0131",
+"10 Par\u015f\u00f6men",
+"C\u00fcbbe"
+],
+"bafaa7cf930ed680"
+],
+"random|3": [
+2400,
+[
+"Deri Z\u0131rh",
+"K\u0131sa K\u0131l\u0131\u00e7",
+"2 Han\u00e7er",
+"H\u0131rs\u0131z Aletleri",
+"H\u0131rs\u0131z \u00c7antas\u0131",
+"Y\u0131pranm\u0131\u015f Yolcu Pelerini",
+"Yol Haritas\u0131"
+],
+"38f5a0107b33f575"
+],
+"random|4": [
+3400,
+[
+"Me\u00e7 (Rapier)",
+"Deri Z\u0131rh",
+"Lavta (Lute)",
+"Diplomat \u00c7antas\u0131",
+"Lavta (M\u00fczik Aleti)",
+"G\u00f6steri Kost\u00fcm\u00fc",
+"Ayna"
+],
+"130546fcb0384e41"
+],
+"random|5": [
+2000,
+[
+"\u00c7eyrek Asa",
+"B\u00fcy\u00fc Odak Ta\u015f\u0131 (K\u00fcre)",
+"B\u00fcy\u00fc Kitab\u0131 (Spellbook)",
+"Bilgin \u00c7antas\u0131",
+"Hattat Tak\u0131m\u0131",
+"Par\u015f\u00f6men ve M\u00fcrekkep",
+"Kadim Bir Teori Kitab\u0131"
+],
+"4b3296fc2b4654fb"
+],
+"random|6": [
+2000,
+[
+"Pul Z\u0131rh",
+"2 K\u0131sa K\u0131l\u0131\u00e7",
+"Uzun Yay & 20 Ok",
+"Sadak",
+"Zindan \u00c7antas\u0131",
+"Haritac\u0131 Seti",
+"Yolcu Pusulas\u0131",
+"S\u0131cak Tutacak Pelerin",
+"\u0130p (15 metre)"
+],
+"6775e5990e1b58ff"
+],
+"random|7": [
+3400,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Kutsal Sembol",
+"Rahip \u00c7antas\u0131",
+"\u0130pek Giysiler",
+"M\u00fch\u00fcr Y\u00fcz\u00fc\u011f\u00fc",
+"Soy K\u00fct\u00fc\u011f\u00fc Belgesi"
+],
+"9faeaddcd8f4bd4b"
+],
+"random|8": [
+3400,
+[
+"Zincir Z\u0131rh",
+"Uzun K\u0131l\u0131\u00e7",
+"Kalkan",
+"Kutsal Sembol",
+"Rahip \u00c7antas\u0131",
+"\u0130pek Giysiler",
+"M\u00fch\u00fcr Y\u00fcz\u00fc\u011f\u00fc",
+"Soy K\u00fct\u00fc\u011f\u00fc Belgesi"
+],
+"529d0c2faa8a8de4"
+],
+"random|9": [
+2600,
+[
+"M\u0131zrak (Spear)",
+"5 Han\u00e7er",
+"Zindan \u00c7antas\u0131",
+"\u015eifal\u0131 Bitkiler \u00c7antas\u0131",
+"Kaba Y\u00fcn Battaniye",
+"Kutsal Notlar"
+],
+"25f41c13413c1a39"
+]
+}

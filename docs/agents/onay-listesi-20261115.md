@@ -701,3 +701,10 @@ Dal `task/borc-g21-20261126`. Yalniz test kodu degisti; motor kodu ayni.
 | `ai-dnd/api/tests/engine_split_locks/surface.json` | Yeni adlar `_YIELDS`, `_nsd_text_without_awarded_xp`; `_nsd_outcome_failure_critical` imzasina `action_result` eklendi (altin dosya canli yuzeye esitlendi) | ekleme |
 | `ai-dnd/api/tests/test_d251_bold_line_variety.py` | `bold_acts._fresh` -> `bold_acts.fresh_line` (adi acik oldu, baska modulden de cagriliyor); iddialar ayni | eşit sıkılıkta yeniden yazım |
 | yeni test | `ai-dnd/api/tests/test_d226_roll_before_speech.py` (D-226, D-241, D-242, D-251, D-012) | ekleme |
+
+## G2.10 (borc-sifirlama): karakter olusturma ve kucuk API guvenligi
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_coin_writers.py` `WRITERS` | `api/character_creation.py:configure_character` -> `api/character_creation.py:_write_world_gear` (D-540: `configure_character` kucuk parcalara bolundu; baslangic cebini yazan islev artik `_write_world_gear`) | gevşetme olabilir (sabitlenen islev adi degisti; yazici sayisi ayni, yine tek yazici) |
+| yeni testler | `ai-dnd/api/tests/test_g210_creation_hardening.py` ve `g210_creation_golden.json` (50 vakalik davranis kaydi, D-540; D-319, D-313, D-539, D-314, D-385, D-316) | ekleme |

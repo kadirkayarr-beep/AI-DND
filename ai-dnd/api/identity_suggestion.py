@@ -8,7 +8,9 @@ Limits, all configurable on the service:
 - max_queue: jobs waiting to run; a full queue returns queue_full
 - max_in_flight: provider calls running at once; a timed-out call is not
   treated as cancelled and its late result cannot land on another job
-- max_stored: retained jobs and tombstones. The same cap bounds seen revisions
+- max_stored: retained jobs and tombstones. One owner's refused requests keep at
+  most a quarter of it (at least one), so a flood of refusals from one owner
+  cannot fill the store for the others. The same cap bounds seen revisions
   and retired request ids. Queued or running jobs are kept.
 - A locked rejection does not record a seen revision.
 - Owner budget is charged only when a job is queued. Expiry and tombstone
@@ -364,6 +366,13 @@ class IdentitySuggestionService:
         self._evict_locked()
         job = _Job(request, owner_key, status, code)
         if len(self._jobs) >= self._max_stored and key not in self._jobs:
+            return job
+        # D-316: an owner at their share of kept refusals gets the answer, unstored.
+        refused = sum(
+            1 for kept in self._jobs.values()
+            if kept.owner == owner_key and kept.status == "rejected"
+        )
+        if refused >= max(1, self._max_stored // 4) and key not in self._jobs:
             return job
         self._stamp(job)
         self._jobs[key] = job
