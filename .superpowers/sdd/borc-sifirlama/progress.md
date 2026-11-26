@@ -13,3 +13,5 @@ Task G0.5: complete (branch task/borc-g05-20261126, head 404f8f36, merge cc33008
 Task G0.4: complete (branch task/borc-g04-20261126, head cc33008c, merge none: branch head already an ancestor of the wave branch; measurement file olcum-g04.md, D-302 closed per R-D078)
 Task G1.4: complete (branch task/borc-g14-20261126, head 4790fd35, merge a6b2acc8)
 Task G1.1: complete (branch task/borc-g11-20261126, head 510a64a6, merge d6a05637)
+- Ruling: D-531 closed by G1.4 although create_app is still 477 lines — plan G1.4 owns D-531, Opus review approved the split, remaining routes are cohesive app wiring — if wrong, reopen as a size row in a later wave.
+- Ruling: flag-on runs in round 1 for G0.2, G1.1, G1.4 used labels without the fon token, so they ran flag-off; G1.1 and G1.4 rechecked flag-on in round 2 Recheck; G0.2 had no code change.

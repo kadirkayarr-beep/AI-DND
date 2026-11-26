@@ -565,3 +565,20 @@ Not (Opus, Minor): `InvalidDeathModeError` artık `CampaignError` olduğu için 
 | Test / kilit | Değişiklik | İşaret |
 |---|---|---|
 | `test_d094_model_check` | "kontrol yok" örnekleri Stealth/Athletics yerine Sleight of Hand/Acrobatics oldu; CHECKS eşitliği iki dilime bölündü (Stealth, Athletics, Perception artık CHECKS içinde). Sınır yeniden tanımlandı, eşit sıkılıkta | gevşetme olabilir (sınır yeniden tanımı) |
+
+## 32. G1.4: ambient ve kampanya rotaları create_app'ten çıktı, eski /api/sessions takma adları kalktı (dal `task/borc-g14-20261126`)
+
+D-531 (create_app 883 -> 477 satır; `api/routes_ambient.py`, `api/routes_campaigns.py`) ve D-532 (on eski `/api/sessions` takma adı ve `resolve_species_trait_action_compat` silindi; `openapi.yaml` ve iki üretilmiş istemci yenilendi).
+
+| Test / kilit | Değişiklik | İşaret |
+|---|---|---|
+| `main_route_table.json`, `main_openapi_golden.json` | eski `/api/sessions...` yolları tablodan ve şemadan çıktı; kanonik `/api/game/sessions...` yolları aynı | gevşetme olabilir (sınır yeniden tanımı: eski takma adlar artık yok) |
+| `scripts/quality_gate/size_lock.json` | `api/main.py` 1473 -> 1057, `api/main.py::create_app` 883 -> 477 | sıkılaşma |
+| `test_refusal_census` | yalnız `api/routes_ambient.py` içindeki `_resolve` işlevi atlanır (reddedilen ambient tıklamasının HTTP panel metni, api/main.py'den taşındı) | gevşetme olabilir (istisna yeni dosyaya taşındı) |
+| `test_persistence_idempotency` | eski `/api/sessions/{sid}/turn` probu çıkarıldı; kanonik yol probu duruyor | gevşetme olabilir (bir prob eksildi) |
+| `test_api`, `test_authored_dungeon`, `test_bounded_encounter`, `test_exploration_*`, `test_http_auth_gate`, `test_clerk_http`, `test_contract_parity`, `test_species_action_races`, `test_spells_v1`, `test_xp_v1` ve öteki HTTP testleri, TS `roadmap-c06/c10/c19` sözleşme testleri | yol dizgisi `/api/sessions` -> `/api/game/sessions`; beklentiler eşit sıkılıkta (yeniden yazım) | eşit sıkılık (inceleme listesi: test_species_action_races, test_http_auth_gate, test_clerk_http, test_contract_parity, test_persistence_idempotency, TS c06/c10/c19) |
+| `live_smoke.py`, `security_gate.py` | yollar `/api/game/sessions...`; ölü `/api/sessions/{id}/turn` probu çıkarıldı, tur probu `/api/game` üzerinde kaldı | eşit sıkılık |
+| yeni testler | `test_main_route_aliases` (rota tablosunda yinelenen yöntem+yol yok, eski takma ad yok, live_smoke ve security_gate yolları var), ambient rota çıkışları, ölümde günlük yazılmaz, bir tur `turn_index`'i bir adım ilerletir ve Geri Al geri yükler | ekleme |
+
+Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_reckless dış fikstür çalışma zamanlarında duruyor (eski ölü kod; silinmedi, bildirildi). Kadir onayı: bekliyor.
+
