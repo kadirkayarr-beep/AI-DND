@@ -25,7 +25,10 @@ DEEDS = ("steal", "burn", "yield")
 # D-109 (Kadir kararı 2026-11-15): whether the line's act is done now. Only "now" may change the world for good (a meal,
 # a hand-over, a job, a tie, a crime); no word list decides it, the reading does. The first one is the only "now".
 TIMINGS = ("now", "later", "hypothetical", "negated", "observe")
-_LASTING = {"consume", "hand_over", "work", "take", "offer_answer", "strike"}  # routes that change the world for good
+# G1.3 (D-260): each extra act in the line (a blow, a threat, a deed, a check) has its own timing field; the line's own
+# `timing` is the one for `kind`. A field the reading left out takes the line's.
+ACT_TIMING = {"strike": "strike_timing", "threat": "threat_timing", "deed": "deed_timing", "check": "check_timing"}
+_LASTING = {"consume", "hand_over", "work", "take", "offer_answer", "strike", "go_to", "wait"}  # routes that change the world for good
 # D-094: the checks a reading may name for a risky try; none moves coin. The engine still sets the DC and rolls, and a
 # world skill keeps its own precondition (a hide needs cover or the dark, D-171). A pickpocket is the reading's
 # deed=steal, never a check (R-7).
@@ -200,9 +203,13 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "about_person_id": {"type": "string", "enum": _ids(listed["people"])},
             # Early on purpose: a small model fills a long object's last fields with none, whatever the line says.
             "threat_to": {"type": "string", "enum": _ids(listed["people"])},
+            "threat_timing": {"type": "string", "enum": list(TIMINGS)},  # G1.3 (D-260): this act's own when
             "strike_to": {"type": "string", "enum": _ids(listed["people"])},
+            "strike_timing": {"type": "string", "enum": list(TIMINGS)},  # G1.3 (D-260): this act's own when
             "check": {"type": "string", "enum": [*CHECKS, NONE]},
+            "check_timing": {"type": "string", "enum": list(TIMINGS)},  # G1.3 (D-260): this act's own when
             "deed": {"type": "string", "enum": [*DEEDS, NONE]},
+            "deed_timing": {"type": "string", "enum": list(TIMINGS)},  # G1.3 (D-260): this act's own when
             "coin_cp": {"type": "integer", "minimum": 0},
             "also_says": {"type": "string", "maxLength": 160},
             "place_id": {"type": "string", "enum": _ids(listed["places"])},
@@ -218,7 +225,8 @@ def schema(listed: Mapping[str, Any]) -> dict[str, Any]:
             "want": {"type": "string", "enum": _ids(listed["wants"])},
         },
         "required": ["kind", "timing", "deal", "deal_goods", "keep_change", "economic_intent", "person_id", "asks", "about_person_id", "place_id", "offer_id", "thing_id", "item_id", "thing_word", "found", "person_word", "job_id", "answer", "inside", "want",
-                     "threat_to", "strike_to", "check", "deed", "coin_cp", "also_says"],
+                     "threat_to", "threat_timing", "strike_to", "strike_timing", "check", "check_timing", "deed", "deed_timing",
+                     "coin_cp", "also_says"],
         "additionalProperties": False,
     }
 
@@ -323,6 +331,8 @@ def guidance(listed: Mapping[str, Any]) -> str:
         "ileride yapacağını söylüyorsa later; soruyor, düşünüyor, koşul ya da dilek söylüyorsa hypothetical; yapmadığını ya da "
         "yapmayacağını söylüyorsa negated; yalnız ona bakıyor, onu anıyor ya da ondan söz ediyorsa observe. Bir tehdidi şu anda "
         "söylemek now'dır. Kelimeye değil cümlenin anlamına bak. "
+        "strike_timing, threat_timing, deed_timing, check_timing: satırda kind dışında bir darbe, tehdit, suç ya da zar denemesi de varsa "
+        "onun kendi zamanı; aynı satırda biri şimdi öteki yarın olabilir ('yarın ona vuracağım ama şimdi biramı içiyorum': timing now, strike_timing later). Aynı zamanlıysa hepsine timing'i yaz. "
         "consume = oyuncu şimdi çantasındaki bir yiyeceği yiyor veya içeceği içiyor; item_id bag listesindeki eşya. Soru, koşul veya ileride yapma sözü tüketim değildir. "
         "wield: oyuncu bir silahı eline alıyor/çekiyor; item_id çantadaki silah ya da none. Kalkanını koluna takıyorsa da wield, item_id çantadaki kalkan. "
         "kind: speak_to = biriyle konuşuyor veya birine soruyor (kendi yaptığı işi '...yorum' diye anlatıyor ve kimseye söylemiyorsa speak_to değil attempt olur); go_to = listedeki bir yere gidiyor (içeri giriyorsa "
@@ -362,14 +372,47 @@ def guidance(listed: Mapping[str, Any]) -> str:
     )
 
 
-def acts_now(reply: Any) -> bool:
-    """D-109: the reading says the act is done now. A reading with no timing at all (an old record, an old script) reads
-    as before (Ruling: the schema requires the field); any other word, or no reading, is not now."""
+def acts_now(reply: Any, act: str | None = None) -> bool:
+    """D-109/G1.3: the reading says the act is done now. `act` (strike, threat, deed, check) is one more act in the line
+    with its own timing; one the reading left out takes the line's. A timing that is missing, empty or outside the list
+    is never now (D-262: it used to read as now); no reading is not now."""
     front = reply.get("front") if isinstance(reply, dict) else None
     if not isinstance(front, dict):
         return False
-    timing = front.get("timing")
-    return timing is None or timing == TIMINGS[0]
+    timing = front.get(ACT_TIMING[act]) if act else None
+    if timing is None:
+        timing = front.get("timing")
+    return timing == TIMINGS[0]
+
+
+def unclear_persuasion(session, front: Any) -> bool:
+    """D-177: the reading names persuasion for a line it could not otherwise place; that may be a plain hello."""
+    return session._front_check == "Persuasion" and isinstance(front, dict) and front.get("kind") == "unclear"
+
+
+def persuasion_asked(session, line: Any) -> dict[str, Any]:
+    """D-177: the heavy question for that roll; no roll is made this turn (a yes plays the line again)."""
+    session._front_check = ""
+    note(session, "front:heavy_asked", reached=True)
+    return {"kind": "heavy_asked", "what": "check", "id": None, "deed": "Persuasion", "said": str(line)}
+
+
+def read_once(session, line: Any, ask_model) -> dict[str, Any]:
+    """The one reading a line gets. D-263: a yes to a crime or threat question plays the very reading the question was
+    asked on (kept in the yes), so the model is not asked again and cannot read the line differently."""
+    import copy
+    from model_phase import front_call
+    confirmed = getattr(session, "_heavy_confirmed", None)
+    stored = confirmed.get("reading") if isinstance(confirmed, dict) and confirmed.get("said") == str(line) else None
+    called = not isinstance(stored, dict)
+    if called:
+        with front_call():
+            reply = ask_model()
+    else:
+        reply = copy.deepcopy(stored)
+    session._front_last_reading = (str(line), copy.deepcopy(reply))  # a question this line asks keeps it
+    session._front_reply_called = called  # G10: this reply is the turn's one classifier call, however often it is reused
+    return reply
 
 
 def want_in(reply: Any, listed: Mapping[str, Any]) -> str | None:
@@ -383,7 +426,7 @@ def threat_in(reply: Any, listed: Mapping[str, Any]) -> str | None:
     """The listed person the player just threatened, if the reading found one; it too stands beside the route."""
     front = reply.get("front") if isinstance(reply, dict) else None
     person = front.get("threat_to") if isinstance(front, dict) else None
-    return person if person in [row["id"] for row in listed["people"]] and acts_now(reply) else None
+    return person if person in [row["id"] for row in listed["people"]] and acts_now(reply, "threat") else None
 
 
 def check_in(reply: Any, player_input: Any) -> str:
@@ -393,7 +436,7 @@ def check_in(reply: Any, player_input: Any) -> str:
     if not isinstance(front, dict) or not isinstance(player_input, str) or "?" in player_input:
         return ""
     check = front.get("check")
-    if check not in CHECKS or front.get("kind") not in CHECK_KINDS or not acts_now(reply):
+    if check not in CHECKS or front.get("kind") not in CHECK_KINDS or not acts_now(reply, "check"):
         return ""
     import bold_acts
     import game
@@ -407,7 +450,7 @@ def deed_in(reply: Any) -> str:
     """The bold deed the reading found; the empty text means it read the line and found none."""
     front = reply.get("front") if isinstance(reply, dict) else None
     deed = front.get("deed") if isinstance(front, dict) else None
-    return deed if deed in DEEDS and acts_now(reply) else ""
+    return deed if deed in DEEDS and acts_now(reply, "deed") else ""
 
 
 _COIN_WORDS = ("altin", "gumus", "bakir", "para", "sikke")
@@ -606,7 +649,7 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
     D-109: an act the reading says is not done now (later, asked, refused, only looked at) changes nothing for good:
     it is words, said to the person it names or to nobody, and no old word reader takes it up again."""
     route = _route(reply, listed)
-    if route is None or route["kind"] not in _LASTING or acts_now(reply):
+    if route is None or route["kind"] not in _LASTING or acts_now(reply, "strike" if route["kind"] == "strike" else None):
         return route
     person = route.get("person_id") or (route.get("id") if route["kind"] == "strike" else None)
     return {"kind": "speak_to", "id": person} if person else {"kind": "talk_around"}
@@ -617,7 +660,7 @@ def _route(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
     if not isinstance(front, dict) or front.get("kind") not in KINDS:
         return None
     kind = front["kind"]
-    if front.get("strike_to") in [row["id"] for row in listed["people"]]:
+    if front.get("strike_to") in [row["id"] for row in listed["people"]] and acts_now(reply, "strike"):
         word = front.get("thing_word")  # a blow is a blow, however the rest of the line was read
         return {"kind": "strike", "id": front["strike_to"], "with": word.strip() if isinstance(word, str) else ""}
     offer = next((row for row in listed["offers"] if row["id"] == front.get("offer_id")), None)
@@ -697,6 +740,8 @@ def begin(session, *, typed: bool = False) -> None:
     from api import ollama_adapter
     ollama_adapter.begin_turn_usage()
     session._front_reply = None
+    session._front_reply_called = False  # D-420: only this turn's reading counts
+    session._front_last_reading = None  # D-263: set by this turn's reading, if it makes one
     session._front_deed = None
     session._front_kind = None
     session._front_talk = None  # BM Task 1: the repaired reading of a conversation line; talk_front.current() reads it; end() clears it
@@ -731,6 +776,7 @@ def end(session) -> None:
     session._named_word = None
     session._front_check = ""  # D-094: a check is this turn's only
     session._front_reply = None
+    session._front_reply_called = False  # D-420
     session._front_economic_none = False
     session._front_read = None
     session._front_talk = None  # the reading is this turn's only (BM Task 2)

@@ -594,3 +594,13 @@ Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_rec
 | `lib/api-spec/orval.config.ts`, `lib/api-zod/src/generated/api.ts` | zod soz dizimi 3 -> 4; api.ts yeniden uretildi (hicbir kod icinden kullanilmiyor) | uretilen dosya |
 | yeni test | `artifacts/ai-dnd-experience/tests/workspace-hygiene.test.mjs` (olu paketler yok, zod >=4.6.6, vite loopback) | ekleme |
 | `ai-dnd/api/tests/test_quality_ratchet.py` `test_ui_baselines_exist_and_are_counts` | alt sinir knip 300 -> 100, fallow 250 -> 110 (taban dosyalari 332 -> 119 ve 271 -> 130 girdiye kuculdu; alt sinir tabanlarin ~%85'i, "bos degil" kontrolu ayni) | gevşetme olabilir (sinir yeniden tanimlandi) |
+
+## G1.3 (borc-sifirlama): eylem basina zamanlama
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_d109_timing.py` `test_a_reply_with_no_timing_reads_as_now` -> `test_a_reply_with_no_timing_is_not_now` | D-262: `timing` alani yoksa/bossa/liste disindaysa "now" sayilmiyor (eskiden now sayiliyordu); test tersine cevrildi | siklasti (gevşetme degil) |
+| `test_d094_model_check.py` `reading()`, `test_item_use.py`, `test_quest_item_take.py`, `test_world_keeps_its_word.py` `ReadingClient` | sahte okumalara `"timing": "now"` eklendi (sema zaten zorunlu kiliyor; yeni varsayilan "now degil") | eşit sıkılık |
+| `test_threats_come_due.py` `test_the_reading_of_the_line_finds_the_player_threat_with_no_extra_call` | "evet" turunda model cagrisi 2 -> 1 (D-263: ilk okuma yeniden oynatilir, ikinci okuma yok) | davranis degisikligi, siklasti |
+| yeni testler | `test_d109_timing.EachActInALineHasItsOwnWhen` (8 test), `test_an_act_takes_its_own_timing_or_the_lines`, `test_front_proposal.test_dash_command_logged_as_command_not_empty` | ekleme |
+| `ai-dnd/scripts/quality_gate/size_lock.json` | degismedi (`_front_step` 235 satirda kaldi) | - |

@@ -97,13 +97,13 @@ class QuestItemTake(JourneyCase):
     async def test_the_take_route_carries_a_bag_item_id(self):
         await self.accept()
         listed = front_proposal.listing(self.session)
-        route = front_proposal.validate({"front": {"kind": "take", "item_id": self.parcel_id, "thing_word": "takımını"}}, listed)
+        route = front_proposal.validate({"front": {"kind": "take", "item_id": self.parcel_id, "thing_word": "takımını", "timing": "now"}}, listed)
         self.assertEqual(route, {"kind": "take", "item_id": self.parcel_id, "word": "takımını"})
         route = front_proposal.validate({"front": {"kind": "take", "item_id": "item:nope", "thing_word": "x"}}, listed)
         self.assertEqual(route, {"kind": "unclear"})                       # J-014 #2: an invalid id is no word fallback
         for absent in ("none", "", None):
             with self.subTest(item_id=absent):
-                route = front_proposal.validate({"front": {"kind": "take", "item_id": absent, "thing_word": "x"}}, listed)
+                route = front_proposal.validate({"front": {"kind": "take", "item_id": absent, "thing_word": "x", "timing": "now"}}, listed)
                 self.assertEqual(route, {"kind": "take", "word": "x"})     # no id given: today's word route
 
     async def test_pickup_never_makes_an_item_from_a_jobs_name(self):

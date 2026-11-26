@@ -1113,12 +1113,11 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         front_proposal.note(session, "skipped:journey")
         return None
     if not isinstance(player_input, str) or not player_input.strip() or player_input.strip().startswith("/"):
-        front_proposal.note(session, "skipped:empty")
+        front_proposal.note(session, "skipped:command" if isinstance(player_input, str) and player_input.strip() else "skipped:empty")  # D-245
         return None
     if adventure_play.inside_hideout(world):
         front_proposal.note(session, "skipped:hideout")  # the town's lists are not what is around the player here
         return None
-    from model_phase import front_call
     try:
         listed = front_proposal.listing(session)
     except Exception:  # broad: the old classifier chain is a whole fallback, so a broken list never fails the turn
@@ -1134,16 +1133,15 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         addressed = next((npc for npc in game.active_npcs() if npc.get("id") == target_id), None)
     elif hint:
         addressed = game._addressed_in(player_input)
-    with front_call():  # one reading answers for the whole turn, so it carries whatever proposal the line may need
-        reply = game.parse_player_intent(
-            player_input, front_list=listed, recent_scene_narration=game._recent_player_visible_narration(),
-            interaction_context=interaction_adventure.context(world, addressed, player_input) if hint else None,
-            operation_hint=hint, require_conversation=hint == "information" and addressed is not None,
-            allow_local_person_proposal=game.should_generate_npcs(player_input),
-            allow_scene_detail_proposals=game._scene_detail_proposals_allowed(player_input, world, interaction_mode))
+    # one reading answers for the whole turn, so it carries whatever proposal the line may need (a yes plays the stored one)
+    reply = front_proposal.read_once(session, player_input, lambda: game.parse_player_intent(
+        player_input, front_list=listed, recent_scene_narration=game._recent_player_visible_narration(),
+        interaction_context=interaction_adventure.context(world, addressed, player_input) if hint else None,
+        operation_hint=hint, require_conversation=hint == "information" and addressed is not None,
+        allow_local_person_proposal=game.should_generate_npcs(player_input),
+        allow_scene_detail_proposals=game._scene_detail_proposals_allowed(player_input, world, interaction_mode)))
     held = {key: value for key, value in reply.items() if key != "front"}
     session._front_reply = held
-    session._front_reply_called = True  # G10: this reply is the turn's one classifier call, however often it is reused
     if "front" not in reply:
         answered = len(reply) > 1  # a dead provider leaves only the bare unknown intent
         label = ("fallback:unusable" if reply.get("classifier_unusable")
@@ -1211,6 +1209,8 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         return {"kind": "heavy_asked", "what": "threat", "id": threatened, "deed": None, "said": str(player_input)}
     if threatened:
         world_happenings.threatened(world, world_threads._npc(world, threatened))
+    if front_proposal.unclear_persuasion(session, raw_front) and not game._heavy_allowed("check", player_input, deed="Persuasion"):
+        return front_proposal.persuasion_asked(session, player_input)  # D-177: maybe a plain hello; the roll is asked first
     session._front_coin = front_proposal.coin_in(reply, player_input)
     route = front_proposal.validate(reply, listed)
     if route == {"kind": "unclear"} and isinstance(raw_front, dict) and raw_front.get("kind") in {"take", "hand_over"}:
@@ -1616,12 +1616,17 @@ def _ask_before_the_heavy(asked):
     ``_answered_heavy_question``). Eating and drinking are never asked: Undo takes those back."""
     session = game._session()
     session._heavy_asked = {key: asked.get(key) for key in ("what", "id", "deed", "said")}
+    last = getattr(session, "_front_last_reading", None)
+    if isinstance(last, tuple) and last[0] == asked.get("said"):
+        session._heavy_asked["reading"] = last[1]  # D-263: the yes plays this reading again, no second model call
     if asked["what"] == "threat":
         who = next((npc for npc in game.active_npcs() if npc.get("id") == asked.get("id")), None)
         name = living_world.public_npc_name(who) if who is not None else "o kişi"
         line = f"Bu, {name} ile aranı bozar. Gerçekten tehdit ediyor musun? (evet/hayır)"
     elif asked.get("deed") == "steal_look":  # D-224 review: the line looked; the reading alone said theft
         line = "Yalnız bakmakla kalmayıp çalmaya mı çalışıyorsun? Bu bir suç olarak kayda geçer. (evet/hayır)"
+    elif asked["what"] == "check":  # D-177
+        line = "Bu bir ikna denemesi mi? Zar atılır ve sonuç ona göre olur. (evet/hayır)"
     else:
         act = "çalıyor" if asked.get("deed") == "steal" else "ateşe veriyor"
         line = f"Bu bir suç olarak kayda geçer. Gerçekten {act} musun? (evet/hayır)"
@@ -1640,6 +1645,8 @@ def _answered_heavy_question(player_input):
         kept = given.get("allowed", []) if isinstance(given, dict) and given.get("said") == asked["said"] else []
         session._heavy_confirmed = {"said": asked["said"],
                                     "allowed": [*kept, [asked["what"], asked["id"], asked["deed"]]]}
+        if isinstance(asked.get("reading"), dict):
+            session._heavy_confirmed["reading"] = asked["reading"]
         return asked["said"]
     return player_input
 
