@@ -1,6 +1,7 @@
 """Synthetic F04 AC002 authority checks; no live inference or campaign data."""
 import copy
 import json
+import os
 import unittest
 from unittest.mock import patch
 import living_world
@@ -8,6 +9,7 @@ from api.tests.test_stage10a_gameplay_repairs import city_session as _city_sessi
 from api.tests import test_explicit_shop_creation as shop_tests
 from api.persistence.campaign_models import CampaignStorageError
 from api.tests.journeys.runner import call_kind
+from api.tests.front_reading import RouteWatch, front_reply
 from api.tests.test_intent_response_consistency import read_first
 import uuid
 
@@ -206,6 +208,19 @@ class SearchTransactionTests(shop_tests.ShopTransactionTests):
         self.assertEqual(reopened.get_turn_action(record,body['action_id'])['response'],response.json())
 
     async def test_search_save_failure_restores_rng_event_history_and_no_receipt(self):
+        await self.search_save_failure_contract()
+
+    async def test_search_save_failure_restores_rng_event_history_and_no_receipt_with_a_usable_reading(self):
+        # D-410: the same contract, flag on, when the front reading comes back usable (it names nobody): the path
+        # local play takes with a working model, not the failed-reading path.
+        self.enterContext(patch.dict(os.environ,{'AI_DND_FRONT_PROPOSAL':'1'}))
+        self.model.chat.side_effect=lambda **kw:(front_reply() if call_kind(kw.get('format'))=='front'
+                                                 else {'message':{'content':'{}'}})
+        watch=RouteWatch(self)
+        await self.search_save_failure_contract()
+        self.assertEqual(watch.fell_back(),[]);self.assertTrue(watch.routes)
+
+    async def search_save_failure_contract(self):
         session=self.record.game_session
         before=copy.deepcopy((session.serialize_game_state(),session.rng.getstate(),self.record.journal,self.record.narrative_memory,self.record.lore_authority))
         saved=self.store.get_campaign(self.created['campaign_id'])

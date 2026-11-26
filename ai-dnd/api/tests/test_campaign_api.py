@@ -24,7 +24,7 @@ import httpx
 import adventure.templates as adventure_templates
 import adventure.transitions as adventure_transitions
 from api.tests.town_seed import default_town
-from api.tests.front_reading import UnscriptedReading, call_kind, with_reading as read_first
+from api.tests.front_reading import UnscriptedReadingError, call_kind, with_reading as read_first
 
 TOWN_SEED = 8050
 
@@ -147,7 +147,7 @@ class FakeOllamaClient:
     def chat(self, *args, **kwargs):
         if call_kind(kwargs.get("format")) == "front":
             # D-410: the engine swallows a failed reading; this one says by name that none was scripted
-            raise UnscriptedReading(type(self).__name__)
+            raise UnscriptedReadingError(type(self).__name__)
         raise AssertionError("Campaign API tests must not call a real model.")
 
 

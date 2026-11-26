@@ -16,7 +16,7 @@ import living_world
 import resolved_presentation
 import world_threads
 from api.tests import test_campaign_api
-from api.tests.front_reading import call_kind, with_reading as read_first
+from api.tests.front_reading import RouteWatch, call_kind, front_reply, with_reading as read_first
 from api.tests.town_seed import fixed_town
 
 # A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
@@ -49,8 +49,10 @@ class NoNarrationClient(test_campaign_api.FakeOllamaClient):
             raise RuntimeError("arrival narration is not scripted here")
         self.calls += 1
         self.kinds.append(call_kind(kwargs.get("format")))
-        # Flag on, the front reading gets no usable answer here (it fails, or gets narration text once narration is
-        # allowed), so the old chain answers the line as it does flag off.
+        # Flag on, the front reading comes back usable but names nothing (D-410: it used to be dropped, so these
+        # tests ran the failed-reading chain); the old chain then answers the line as it does flag off.
+        if self.kinds[-1] == "front":
+            return front_reply()
         if self.kinds[-1] == "intent":
             self.intent_calls += 1
         elif self.allow_narration:
@@ -62,6 +64,7 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
         self.client = NoNarrationClient()
+        self.watch = RouteWatch(self)
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         with fixed_town(self, TOWN_SEED):  # a new campaign's town (its places too) comes from its id
             created = await self.http.post("/api/game/campaigns", json={"campaign_start": {
@@ -87,9 +90,13 @@ class IntentResponseConsistencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def turn(self, message, **fields):
         here, arrivals = self.world.get("location"), self.client.arrival_calls
+        self.watch.reset()
+        readings = self.client.kinds.count("front")
         response = await self.http.post(f"/api/game/sessions/{self.session_id}/turn",
                                        json={"message": message, "action_id": str(uuid.uuid4()), **fields})
         self.assertEqual(response.status_code, 200, response.text)
+        if self.client.kinds.count("front") > readings:  # a test that swaps in its own speech client owns its reading
+            self.assertEqual(self.watch.fell_back(), [])  # D-410: the line was read, not dropped to the old chain
         # The only model call a resolved move may make is one arrival scene, and only on a turn that arrives somewhere.
         self.assertIn(self.client.arrival_calls - arrivals, (0, 1))
         if self.client.arrival_calls != arrivals:

@@ -15,7 +15,7 @@ import npc_statements
 from api.persistence.campaign_models import CampaignStorageError
 from api.tests import test_campaign_api
 from api.tests.auth_fixture import TEST_PLAYER
-from api.tests.front_reading import RouteWatch, call_kinds, with_reading
+from api.tests.front_reading import RouteWatch, call_kinds, forbid_unscripted, with_reading
 from api.tests.test_campaign_api import create_city_with_locked_tavern
 from api.tests.town_seed import fixed_town
 
@@ -1456,11 +1456,12 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(self.sensitive_state(session), before)
 
 
-def plain_talk_client(narration="Dün sana on altın vadetmiştim."):
-    """A client whose front reading comes back usable: plain talk to Marek, as a working local model reads a say line."""
+def plain_talk_client(narration="Dün sana on altın vadetmiştim.", person_id="npc_experimental_marek"):
+    """A client whose front reading comes back usable: plain talk to Marek (or ``person_id``), as a working local model
+    reads a say line."""
     from api.tests.test_front_proposal import FrontClient  # imported here: that module imports this one
     client = FrontClient(narration)
-    client.front = {"kind": "speak_to", "person_id": "npc_experimental_marek"}
+    client.front = {"kind": "speak_to", "person_id": person_id}
     return client
 
 
@@ -1473,6 +1474,7 @@ class UsableReadingTwins(unittest.IsolatedAsyncioTestCase):
     async def campaign_with_npc(self, **kwargs):
         made = await ExperimentalNpcDialogueTests.campaign_with_npc(self, **kwargs)
         self.watch.reset()  # the town's set-up turns read nothing usable; every line of the test itself must
+        forbid_unscripted(self)
         return made
 
     async def asyncSetUp(self):
