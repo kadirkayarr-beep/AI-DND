@@ -1,5 +1,5 @@
 # Start the player path: Ollama check, FastAPI, experience UI.
-# Does not start artifacts/api-server. Does not run `ollama run`.
+# Starts only FastAPI and the experience UI. Does not run `ollama run`.
 param(
     [int]$ApiPort = 8008,
     [int]$UiPort = 22785,
@@ -147,7 +147,7 @@ while ((Get-Date) -lt $deadline) {
 Write-Host "FastAPI  $health  $(if ($apiOk) { 'READY' } else { 'NOT READY' })"
 Write-Host "UI       $uiUrl  $(if ($uiOk) { 'READY' } else { 'NOT READY' })"
 if ($apiOk -and $uiOk) {
-    Write-Host "READY within $WaitSeconds s. Game API is FastAPI, not artifacts/api-server."
+    Write-Host "READY within $WaitSeconds s. Game API is FastAPI."
     exit 0
 }
 Write-Host "NOT READY within $WaitSeconds s."

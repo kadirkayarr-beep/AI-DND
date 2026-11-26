@@ -4,7 +4,7 @@ AI-DND is a Turkish-language terminal D&D game.
 
 ## Player path
 
-The campaign UI talks to the FastAPI adapter, not the Node `artifacts/api-server`.
+The campaign UI talks to the FastAPI adapter.
 
 ```powershell
 # From the repository root (Desktop\AI - DND)
@@ -17,7 +17,7 @@ Set `OLLAMA_HOST` (and `OLLAMA_PROXY_TOKEN` if the proxy requires it). Optional
 Check `GET http://127.0.0.1:11434/api/tags` and `GET http://127.0.0.1:8008/api/game/health`.
 Do not use interactive `ollama run` for this path.
 
-Product UI: `artifacts/ai-dnd-experience`. `artifacts/ai-dnd-web` is session-only.
+Product UI: `artifacts/ai-dnd-experience` (the only browser UI; the old `ai-dnd-web` and Node `api-server` packages were removed).
 
 ## Run (terminal)
 

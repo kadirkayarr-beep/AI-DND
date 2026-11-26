@@ -17,4 +17,4 @@ Current way (2026-11-03): from `C:\Users\Kadir\Desktop\AI-DND-c-merge` in PowerS
 - Gemini rate limited: the chain falls back to Haiku, then Gemma; this is expected.
 - Gemma fallback needs Ollama running with `gemma4-12b-dm` (or at least `gemma4-fast`, its fallback); never use `ollama run`.
 - UI NOT READY: run `pnpm install` at the root.
-- The game API is FastAPI. `artifacts/api-server` is NOT the game API; `artifacts/ai-dnd-web` is a session surface only.
+- The game API is FastAPI. The old `artifacts/api-server` and `artifacts/ai-dnd-web` packages were removed; `artifacts/ai-dnd-experience` is the only browser UI.
