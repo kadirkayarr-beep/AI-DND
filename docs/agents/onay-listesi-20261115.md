@@ -630,3 +630,15 @@ Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_rec
 | `ai-dnd/scripts/quality_gate/size_lock.json` | degismedi (`_front_step` 235 satirda kaldi) | - |
 | `test_arrival_wiring.py` go_to sahte okuma, `test_compound_line.py` `OneFrontAfterAnother` | sahte okumalara `"timing": "now"` eklendi (incelemeden sonra; zamansiz okuma artik "now" degil, bu yuzden test yolu degismisti). Sikilik ayni | gevsetme degil |
 | yeni testler (inceleme duzeltmesi) | `test_a_later_blow_on_a_line_read_as_no_lasting_act_is_words_to_that_person`, `test_unclear_persuasion_yes_replays_the_reading_and_rolls_the_check` | ekleme |
+
+## G1.8 (borc-sifirlama): uzun tur islevleri ve karmasiklik ratchet'i
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_engine_cut_tool.py` `test_the_dispatch_step_helpers_exist_and_are_short` | `turn_dispatch_steps.py` icin sabit ad kumesi 6 adtan 25 ada genisledi (`G18_DISPATCH_CUTS`: `_dispatch_player_turn`'dan tur-bolme aracıyla kesilen 19 blok; hepsi hala 151 satirdan kisa) | gevşetme olabilir (ad listesi genisledi; her yardimci icin kisa-islev sinirı ayni) |
+| `ai-dnd/api/tests/test_engine_parts_pilot.py` `test_the_wrapper_filter_reads_an_explicit_part_list` | `_PART_MODULES` listesine `game_parts.narration_safety_steps` ve `game_parts.turn_run_steps` eklendi | gevşetme olabilir (yeni iki parca dosyasi) |
+| `ai-dnd/api/tests/test_narration_source_record.py` `ENGINE_PART_REPORTERS` | `game_parts/turn_run_steps.py` eklendi (`_run_player_turn_internal`'dan kesilen bloklar kaynagi anıyor; yeni deger yok) | gevşetme olabilir (raporlayici listesi) |
+| `ai-dnd/api/tests/engine_split_locks/sensitive.json` | 6 yeni ad eklendi (`_rpt_shop_request_import`, `_rpt_allow_new_features`, `_rpt_allow_new_npcs`, `_rpt_work_answer_shop`, `_rpt_action_result_verified`, `_rpt_turned_down_what`; neden `money`) — para kelimesi geciyor diye isaretlendi, kod aynen tasindi (cut_check CHANGED 0) | siklasti (kilit yalniz buyur; Opus inceleme sart) |
+| `ai-dnd/api/tests/engine_split_locks/size_budget.json` | `game.py` 1164->1148, `narration_safety.py` 1505->1197, `turn.py` 2318->1804; uzun islevler: `_run_player_turn_internal` 1553->1154, `_narration_safety_decision` 1054->748, `_dispatch_player_turn` 348->238, `ask_dungeon_master` 299->282 | kilit kuculdu |
+| `ai-dnd/scripts/quality_gate/baselines/radon.json` (yeni) + `ratchet.py` `parse_radon` + `tools.json` radon 6.0.1 | radon cc ratchet'i: E/F (karmasiklik >= 31) islev sayisi ve her birinin karmasikligi yalniz kucuLUR; D-592 S18 (b) cevabiyla kalan 192 E/F islev wontfix, kapi onlari buyutemez | gevşetme olabilir (D-592: kalan F/E islevler bolunmuyor, yalniz sinirlaniyor) |
+| yeni testler | `test_turn_long_functions_pin` (karakterizasyon + `test_fallbacks_log_when_forced`), `test_quality_radon` | ekleme |

@@ -224,7 +224,37 @@ def parse_fallow(text: str) -> list[str]:
     return keys
 
 
-PARSERS = {"ruff": parse_ruff, "knip": parse_knip, "fallow": parse_fallow}
+RADON_MIN_CC = 31  # radon rank E starts at 31; E and F functions are the ratchet's findings
+
+
+def _radon_blocks(blocks, prefix: str):
+    for b in blocks:
+        if not isinstance(b, dict) or type(b.get("complexity")) is not int or not b.get("name"):
+            raise ToolOutputError("radon: unexpected block shape")
+        name = prefix + (f"{b['classname']}." if b.get("classname") else "") + str(b["name"])
+        yield name, b["complexity"]
+        yield from _radon_blocks(b.get("closures") or [], name + ".")
+
+
+def parse_radon(text: str) -> list[str]:
+    """Real shape (radon 6.0.1, `radon cc -j`): {path: [{name, complexity, rank, classname?, closures: [...]}]}.
+
+    Each function above RADON_MIN_CC yields its key `complexity` times, so the baseline count IS the complexity: a
+    function may get simpler (count down) but never more complex, and a new E/F function is a new key."""
+    data = _load_json(text, "radon")
+    if not isinstance(data, dict):
+        raise ToolOutputError("radon: expected a JSON object of path -> block list")
+    keys: list[str] = []
+    for path, blocks in data.items():
+        if not isinstance(blocks, list):
+            raise ToolOutputError(f"radon: {path}: radon reported an error, not blocks")
+        for name, cc in _radon_blocks(blocks, ""):
+            if cc >= RADON_MIN_CC:
+                keys.extend([finding_key("radon", path, "cc", name)] * cc)
+    return keys
+
+
+PARSERS = {"ruff": parse_ruff, "knip": parse_knip, "fallow": parse_fallow, "radon": parse_radon}
 
 
 def _whitelist_names(text: str) -> set[str]:

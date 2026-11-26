@@ -502,3 +502,41 @@ def _fn_lore_rejected(*, action_result, fallback_for_turn, fallback_reason_code,
     elif fallback_reason_code:
         narration = fallback_for_turn(default_response=narration)
     return handling, narration
+
+
+def _adm_claims_unsupported_gate(*, action_result, claims_supported, npc_target, player_input):
+    if not claims_supported:
+        fallback = game._fallback_for_action_result(player_input, action_result)
+        return game.finalize_narration(
+            fallback,
+            player_input,
+            npc_target,
+            action_result,
+            fallback_reason_code="UNVERIFIED_LORE_CLAIM",
+        )
+    return game._TURN_FALL_THROUGH
+
+
+def _adm_refs_unsupported_gate(*, action_result, npc_target, player_input, refs_supported):
+    if not refs_supported:
+        return game.finalize_narration(
+            game._fallback_for_action_result(player_input, action_result),
+            player_input,
+            npc_target,
+            action_result,
+            fallback_reason_code="INVALID_MODEL_RESPONSE",
+        )
+    return game._TURN_FALL_THROUGH
+
+
+def _adm_lore_claim_guidance(*, narration_only):
+    lore_claim_guidance = (
+        "Bu narration-only turunda lore_claims boş kalır; citation ekleme. "
+        "PYTHON ACTION RESULT, NARRATION FACTS ve görünür mevcut sahne bilgisini "
+        "mekanik sonucu değiştirmeden doğal biçimde anlat; cümleyi aynen kopyalamak zorunda değilsin. "
+        "Bu görevin dışına çıkarak yeni setting/campaign canon iddiası ekleme. "
+        if narration_only else
+        "Söylediğin her setting/campaign canon iddiası için lore_claims alanında "
+        "ilgili fact_id veya override_id değerini listele; destek yoksa iddia etme. "
+    )
+    return lore_claim_guidance
