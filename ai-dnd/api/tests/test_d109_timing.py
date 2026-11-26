@@ -69,12 +69,36 @@ class TheReadingCarriesWhen(unittest.TestCase):
         self.assertEqual(front_proposal.threat_in(now, _LISTED), "npc-1")
         self.assertEqual(front_proposal.deed_in(now), "steal")
 
-    def test_a_reply_with_no_timing_reads_as_now(self):
-        """Ruling: the schema requires the field, so only an old record or an old script lacks it; it reads as before."""
-        self.assertTrue(front_proposal.acts_now({"front": {"kind": "consume"}}))
-        self.assertTrue(front_proposal.acts_now({"front": {"kind": "consume", "timing": None}}))
+    def test_a_later_blow_on_a_line_read_as_no_lasting_act_is_words_to_that_person(self):
+        """G1.3 review: no old word reader takes the line up again, whatever kind the line was read as."""
+        for kind in ("unclear", "attempt", "look", "sit", "bag"):
+            for timing in ("later", "hypothetical", "negated", "observe"):
+                for line_timing in ("now", "later"):
+                    reply = {"front": {"kind": kind, "strike_to": "npc-1", "strike_timing": timing, "timing": line_timing}}
+                    self.assertEqual(front_proposal.validate(reply, _LISTED), {"kind": "speak_to", "id": "npc-1"},
+                                     (kind, timing, line_timing))
+        keep = {"front": {"kind": "consume", "item_id": "beer1", "timing": "now",
+                          "strike_to": "npc-1", "strike_timing": "later"}}
+        self.assertEqual(front_proposal.validate(keep, _LISTED), {"kind": "consume", "item": "beer1"})
+
+    def test_a_reply_with_no_timing_is_not_now(self):
+        """D-262 (G1.3, tighter than before): the schema requires the field, so a reply without it is an old record or
+        a gone-wrong reading; it is never now (it used to read as now)."""
+        self.assertFalse(front_proposal.acts_now({"front": {"kind": "consume"}}))
+        self.assertFalse(front_proposal.acts_now({"front": {"kind": "consume", "timing": None}}))
         self.assertFalse(front_proposal.acts_now({"front": {"kind": "consume", "timing": "maybe"}}))
         self.assertFalse(front_proposal.acts_now(None))
+        self.assertTrue(front_proposal.acts_now({"front": {"kind": "consume", "timing": "now"}}))
+
+    def test_an_act_takes_its_own_timing_or_the_lines(self):
+        reply = {"front": {"kind": "consume", "timing": "now", "strike_timing": "later", "deed_timing": "sonra"}}
+        self.assertTrue(front_proposal.acts_now(reply))
+        self.assertFalse(front_proposal.acts_now(reply, "strike"))
+        self.assertFalse(front_proposal.acts_now(reply, "deed"))  # a word outside the list is not now
+        self.assertTrue(front_proposal.acts_now(reply, "threat"))  # none given: the line's own
+        later = {"front": {"kind": "consume", "timing": "later", "threat_timing": "now"}}
+        self.assertFalse(front_proposal.acts_now(later))
+        self.assertTrue(front_proposal.acts_now(later, "threat"))
 
 
 class ABeerIsDrunkOnlyNow(FrontTable):
@@ -366,6 +390,125 @@ class ACrimeOrAThreatIsAskedFirst(FrontTable):
         session._heavy_asked = None
         session._restore_runtime_snapshot(snapshot)
         self.assertEqual(session._heavy_asked["deed"], "burn")
+
+
+class EachActInALineHasItsOwnWhen(FrontTable):
+    """G1.3 (D-109, D-260, D-261, D-262, D-263, D-177): the reading says when each act in the line is done."""
+
+    async def table(self, seed=10921):
+        with fixed_town(self, seed):
+            await self.begin()
+        equipment_economy.grant_named_item(self.world, "Bira")
+        self.beer = next(row["id"] for row in front_proposal._bag(self.world) if row["name"] == "Bira")
+
+    def beers(self):
+        return sum(1 for item in self.world["inventory"] if isinstance(item, dict) and item.get("name") == "Bira")
+
+    def score(self):
+        return relationships.score(self.world, self.npc["id"])
+
+    def elapsed(self):
+        return self.world["campaign_time"]["elapsed_seconds"]
+
+    async def test_mixed_timing_line_changes_only_now_actions(self):
+        await self.table()
+        before = self.score()
+        self.client.front = {"kind": "consume", "item_id": self.beer, "timing": "now",
+                             "strike_to": self.npc["id"], "strike_timing": "later",
+                             "threat_to": self.npc["id"], "threat_timing": "later"}
+        await self.line("yarın ona haddini bildireceğim ama şimdi biramı içiyorum")  # no blow verb: the word chain stays out
+        self.assertEqual(self.beers(), 0)  # the drink is now
+        self.assertEqual(self.routes()[-1]["owner"], "consume")
+        self.assertEqual(self.score(), before)  # the blow and the threat are for tomorrow
+        self.assertIsNone(getattr(self.session, "_heavy_asked", None))
+        self.assertIsNone(getattr(self.session, "_blow_asked", None))
+        self.assertFalse((self.world.get("combat") or {}).get("active"))
+
+    async def test_a_threat_now_with_a_later_drink_is_asked_and_keeps_the_beer(self):
+        await self.table()
+        before = self.score()
+        self.client.front = {"kind": "consume", "item_id": self.beer, "timing": "later",
+                             "threat_to": self.npc["id"], "threat_timing": "now"}
+        await self.line("dükkanını yakarım dikkat et, birayı da yarın içerim")
+        self.assertEqual(self.beers(), 1)
+        self.assertEqual(self.session._heavy_asked["what"], "threat")
+        self.assertEqual(self.score(), before)
+
+    async def test_later_go_to_does_not_move_or_pass_time(self):
+        await self.table()
+        place = self.a_place()
+        here, clock = self.world["location"], self.elapsed()
+        self.client.front = {"kind": "go_to", "place_id": place, "timing": "later"}
+        await self.line(f"yarın {self.world['locations'][place]['name']} yerine giderim")
+        self.assertEqual(self.world["location"], here)
+        self.assertEqual(self.elapsed(), clock)
+        for timing, kind in (("later", "talk_around"), ("hypothetical", "talk_around"), ("now", "wait")):
+            reading = {"front": {"kind": "wait", "timing": timing}}
+            self.assertEqual(front_proposal.validate(reading, _LISTED)["kind"], kind, timing)
+
+    async def test_missing_timing_is_not_now(self):
+        self.assertFalse(front_proposal.acts_now({"front": {"kind": "consume"}}))
+        self.assertFalse(front_proposal.acts_now({"front": {"kind": "attempt", "deed": "steal"}}, "deed"))
+        await self.table()
+        self.client.front = {"kind": "consume", "item_id": self.beer, "timing": None}
+        await self.line("Biramı içiyorum")
+        self.assertEqual(self.beers(), 1)
+        self.assertNotEqual(self.routes()[-1]["owner"], "consume")
+
+    def test_the_schema_requires_a_when_for_each_act(self):
+        schema = front_proposal.schema(_LISTED)
+        for field in ("timing", "strike_timing", "threat_timing", "deed_timing", "check_timing"):
+            self.assertEqual(schema["properties"][field]["enum"], list(front_proposal.TIMINGS), field)
+            self.assertIn(field, schema["required"], field)
+
+    async def test_yes_replays_stored_reading(self):
+        await self.table()
+        self.client.front = {"kind": "attempt", "deed": "steal", "timing": "now", "deed_timing": "now"}
+        await self.line("kalabaligi firsat bilip adamin belindekini usulca kendime katiyorum")
+        self.assertEqual(self.session._heavy_asked["deed"], "steal")
+        reads = len(self.front_calls())
+        self.client.front = {"kind": "unclear", "timing": "later"}  # a second reading would read the line differently
+        await self.line("evet")
+        self.assertEqual(len(self.front_calls()), reads, "the yes spent a second reading")
+        self.assertEqual(self.routes()[-1]["owner"], "theft")
+
+    async def test_unclear_persuasion_reading_asks(self):
+        await self.table()
+        self.client.front = {"kind": "unclear", "check": "Persuasion", "timing": "now", "check_timing": "now"}
+        reply = await self.line("Selam Kavşim, hava çok güzel")
+        self.assertEqual(self.session._heavy_asked["what"], "check")
+        self.assertEqual(self.session._heavy_asked["deed"], "Persuasion")
+        self.assertEqual(self.routes()[-1]["status"], "clarification")
+        self.assertIn("ikna", reply["narration"].lower())
+        self.assertNotEqual(self.routes()[-1]["owner"], "skill_check")
+        self.client.front = {"kind": "speak_to", "timing": "now"}
+        await self.line("hayır")
+        self.assertIsNone(self.session._heavy_asked)
+        self.assertNotEqual(self.routes()[-1]["owner"], "skill_check")
+
+    async def test_unclear_persuasion_yes_replays_the_reading_and_rolls_the_check(self):
+        await self.table()
+        self.client.front = {"kind": "unclear", "check": "Persuasion", "timing": "now", "check_timing": "now"}
+        await self.line("Selam Kavşim, hava çok güzel")
+        self.assertEqual(self.session._heavy_asked["what"], "check")
+        reads = len(self.front_calls())
+        self.client.front = {"kind": "speak_to", "timing": "later"}  # a second reading would not roll
+        with patch.object(game, "_heavy_allowed", wraps=game._heavy_allowed) as allowed:
+            await self.line("evet")
+        self.assertEqual(len(self.front_calls()), reads, "the yes spent a second reading")
+        self.assertTrue(any(call.args[:1] == ("check",) and call.kwargs.get("deed") == "Persuasion"
+                            for call in allowed.call_args_list), allowed.call_args_list)
+        self.assertIsNone(self.session._heavy_asked)
+
+    def test_front_reply_called_set_once(self):
+        """D-420: begin() and end() both clear the flag, so a later turn never reads the last turn's True."""
+        from types import SimpleNamespace
+        session = SimpleNamespace(world_state={}, _front_reply_called=True)
+        front_proposal.begin(session)
+        self.assertIs(session._front_reply_called, False)
+        session._front_reply_called = True
+        front_proposal.end(session)
+        self.assertIs(session._front_reply_called, False)
 
 
 if __name__ == "__main__":

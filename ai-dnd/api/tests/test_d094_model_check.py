@@ -21,7 +21,7 @@ LISTED = {key: [] for key in ("people", "places", "offers", "things", "bag", "pa
 
 
 def reading(kind="attempt", check="Deception", **rest):
-    return {"front": {"kind": kind, "check": check, **rest}}
+    return {"front": {"kind": kind, "check": check, "timing": "now", **rest}}
 
 
 class TheReadingNamesTheCheck(unittest.TestCase):

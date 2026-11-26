@@ -529,7 +529,7 @@ class ReadingClient(PlayClient):
         if "front" not in properties:
             return super().chat(*args, **kwargs)
         filled = {"person_id": "none", "place_id": "none", "offer_id": "none", "thing_id": "none", "answer": "none",
-                  "inside": False, **self.front}
+                  "inside": False, "timing": "now", **self.front}
         return {"message": {"content": json.dumps({"intent": "narrative", "action": "narrative", "target": {
             "type": "none", "reference": "", "npc_id": "", "evidence_quote": ""}, "completion": "unclear",
             "confidence": 1.0, "front": filled}, ensure_ascii=False)}}
