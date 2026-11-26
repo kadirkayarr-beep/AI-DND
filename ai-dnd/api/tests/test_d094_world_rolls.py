@@ -96,6 +96,18 @@ class ATheftWithWordsAfterItIsStillATry(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertFalse(bold_acts.is_theft(self.session, line))
 
+    def test_reported_past_pretended_or_unfinished_tails_are_no_theft(self):
+        base = "kesesini çalmak için zar atıyorum"
+        for tail in ("dedim", "dedi", "demiştim", "diyor", "sanıyordum", "geçen hafta", "mesela", "şaka",
+                     "gibi yapıyorum", "ya da atmıyorum", "ve geri veriyorum", "mu", "mu acaba"):
+            with self.subTest(tail=tail):
+                self.assertFalse(bold_acts.is_theft(self.session, f"{base} {tail}"))
+
+    def test_a_quiet_wish_tail_still_rolls(self):
+        for tail in ("kimse görmesin", "kimse görmeden", "kimse fark etmesin"):
+            with self.subTest(tail=tail):
+                self.assertTrue(bold_acts.is_theft(self.session, f"kesesini çalmak için zar atıyorum, {tail}"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -559,3 +559,9 @@ Not (Opus, Minor): `InvalidDeathModeError` artık `CampaignError` olduğu için 
 |---|---|---|
 | `test_refusal_census.test_every_text_for_caller_also_notes` | yalnız `api/routes_turn.py` içindeki `refuse_before_commit` işlevi atlanır (HTTP panel metni, kuralın tek istisnası; api/main.py'den buraya taşındı). Dosyanın geri kalanı kurala bağlı: `note` çağırmayan yeni bir `text_for` çağıranı yakalanır (bozma koşusu pt4f-mut-census kırmızı). api/main.py'nin dosya muafiyeti eskisi gibi | sıkılaşma (işlev düzeyinde muafiyet) |
 | `scripts/quality_gate/size_lock.json` | `api/main.py` 2309 -> 1473, `api/main.py::create_app` 1711 -> 883; yeni uzun işlev anahtarı yok (routes_turn'deki en uzun işlev 98 satır) | sıkılaşma |
+
+## 31. G1.1: okuma Stealth/Athletics/Perception adlandırabilir (dal `task/borc-g11-20261126`)
+
+| Test / kilit | Değişiklik | İşaret |
+|---|---|---|
+| `test_d094_model_check` | "kontrol yok" örnekleri Stealth/Athletics yerine Sleight of Hand/Acrobatics oldu; CHECKS eşitliği iki dilime bölündü (Stealth, Athletics, Perception artık CHECKS içinde). Sınır yeniden tanımlandı, eşit sıkılıkta | gevşetme olabilir (sınır yeniden tanımı) |

@@ -34,7 +34,7 @@ _STEAL = re.compile(
 # that goes on ("... ama vazgeçiyorum") and every "çalmak" that is no theft (a whistle, a bell, a heart) never match.
 _STEAL_TRY = re.compile(
     r"\b(?:kese\w*|cebi\w*|cep(?:te|ten|teki)?|cuzdan\w*|yuzu[kg]\w*|kolye\w*|bica[kg]\w*|hancer\w*|anahtar\w*|parasi\w*)\s+(?:\w+\s+){0,3}?"
-    r"cal(?:maya\s+calisiyorum|may[ii]\s+deniyorum|mak\s+icin\s+(?:(?:\w+\s+){0,3}?zar\w*\s+ati(?:yorum|yorm)(?:\s+(?!dun\b)\w+){0,4}|deniyorum"
+    r"cal(?:maya\s+calisiyorum|may[ii]\s+deniyorum|mak\s+icin\s+(?:(?:\w+\s+){0,3}?zar\w*\s+ati(?:yorum|yorm)(?:\s+kimse\s+(?:gormesin|gormeden|fark\s+etmesin|duymasin|bakmasin))?|deniyorum"
     r"|yaklasiyorum|elimi\s+uzatiyorum))$"
 )
 # A wish or plan, a time or a condition, speech, a refusal, somebody else's purse or friend, an attack: not a try now.
