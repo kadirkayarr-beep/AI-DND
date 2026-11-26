@@ -321,6 +321,13 @@ def find_local_place(world: dict[str, Any], settlement_id: str, kind: str) -> di
     )
 
 
+def places_of_kind(world: dict[str, Any], settlement_id: str, kind: str) -> list[dict[str, Any]]:
+    """D-299: every saved place of this kind in the settlement, in saved order (the generic word names one or many)."""
+    return [record for record in world.get("locations", {}).values()
+            if isinstance(record, dict) and record.get("parent_location_id") == settlement_id
+            and record.get("place_kind") == kind]
+
+
 def named_in(world: dict[str, Any], settlement_id: str, text: Any) -> dict[str, Any] | None:
     """The saved place of this settlement the player called by its name, longest name first."""
     folded = _fold(text)
