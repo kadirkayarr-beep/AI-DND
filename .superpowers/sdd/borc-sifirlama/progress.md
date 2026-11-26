@@ -15,3 +15,5 @@ Task G1.4: complete (branch task/borc-g14-20261126, head 4790fd35, merge a6b2acc
 Task G1.1: complete (branch task/borc-g11-20261126, head 510a64a6, merge d6a05637)
 - Ruling: D-531 closed by G1.4 although create_app is still 477 lines — plan G1.4 owns D-531, Opus review approved the split, remaining routes are cohesive app wiring — if wrong, reopen as a size row in a later wave.
 - Ruling: flag-on runs in round 1 for G0.2, G1.1, G1.4 used labels without the fon token, so they ran flag-off; G1.1 and G1.4 rechecked flag-on in round 2 Recheck; G0.2 had no code change.
+Task G1.5: complete (branch task/borc-g15-20261126, head 91935555, merge 1ab4a501)
+Task G1.2: complete (branch task/borc-g12-20261126, head f6f59c4d, merge 3f65ba71)
