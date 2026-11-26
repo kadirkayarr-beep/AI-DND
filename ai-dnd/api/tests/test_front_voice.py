@@ -67,7 +67,11 @@ class AnyBlowIsAnAttack(FrontTable):
     async def test_a_blow_is_named_when_the_foe_wins_initiative_and_hits_hard(self):
         # D-602: the foe goes first and the player is not downed by it; the player's own blow still names the target.
         await self.begin()
-        with patch.object(self.session, "roll_initiative_player", side_effect=lambda: 1 + self.session.character["dexterity_mod"]),                 patch.object(self.session, "roll_initiative", side_effect=lambda base=0: 20 + base):
+        player_last = patch.object(
+            self.session, "roll_initiative_player", side_effect=lambda: 1 + self.session.character["dexterity_mod"]
+        )
+        foe_first = patch.object(self.session, "roll_initiative", side_effect=lambda base=0: 20 + base)
+        with player_last, foe_first:
             self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
             reply = await self.line("savuruyorum, omzuna", "Ne yapıyorsun sen?")
         self.assert_attacked(reply)
