@@ -3816,22 +3816,26 @@ def worth_naming(session, line: str, options: list[dict[str, Any]]) -> list[dict
     heard = living_world.normalize_text(" ".join(str(row.get("content")) for row in session.messages
                                                  if isinstance(row, dict) and row.get("role") == "assistant"))
     places = session.world_state.get("locations", {})
+    # D-335: a place a person named aloud is heard of even when the shown narration never quoted it.
+    said = {row.get("place_id") for row in session.world_state.get("heard_rumours") or [] if isinstance(row, dict)}
 
     def named(option):
         words = living_world.normalize_text(option["label"]).split()
         return option["kind"] == "place" and len(words) > 1 and all(word[:4] in folded for word in words)
 
     def known(option):
-        return (option["kind"] != "place" or (places.get(option["id"]) or {}).get("visited")
+        return (option["kind"] != "place" or (places.get(option["id"]) or {}).get("visited") or option["id"] in said
                 or living_world.normalize_text(option["label"]) in heard)
 
     first = [option for option in options if named(option)]
     return [*first, *(option for option in options if option not in first and known(option))]
 
 
-def _finish_clarification(run: _Run, options) -> dict[str, Any]:
+def _finish_clarification(run: _Run, options, question: str | None = None) -> dict[str, Any]:
     labels = [_spoken_label(o) for o in options][:4]
-    if not labels:
+    if question:
+        text = question
+    elif not labels:
         text = clarification_text(run.session)
     elif len(labels) == 1:
         text = f"{tr_case.upper_first(labels[0])} mi demek istiyorsun?"

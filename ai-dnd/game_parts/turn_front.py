@@ -662,8 +662,22 @@ def _local_place_turn(player_input):
             or (named_place or {}).get("place_kind"))
     if kind is None:
         return None
-    record = (person_place or local_places.named_in(world, settlement, player_input)
-              or local_places.find_local_place(world, settlement, kind))
+    record = person_place or local_places.named_in(world, settlement, player_input)
+    if record is None:
+        same_kind = local_places.places_of_kind(world, settlement, kind)
+        if len(same_kind) > 1 and any(place.get("rumoured") for place in same_kind):
+            # D-299: a heard place carries the generic word as an alias too, so the word names one place only when
+            # the town holds one; with a heard place beside it, the player is asked.
+            names = [str(place.get("name") or place["id"]) for place in same_kind]
+            narration = (f"Burada birden çok yer var: {', '.join(names[:-1])} ve {names[-1]}. "
+                         "Hangisine gidiyorsun?")
+            return {
+                "messages": session.messages, "narration": narration, "model_calls": 0,
+                "action_result": {"action": "travel", "status": "clarification", "success": False,
+                                  "candidates": [place["id"] for place in same_kind], "state_changes": [],
+                                  "direct_response": narration},
+            }
+        record = same_kind[0] if same_kind else None
     if record is not None and record.get("id") == current:
         if local_places.goes_further_in(world, current, player_input):
             import grounded_action

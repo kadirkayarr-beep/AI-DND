@@ -101,6 +101,14 @@ def _decide_listed_walk(session, player_input: str, place_id: str, inside: bool,
     here = (session.world_state.get("locations") or {}).get(session.world_state.get("location")) or {}
     if (target["kind"] in {"place", "reference"} and here.get("exit_location_id") != target["id"]
             and not _line_names_place(session.world_state, player_input, target["record"])):
+        if steps and all(s["verb"] in {"go", "enter", "approach"} and s["target"] is None and not s["place_noun"]
+                         and not s.get("detail") for s in steps):
+            # D-331: the old chain cannot bind this walk to any place either ("Bakkala gidiyorum"): ask, no scene.
+            question = known_places_question(session, player_input)
+            if question:
+                run = _Run(session, player_input)
+                run.model_calls = 1  # the front reading was spent on this line
+                return "clarify", (run, [target], question)
         return defer  # the reading picked a listed place the line never names ("hana giriyorum" went to a workshop)
     if target["kind"] == "place" and _a_better_named_place(session, player_input, target):
         return defer  # "Kanyon Öyküsü Ciltevi'ne": a word shared with the inn is not the library's name
