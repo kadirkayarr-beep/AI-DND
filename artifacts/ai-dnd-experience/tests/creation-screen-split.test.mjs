@@ -72,3 +72,14 @@ test('the screen asks one dispatcher for the starting bundle instead of one bran
   assert.doesNotMatch(source, /(fighter|rogue|monk|paladin|barbarian)StartingCreationFields\(/);
   assert.equal((source.match(/startingCreationPayload\(/g) ?? []).length, 2, 'one call for step validation, one for submit');
 });
+
+// D-560 (partial): the species, class, background and equipment steps are their own components; the screen only mounts them.
+test('four steps are separate step components and the screen keeps no inline copy of them', async () => {
+  for (const [file, name] of [['species', 'SpeciesStep'], ['class', 'ClassStep'], ['background', 'BackgroundStep'], ['equipment', 'EquipmentStep']]) {
+    const stepSource = await readFile(`src/components/creation-steps/${file}-step.tsx`, 'utf8');
+    assert.match(stepSource, new RegExp('export function ' + name + '[(]'));
+    assert.match(source, new RegExp(`<${name} `), `${name} is mounted by the screen`);
+  }
+  assert.doesNotMatch(source, /data-class-key=|cc-cards-grid cc-portrait-grid/, 'class cards are not inline in the screen');
+  assert.ok(source.split('\n').length < 2200, 'the screen shrank below 2200 lines');
+});

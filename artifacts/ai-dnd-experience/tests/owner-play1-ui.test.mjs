@@ -52,7 +52,7 @@ test('a blocked level check speaks Turkish, never a raw code, and Kapat is its o
 });
 
 test('the starting level sits above the class cards in its own marked block, not under the feature list', async () => {
-  const source = await readFile('src/components/character-creation-screen.tsx', 'utf8');
+  const source = await readFile('src/components/creation-steps/class-step.tsx', 'utf8');
   const block = source.indexOf('data-testid="starting-level-block"');
   const control = source.indexOf('<FighterStartingLevelControl', block);
   const cards = source.indexOf('cc-cards-grid cc-portrait-grid');

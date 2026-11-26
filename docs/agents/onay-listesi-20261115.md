@@ -609,3 +609,8 @@ Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_rec
 | `ai-dnd/scripts/quality_gate/size_lock.json` | `character-creation-screen.tsx` 2514 -> 2482 | yalniz kuculdu |
 | `artifacts/ai-dnd-experience/package.json` | `test:standard` listesine uc yeni test dosyasi eklendi | ekleme |
 | yeni testler | `starting-creation-payload.test.mjs` (sinif tablosu), `creation-screen-split.test.mjs`, `default-catalog-matches-server.test.mjs`; `test_creation_without_race_key_is_identical` | ekleme |
+| `owner-play1-ui.test.mjs` (G1.6 duzeltme turu) | "starting level sits above the class cards" testi ayni sirayi (blok, kontrol, kartlar) artik `creation-steps/class-step.tsx` icinde okuyor; sinif adimi ayri bilesen oldu | ayni siki, gevsetme degil |
+| `roadmap-c10-starting-equipment-ui.test.mjs` (G1.6 duzeltme turu) | `StartingEquipmentNotice` cagri sayisi (2) ve oznitelikleri artik ekran + `creation-steps/equipment-step.tsx` birlikte taranarak sayiliyor; `packageGoods` kaynak eslemeleri iki dosyanin birlesiminde | ayni siki, gevsetme degil |
+| `creation-screen-split.test.mjs` | yeni test: dort adim (tur, sinif, gecmis, ekipman) ayri bilesen, ekranda satir ici kopya yok | ekle |
+| `size_lock.json` | `character-creation-screen.tsx` 2482 -> 2110 | yalniz kuculdu |
+| arac (repo disi) | `AI-DND-TOOLS/slot_web.sh`: `AI_DND_SERVER_ROOT` ayari (yedek `slot_web.sh.bak-g16-20261126`); yuva 2 web bagimliliklari G1.5 kilit dosyasina yenilendi (`AI-DND-TOOLS/slot_deps_g16.sh`, kaldirilan uc calisma alani `/root/aidnd-env-2/web-old-g15` altina tasindi) | arac degisikligi |

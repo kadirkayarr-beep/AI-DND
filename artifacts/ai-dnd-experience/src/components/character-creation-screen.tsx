@@ -1,4 +1,3 @@
-import { StepDice } from '@/components/step-dice';
 import { StartingEquipmentNotice } from '@/components/starting-equipment-notice';
 import { backgroundGoods, packageGoods } from '@/lib/starting-purse';
 import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
@@ -11,7 +10,7 @@ import { readFighterStartingCreationOptions, pruneFighterDraft, readMonkStarting
 import { startingCreationPayload } from '@/lib/starting-creation-payload';
 import { StartingLevelControl, StartingLevelChoices, StartingHitPoints, StartingArmorClass, StartingDerivedValue, ProgressionEffectsNotice, StaleInitialSpellChoices } from '@/components/sorcerer-starting-creation';
 import { emptyStartingDraft, changeStartingLevel, pruneStartingDraft, readStartingCreationOptions } from '@/lib/sorcerer-starting-creation';
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -52,10 +51,6 @@ import {
   type IdentityValues,
 } from '@/lib/character-identity-suggestion';
 import { customFetch } from '@workspace/api-client-react/custom-fetch';
-import { classLabel, classLevelingNote } from '@/lib/campaign-presentation';
-import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
-import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
-import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
 import {
   getFightingStyleOptions,
   getClassSkillOptions,
@@ -69,6 +64,14 @@ import {
   updateLimitedSelection,
 } from '@/lib/character-catalog-normalizer';
 import { calculateCharacterPreviewStats } from '@/lib/character-preview-stats';
+import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
+import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
+import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
+import { ABILITY_NAMES_TR, namedCatalogLabel, presentedClassName, type AbilityKey } from '@/components/character-creation-shared';
+import { ClassStep } from '@/components/creation-steps/class-step';
+import { BackgroundStep } from '@/components/creation-steps/background-step';
+import { SpeciesStep } from '@/components/creation-steps/species-step';
+import { EquipmentStep } from '@/components/creation-steps/equipment-step';
 import './character-creation-screen.css';
 import { playGateSound, primeGateSound } from '@/lib/gate-sound';
 import './cinematic-gate.css';
@@ -117,18 +120,7 @@ type CharacterCreationScreenProps = {
   onRetryStartOptions: () => void;
 };
 
-type AbilityKey = 'strength' | 'dexterity' | 'constitution' | 'intelligence' | 'wisdom' | 'charisma';
-
 const ABILITY_KEYS: AbilityKey[] = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-
-const ABILITY_NAMES_TR: Record<AbilityKey, { short: string; full: string }> = {
-  strength: { short: 'KUV', full: 'Kuvvet' },
-  dexterity: { short: 'ÇEV', full: 'Çeviklik' },
-  constitution: { short: 'DAY', full: 'Dayanıklılık' },
-  intelligence: { short: 'ZEK', full: 'Zekâ' },
-  wisdom: { short: 'BİL', full: 'Bilgelik' },
-  charisma: { short: 'KAR', full: 'Karizma' },
-};
 
 const ALIGNMENT_LABELS: Record<string, string> = {
   'Lawful Good': 'Hukuka Bağlı İyi',
@@ -143,18 +135,6 @@ const ALIGNMENT_LABELS: Record<string, string> = {
 };
 
 const EXTRA_LANGUAGE_IDS = ['Dwarvish', 'Elvish', 'Draconic', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc', 'Common Sign Language'] as const;
-
-function presentedClassName(classKey: string, nameTr?: string) {
-  const shared = classLabel(classKey);
-  if (shared !== classKey) return shared;
-  return nameTr?.trim() || classKey;
-}
-
-function namedCatalogLabel(catalogSection: unknown, id: string): string {
-  if (!catalogSection || typeof catalogSection !== 'object') return id;
-  const entry = (catalogSection as Record<string, { name_tr?: unknown }>)[id];
-  return typeof entry?.name_tr === 'string' && entry.name_tr.trim() ? entry.name_tr : id;
-}
 
 function languageLabel(id: string) {
   return ({ Common: 'Ortak Dil', Dwarvish: 'Cücece', Elvish: 'Elfçe', Draconic: 'Ejderce', Giant: 'Devce', Gnomish: 'Gnomca', Goblin: 'Goblin dili', Halfling: 'Buçukluk dili', Orc: 'Orkça', 'Common Sign Language': 'Ortak İşaret Dili' } as Record<string, string>)[id] ?? id;
@@ -180,53 +160,12 @@ const STEPS = [
 type StepId = typeof STEPS[number]['id'];
 const CHARACTER_CREATION_LEVEL = 1;
 
-const CLASS_PORTRAIT_CELLS: Record<string, number> = {
-  fighter: 0, barbarian: 1, paladin: 2, ranger: 3,
-  rogue: 4, monk: 5, bard: 6, cleric: 7,
-  druid: 8, sorcerer: 9, wizard: 10, warlock: 11,
-};
-
-const SPECIES_PORTRAIT_CELLS: Record<string, number> = {
-  human: 0, elf: 1, dwarf: 2, halfling: 3,
-  dragonborn: 4, gnome: 5, 'half-orc': 6, tiefling: 7,
-  goliath: 8, aasimar: 9, 'wood elf': 10, orc: 11,
-};
-
-function portraitStyle(sheet: string, cell: number | undefined): CSSProperties | undefined {
-  if (cell === undefined) return undefined;
-  const column = cell % 4;
-  const row = Math.floor(cell / 4);
-  return {
-    backgroundImage: `url("${sheet}")`,
-    backgroundPosition: `${column * 100 / 3}% ${row * 50}%`,
-  };
-}
-
 function calculateModifier(score: number): number {
   return Math.floor((score - 10) / 2);
 }
 
 function formatModifier(mod: number): string {
   return mod >= 0 ? `+${mod}` : `${mod}`;
-}
-
-function speciesTraitDetails(
-  trait: unknown,
-): { name: string; description: string | null } | null {
-  if (typeof trait === 'string') {
-    return trait.trim() ? { name: trait, description: null } : null;
-  }
-  if (!trait || typeof trait !== 'object') return null;
-
-  const record = trait as { name?: unknown; name_tr?: unknown; desc?: unknown };
-  if (typeof record.name !== 'string' || !record.name.trim()) return null;
-  return {
-    name: typeof record.name_tr === 'string' && record.name_tr.trim() ? record.name_tr : record.name,
-    description:
-      typeof record.desc === 'string' && record.desc.trim()
-        ? record.desc
-        : null,
-  };
 }
 
 export function CharacterCreationScreen({
@@ -1089,257 +1028,17 @@ export function CharacterCreationScreen({
             )}
             {/* STEP 1: CLASS */}
             {currentStep === 'class' && (
-              <section className="cc-step-panel">
-                <div className="cc-step-header">
-                  <div className="cc-label">Adım 2</div>
-                  <h2 className="cc-step-title-text">Sınıfını Seç</h2>
-                  <StepDice label="Sınıf için zar at" testId="button-dice-class" current={characterClass}
-                    keys={Object.keys((catalog?.classes ?? {}) as Record<string, unknown>)} onPick={setCharacterClass} />
-                  <p className="cc-literary">Sınıfın, karakterinin dövüş tarzını, can zarını ve temel yeteneklerini belirler.</p>
-                </div>
-
-                {characterClass && (
-                  <div className="cc-starting-level" data-testid="starting-level-block">
-                    {characterClass === 'Sorcerer' && <StartingLevelControl draft={startingDraft} metadata={startingMetadata}
-                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                    {characterClass === 'Paladin' && <PaladinStartingLevelControl draft={startingDraft} metadata={paladinStartingMetadata}
-                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                    {characterClass === 'Rogue' && <RogueStartingLevelControl draft={startingDraft} metadata={rogueStartingMetadata}
-                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                    {characterClass === 'Fighter' && <FighterStartingLevelControl draft={startingDraft} metadata={fighterStartingMetadata}
-                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                    {characterClass === 'Monk' && <MonkStartingLevelControl draft={startingDraft} metadata={monkStartingMetadata}
-                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                    {characterClass === 'Barbarian' && <BarbarianStartingLevelControl draft={startingDraft} metadata={barbarianStartingMetadata}
-                      disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
-                  </div>
-                )}
-
-                <div className="cc-cards-grid cc-portrait-grid">
-                  {catalog?.classes && Object.entries(catalog.classes as Record<string, any>).map(([clsKey, cls]) => {
-                    const isSelected = characterClass === clsKey;
-                    return (
-                      <div
-                        key={clsKey}
-                        className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
-                        data-class-key={clsKey}
-                        role="button"
-                        tabIndex={0}
-                        aria-pressed={isSelected}
-                        onClick={() => setCharacterClass(clsKey)}
-                      >
-                        <span
-                          className={`cc-portrait ${CLASS_PORTRAIT_CELLS[clsKey.toLowerCase()] === undefined ? 'cc-portrait-neutral' : ''}`}
-                          style={portraitStyle(classPortraitSheet, CLASS_PORTRAIT_CELLS[clsKey.toLowerCase()])}
-                          aria-hidden="true"
-                        />
-                        <div className="cc-card-top">
-                          <span className="cc-card-title">{presentedClassName(clsKey, cls.name_tr)}</span>
-                          <span className="cc-badge">d{cls.hit_die} Can Zarı</span>
-                        </div>
-                        <p className="cc-card-desc">{cls.desc}</p>
-                        <div className="cc-card-features">
-                          <span className="cc-feature-tag">Öncelik: {ABILITY_NAMES_TR[cls.primary_ability as AbilityKey]?.short ?? cls.primary_ability}</span>
-                          {classLevelingNote(clsKey) && <span className="cc-feature-tag" data-testid={`class-leveling-note-${clsKey}`}>{classLevelingNote(clsKey)}</span>}
-                          {cls.features?.slice(0, 2).map((feat: string) => (
-                            <span className="cc-feature-tag" key={feat}>{feat}</span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
+              <ClassStep characterClass={characterClass} catalog={catalog} setCharacterClass={setCharacterClass} startingDraft={startingDraft} startingMetadata={startingMetadata} creating={creating} onRetryOptions={onRetryOptions} setStartingDraft={setStartingDraft} paladinStartingMetadata={paladinStartingMetadata} rogueStartingMetadata={rogueStartingMetadata} fighterStartingMetadata={fighterStartingMetadata} monkStartingMetadata={monkStartingMetadata} barbarianStartingMetadata={barbarianStartingMetadata} classPortraitSheet={classPortraitSheet} />
             )}
 
             {/* STEP 2: BACKGROUND */}
             {currentStep === 'background' && (
-              <section className="cc-step-panel">
-                <div className="cc-step-header">
-                  <div className="cc-label">Adım 3</div>
-                  <h2 className="cc-step-title-text">Geçmişini Seç</h2>
-                  <StepDice label="Geçmiş için zar at" testId="button-dice-background" current={background}
-                    keys={Object.keys((catalog?.backgrounds ?? {}) as Record<string, unknown>)} onPick={setBackground} />
-                  <p className="cc-literary">Geçmişin; kazandığın 2 beceriyi, köken hünerini ve nitelik bonusu alabileceğin 3 alanı belirler.</p>
-                </div>
-
-                <div className="cc-cards-grid">
-                  {catalog?.backgrounds && Object.entries(catalog.backgrounds as Record<string, any>).map(([bgKey, bg]) => {
-                    const isSelected = background === bgKey;
-                    return (
-                      <div
-                        key={bgKey}
-                        className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setBackground(bgKey)}
-                      >
-                        <div className="cc-card-top">
-                          <span className="cc-card-title">{bg.name_tr ?? bgKey}</span>
-                          <span className="cc-badge cc-badge-gold">Hüner: {bg.origin_feat ? namedCatalogLabel(catalog?.origin_feats, bg.origin_feat) : ''}</span>
-                        </div>
-                        <p className="cc-card-desc">{bg.desc}</p>
-                        <div className="cc-card-features">
-                          <span className="cc-feature-tag">Beceriler: {(bg.skills as string[] | undefined)?.map((skill: string) => namedCatalogLabel(catalog?.skills, skill)).join(', ')}</span>
-                          <span className="cc-feature-tag">Araç: {bg.tool}</span>
-                          <span className="cc-feature-tag">
-                            Bonus Alanları: {bg.ability_bonuses_options?.map((k: AbilityKey) => ABILITY_NAMES_TR[k]?.short).join(' / ')}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {Number(speciesData?.origin_feat_bonus_count) > 0 && (
-                  <div className="cc-sub-section" data-testid="section-species-bonus-feat">
-                    <div className="cc-sub-header">
-                      <span className="cc-label">İnsan Tür Hüneri</span>
-                      <small>Geçmiş hünerinden farklı bir 1. seviye Başlangıç Hüneri seç.</small>
-                    </div>
-                    {originFeatOptions.length > 0 ? (
-                      <>
-                        <label className="cc-form-group" htmlFor="select-species-bonus-feat">
-                          <span className="cc-label">Ek Başlangıç Hüneri</span>
-                          <div className="cc-select-wrap">
-                            <select
-                              id="select-species-bonus-feat"
-                              data-testid="select-species-bonus-feat"
-                              value={speciesBonusFeat}
-                              onChange={(event) => setSpeciesBonusFeat(event.target.value)}
-                              aria-describedby={
-                                selectedSpeciesBonusFeat?.description
-                                  ? 'species-bonus-feat-description'
-                                  : undefined
-                              }
-                            >
-                              <option value="">Bir hüner seç...</option>
-                              {originFeatOptions.map((feat) => (
-                                <option key={feat.id} value={feat.id}>{feat.label}</option>
-                              ))}
-                            </select>
-                            <ChevronDown size={16} aria-hidden="true" />
-                          </div>
-                        </label>
-                        {selectedSpeciesBonusFeat?.description && (
-                          <p id="species-bonus-feat-description" className="cc-card-desc">
-                            {selectedSpeciesBonusFeat.description}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <div className="cc-inline-notice" data-testid="status-origin-feats-unavailable">
-                        Başlangıç hünerleri kataloğu yüklenemedi.
-                        <button
-                          type="button"
-                          className="text-button"
-                          data-testid="button-retry-origin-feats"
-                          onClick={onRetryOptions}
-                        >
-                          Yeniden dene
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </section>
+              <BackgroundStep background={background} catalog={catalog} setBackground={setBackground} speciesData={speciesData} originFeatOptions={originFeatOptions} speciesBonusFeat={speciesBonusFeat} setSpeciesBonusFeat={setSpeciesBonusFeat} selectedSpeciesBonusFeat={selectedSpeciesBonusFeat} onRetryOptions={onRetryOptions} />
             )}
 
             {/* STEP 3: SPECIES */}
             {currentStep === 'species' && (
-              <section className="cc-step-panel">
-                <div className="cc-step-header">
-                  <div className="cc-label">Adım 1</div>
-                  <h2 className="cc-step-title-text">Türünü Seç</h2>
-                  <StepDice label="Tür için zar at" testId="button-dice-species" current={species}
-                    keys={Object.keys((catalog?.races ?? {}) as Record<string, unknown>)}
-                    onPick={key => { if (key !== species) setGiantAncestry(''); setSpecies(key); }} />
-                  <p className="cc-literary">Türün hareket hızını, duyularını ve doğuştan gelen ırksal özelliklerini belirler.</p>
-                </div>
-
-                <div className="cc-cards-grid cc-portrait-grid">
-                  {catalog?.races && Object.entries(catalog.races as Record<string, any>).map(([raceKey, rc]) => {
-                    const isSelected = species === raceKey;
-                    const isHalfElf = raceKey.trim().toLowerCase() === 'half-elf';
-                    return (
-                      <div
-                        key={raceKey}
-                        className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
-                        role="button"
-                        tabIndex={0}
-                        aria-pressed={isSelected}
-                        onClick={() => {
-                          if (raceKey !== species) setGiantAncestry('');
-                          setSpecies(raceKey);
-                        }}
-                      >
-                        <span
-                          className={`cc-portrait ${!isHalfElf && SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()] === undefined ? 'cc-portrait-neutral' : ''}`}
-                          style={isHalfElf
-                            ? { backgroundImage: `url("${halfElfPortrait}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                            : portraitStyle(speciesPortraitSheet, SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()])}
-                          aria-hidden="true"
-                        />
-                        <div className="cc-card-top">
-                          <span className="cc-card-title">{rc.name_tr ?? raceKey}</span>
-                          <span className="cc-badge">{rc.speed}</span>
-                        </div>
-                        <p className="cc-card-desc">{rc.desc}</p>
-                        <div className="cc-card-features">
-                          {typeof rc.source_label_tr === 'string' && (
-                            <span
-                              className="cc-feature-tag"
-                              title={typeof rc.source_citation === 'string' ? rc.source_citation : undefined}
-                            >
-                              {rc.source_label_tr}
-                            </span>
-                          )}
-                          <span className="cc-feature-tag">Karanlık Görüşü: {rc.darkvision}</span>
-                          {Array.isArray(rc.traits) && rc.traits.map((trait: unknown, index: number) => {
-                            const details = speciesTraitDetails(trait);
-                            if (!details) return null;
-                            return (
-                              <span
-                                className="cc-feature-tag"
-                                key={`${raceKey}-${details.name}-${index}`}
-                                title={details.description ?? undefined}
-                              >
-                                {details.name}
-                                {details.description && (
-                                  <span className="sr-only">. {details.description}</span>
-                                )}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {species === 'Goliath' && (
-                  <section className="cc-sub-section" data-testid="section-giant-ancestry">
-                    <h3 className="cc-sub-title">Dev Atanı Seç</h3>
-                    <p className="cc-card-desc">
-                      Seçimin, Ustalık Bonusun kadar uzun dinlenmede yenilenen bir yeteneği belirler.
-                    </p>
-                    <div className="cc-cards-grid">
-                      {(speciesData?.giant_ancestry_options ?? []).map(
-                        (option: { id: string; name_tr: string; desc: string }) => (
-                          <button
-                            type="button"
-                            key={option.id}
-                            className={`cc-choice-card ${giantAncestry === option.id ? 'selected' : ''}`}
-                            role="radio"
-                            aria-checked={giantAncestry === option.id}
-                            onClick={() => setGiantAncestry(option.id)}
-                            data-testid={`giant-ancestry-${option.id}`}
-                          >
-                            <span className="cc-card-title">{option.name_tr}</span>
-                            <span className="cc-card-desc">{option.desc}</span>
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  </section>
-                )}
-              </section>
+              <SpeciesStep species={species} catalog={catalog} setGiantAncestry={setGiantAncestry} setSpecies={setSpecies} speciesData={speciesData} giantAncestry={giantAncestry} speciesPortraitSheet={speciesPortraitSheet} halfElfPortrait={halfElfPortrait} />
             )}
 
             {/* STEP 4: ABILITY SCORES */}
@@ -1830,74 +1529,7 @@ export function CharacterCreationScreen({
 
             {/* STEP 6: EQUIPMENT */}
             {currentStep === 'equipment' && (
-              <section className="cc-step-panel">
-                <div className="cc-step-header">
-                  <div className="cc-label">Adım 6</div>
-                  <h2 className="cc-step-title-text">Başlangıç Ekipman Paketi</h2><StartingEquipmentNotice characterClass={characterClass} catalog={propCatalog} equipmentPackage={equipmentPackage} background={background} backgroundOption={backgroundEquipmentOption} />
-                  <p className="cc-literary">Karakterinin macera yolculuğuna başlarken kuşanacağı silah, zırh ve teçhizatı seç.</p>
-                </div>
-
-                <div className="cc-cards-grid cc-portrait-grid">
-                  {(classData?.equipment_packages ?? [
-                    { id: 'A', label: 'Standart Macera Paketi', items: ['Zırh', 'Silah', 'Macera Çantası', '10 Altın'] },
-                  ]).map((pkg: any) => {
-                    const isSelected = equipmentPackage === pkg.id;
-                    return (
-                      <div
-                        key={pkg.id}
-                        className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setEquipmentPackage(pkg.id)}
-                      >
-                        <div className="cc-card-top">
-                          <span className="cc-card-title">Paket {pkg.id}: {pkg.label}</span>
-                        </div>
-                        <ul className="cc-item-list">
-                          {packageGoods(pkg).map((it: string) => (
-                            <li key={it}>{it}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="cc-sub-section mt-4">
-                  <div className="cc-sub-header">
-                    <span className="cc-label">Arka Plan Başlangıç Teçhizatı (Seçenek A veya B)</span>
-                    <small>2024 kurallarına göre geçmişinden gelen ekipman paketini veya alternatif 50 Altın alabilirsin.</small>
-                  </div>
-                  <div className="cc-cards-grid">
-                    <div
-                      className={`cc-choice-card ${backgroundEquipmentOption === 'A' ? 'selected' : ''}`}
-                      onClick={() => setBackgroundEquipmentOption('A')}
-                    >
-                      <div className="cc-card-top">
-                        <span className="cc-card-title">Seçenek A: Geçmiş Teçhizat Paketi</span>
-                      </div>
-                      <p className="cc-card-desc">Geçmişine özgü mesleki aletler, kıyafetler ve başlangıç kesesi.</p>
-                    </div>
-                    <div
-                      className={`cc-choice-card ${backgroundEquipmentOption === 'B' ? 'selected' : ''}`}
-                      onClick={() => setBackgroundEquipmentOption('B')}
-                    >
-                      <div className="cc-card-top">
-                        <span className="cc-card-title">Seçenek B: 50 Altın</span>
-                      </div>
-                      <p className="cc-card-desc">Paket yerine serbest harcama için 50 Altın nakit para ile başla.</p>
-                    </div>
-                  </div>
-                  {background === 'Artisan' && (
-                    <label className="cc-label">
-                      Araç seçimi
-                      <select value={artisanTool} onChange={(event) => setArtisanTool(event.target.value)}>
-                        {(backgroundData?.tool_options ?? ["Smith's Tools"]).map((tool: string) => (
-                          <option key={tool} value={tool}>{tool}</option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-              </section>
+              <EquipmentStep characterClass={characterClass} propCatalog={propCatalog} equipmentPackage={equipmentPackage} background={background} backgroundEquipmentOption={backgroundEquipmentOption} classData={classData} setEquipmentPackage={setEquipmentPackage} setBackgroundEquipmentOption={setBackgroundEquipmentOption} artisanTool={artisanTool} setArtisanTool={setArtisanTool} backgroundData={backgroundData} />
             )}
 
             {/* STEP 7: IDENTITY & CAMPAIGN START */}
