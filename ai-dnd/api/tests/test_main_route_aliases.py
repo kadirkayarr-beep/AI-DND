@@ -177,6 +177,20 @@ class RouteTableAliases(unittest.TestCase):
         self.assertEqual(legacy, [])
         self.assertNotIn("resolve_species_trait_action_compat", [name for _, _, name in self.routes()])
 
+    def test_live_smoke_and_security_gate_paths_exist(self):
+        import re
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[2]
+        known = {re.sub(r"\{[^}]+\}", "{}", path) for _, path, _ in self.routes()}
+        found = []
+        for rel in ("api/live_smoke.py", "scripts/security_gate.py"):
+            text = (root / rel).read_text(encoding="utf-8")
+            found += [("/api" + m) for m in re.findall(r'api_path\(f?"(/(?:game/)?sessions[^"]*)"', text)]
+            found += re.findall(r'f?"(/api/game/sessions[^"]*)"', text)
+        self.assertTrue(found)
+        missing = [p for p in found if re.sub(r"\{[^}]+\}", "{}", p) not in known]
+        self.assertEqual(missing, [])
+
 
 if __name__ == "__main__":
     unittest.main()
