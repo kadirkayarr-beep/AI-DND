@@ -582,3 +582,15 @@ D-531 (create_app 883 -> 477 satır; `api/routes_ambient.py`, `api/routes_campai
 
 Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_reckless dış fikstür çalışma zamanlarında duruyor (eski ölü kod; silinmedi, bildirildi). Kadir onayı: bekliyor.
 
+
+## G1.5 (borc-sifirlama): kullanilmayan npm paketleri ve aciklar
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `artifacts/ai-dnd-experience/tests/game-name.test.mjs` | `../ai-dnd-web/...` okuyan 4 dal (index.html, game-browser.tsx, artifact.toml, package.json adi) kaldirildi; ai-dnd-web paketi silindi. `ai-dnd-experience` icin ayni kontroller ayni sikilikta duruyor | eşit sıkılık (kapsam kuculdu, paket yok) |
+| `ai-dnd/scripts/development_checks.py` `protected_path` | `artifacts/ai-dnd-web/src/` oneki cikarildi (paket yok) | eşit sıkılık |
+| `ai-dnd/scripts/quality_gate/baselines/knip.json`, `fallow.json` | silinen uc paketin girdileri cikarildi (213 + 141 satir); yalniz kuculdu | gevşetme degil |
+| `pnpm-workspace.yaml` | zod ^3.25.76 -> ^4.6.6, vite ^7.3.2 -> ^7.3.7; dev zinciri icin 6 `overrides` (fast-uri, markdown-it, source-map-js, postcss-selector-parser, brace-expansion, minimatch) | guvenlik, gevşetme degil |
+| `lib/api-spec/orval.config.ts`, `lib/api-zod/src/generated/api.ts` | zod soz dizimi 3 -> 4; api.ts yeniden uretildi (hicbir kod icinden kullanilmiyor) | uretilen dosya |
+| yeni test | `artifacts/ai-dnd-experience/tests/workspace-hygiene.test.mjs` (olu paketler yok, zod >=4.6.6, vite loopback) | ekleme |
+| `ai-dnd/api/tests/test_quality_ratchet.py` `test_ui_baselines_exist_and_are_counts` | alt sinir knip 300 -> 100, fallow 250 -> 110 (taban dosyalari 332 -> 119 ve 271 -> 130 girdiye kuculdu; alt sinir tabanlarin ~%85'i, "bos degil" kontrolu ayni) | gevşetme olabilir (sinir yeniden tanimlandi) |
