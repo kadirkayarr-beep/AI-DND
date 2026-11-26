@@ -22,12 +22,12 @@ const preview = (target, counts, extra = {}) => ({ session_id: 'session', campai
 
 let helper, projection, ui, controls, levelUp, panel, vite, React, render;
 before(async () => {
-  helper = await import('../src/lib/monk-starting-creation.ts');
+  helper = await import('../src/lib/simple-class-starting-creation.ts');
   projection = await import('../src/lib/monk-projection.ts');
   process.env.PORT ||= '4187'; process.env.BASE_PATH ||= '/';
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
-  ui = await vite.ssrLoadModule('/src/components/monk-starting-creation.tsx');
+  ui = await vite.ssrLoadModule('/src/components/simple-class-starting-creation.tsx');
   controls = await vite.ssrLoadModule('/src/components/monk-controls.tsx');
   levelUp = await vite.ssrLoadModule('/src/components/level-up-controls.tsx');
   panel = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');

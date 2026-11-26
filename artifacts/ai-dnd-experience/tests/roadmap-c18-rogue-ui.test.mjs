@@ -28,11 +28,11 @@ const action_id = '22222222-2222-4222-8222-222222222222';
 
 let helper, ui, controls, levelUp, panel, vite;
 before(async () => {
-  helper = await import('../src/lib/rogue-starting-creation.ts');
+  helper = await import('../src/lib/simple-class-starting-creation.ts');
   process.env.PORT ||= '4187'; process.env.BASE_PATH ||= '/';
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
-  ui = await vite.ssrLoadModule('/src/components/rogue-starting-creation.tsx');
+  ui = await vite.ssrLoadModule('/src/components/simple-class-starting-creation.tsx');
   controls = await vite.ssrLoadModule('/src/components/rogue-controls.tsx');
   levelUp = await vite.ssrLoadModule('/src/components/level-up-controls.tsx');
   panel = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');

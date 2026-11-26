@@ -515,7 +515,7 @@ test('inventory preserves terminal unrelated brackets and labels without proven 
 });
 test('starting scopes disclose counts for the selected level, not raw supported prose', async () => {
   for(const [file,name] of [['fighter','Fighter'],['monk','Monk'],['rogue','Rogue'],['paladin','Paladin']]){
-    const ui=await vite.ssrLoadModule('/src/components/'+file+'-starting-creation.tsx');
+    const ui=await vite.ssrLoadModule('/src/components/'+(['fighter','monk','rogue'].includes(file)?'simple-class':file)+'-starting-creation.tsx');
     const html=render(ui[name+'StartingScope'],{level:5,metadata:{supported_starting_levels:[1,5],level_5:{effects_supported:['Raw supported one','Raw supported two'],effects_pending:['Raw pending']}}});
     assert.match(html,/Bu seviyede oyunda işleyenler/);assert.match(html,/>2 özellik</);
     assert.match(html,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor/);assert.doesNotMatch(html,/Raw supported|Raw pending/);
@@ -526,7 +526,7 @@ test('every starting scope uses distinct counts from the requested level', async
   const metadata={supported_starting_levels:[1,2,3,4,5]};
   for(const [level,supported,pending] of [[2,1,8],[3,2,4],[4,4,2],[5,8,1]])metadata['level_'+level]={effects_supported:Array.from({length:supported},(_,i)=>'raw supported '+level+' '+i),effects_pending:Array.from({length:pending},(_,i)=>'raw pending '+level+' '+i)};
   for(const [file,name] of [['fighter','Fighter'],['monk','Monk'],['rogue','Rogue'],['paladin','Paladin'],['barbarian','Barbarian']]){
-    const ui=await vite.ssrLoadModule('/src/components/'+file+'-starting-creation.tsx');
+    const ui=await vite.ssrLoadModule('/src/components/'+(['fighter','monk','rogue'].includes(file)?'simple-class':file)+'-starting-creation.tsx');
     for(const [level,supported,pending] of [[2,1,8],[3,file==='barbarian'?3:2,4],[4,4,2],[5,8,1]]){
       const html=render(ui[name+'StartingScope'],{level,metadata});
       assert.match(html,new RegExp('>'+supported+' özellik<'),file+' level '+level);

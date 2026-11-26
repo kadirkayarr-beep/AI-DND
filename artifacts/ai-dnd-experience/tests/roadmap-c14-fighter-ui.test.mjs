@@ -21,13 +21,13 @@ const preview = (target, counts, extra = {}) => ({ session_id: 'session', campai
 
 let helper, ui, controls, levelUp, species, page, QueryClient, QueryClientProvider, vite, React, render;
 before(async () => {
-  helper = await import('../src/lib/fighter-starting-creation.ts');
+  helper = await import('../src/lib/simple-class-starting-creation.ts');
   process.env.PORT ||= '4186'; process.env.BASE_PATH ||= '/';
   const { createServer } = await import('vite');
   const exposeComposer = { name: 'fighter-test-view', enforce: 'pre', transform(code, id) { if (id.endsWith('/src/pages/game-browser.tsx')) return `${code}
 export { StoryColumn as TestStoryColumn };`; } };
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent', plugins: [exposeComposer] });
-  ui = await vite.ssrLoadModule('/src/components/fighter-starting-creation.tsx');
+  ui = await vite.ssrLoadModule('/src/components/simple-class-starting-creation.tsx');
   controls = await vite.ssrLoadModule('/src/components/fighter-controls.tsx');
   levelUp = await vite.ssrLoadModule('/src/components/level-up-controls.tsx');
   species = await vite.ssrLoadModule('/src/components/species-trait-controls.tsx');

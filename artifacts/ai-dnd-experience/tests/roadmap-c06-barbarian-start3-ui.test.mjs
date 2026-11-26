@@ -3,6 +3,7 @@ import {before,after,test} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {emptyStartingDraft,changeStartingLevel} from '../src/lib/sorcerer-starting-creation.ts';
+import {startingCreationPayload} from '../src/lib/starting-creation-payload.ts';
 
 const SKILLS=['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'];
 const raw2=()=>({supported_starting_levels:[1,2],level_2:{choices:{},effects_supported:['Danger Sense: weapon/unarmed DEX saves only'],effects_pending:['Rage pending']}});
@@ -68,7 +69,7 @@ test('actual wizard submit sends the start-3 bundle but never an owned skill',as
   assert.ok(declaration);
   const sent=[];
   const env={isFormValid:true,selectedSetting:{setting_id:'setting'},selectedRegion:{region_pack_id:'pack',region_id:'region'},selectedLocation:{entity_id:'place'},creating:false,characterClass:'Barbarian',
-    startingDraft:draft3(),barbarianStartingMetadata:fn('readBarbarianStartingCreationOptions')(raw3()),barbarianStartingCreationFields:helper.barbarianStartingCreationFields,
+    startingDraft:draft3(),startingSources:{barbarian:fn('readBarbarianStartingCreationOptions')(raw3())},startingCreationPayload,
     name:'Barb',species:'Human',background:'Soldier',alignment:'Neutral',abilityMethod:'standard_array',baseScores:{constitution:14},calculatedBackgroundBonuses:{},derivedStats:{allSkills:[]},
     selectedExpertiseSkills:[],selectedSpeciesSkills:[],backgroundData:{tool:'Gaming Set',origin_feat:'Savage Attacker'},speciesBonusFeat:'',equipmentPackage:'A',
     classData:{equipment_packages:[{id:'A',items:['Greataxe']}]},backgroundEquipmentOption:'A',selectedLanguages:['Dwarvish','Elvish'],selectedCantrips:[],selectedSpells:[],

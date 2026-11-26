@@ -594,3 +594,18 @@ Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_rec
 | `lib/api-spec/orval.config.ts`, `lib/api-zod/src/generated/api.ts` | zod soz dizimi 3 -> 4; api.ts yeniden uretildi (hicbir kod icinden kullanilmiyor) | uretilen dosya |
 | yeni test | `artifacts/ai-dnd-experience/tests/workspace-hygiene.test.mjs` (olu paketler yok, zod >=4.6.6, vite loopback) | ekleme |
 | `ai-dnd/api/tests/test_quality_ratchet.py` `test_ui_baselines_exist_and_are_counts` | alt sinir knip 300 -> 100, fallow 250 -> 110 (taban dosyalari 332 -> 119 ve 271 -> 130 girdiye kuculdu; alt sinir tabanlarin ~%85'i, "bos degil" kontrolu ayni) | gevşetme olabilir (sinir yeniden tanimlandi) |
+
+## G1.6 (borc-sifirlama): karakter yaratma ekrani, baslangic bileseni ve katalog
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `artifacts/ai-dnd-experience/src/{components,lib}/{fighter,monk,rogue}-starting-creation.{tsx,ts}` | alti dosya silindi; yerine `simple-class-starting-creation.tsx` ve `.ts` (bir sinif tablosu: ad, alt sinif kimligi). Eski adlar (`FighterStartingChoices`, `readFighterStartingCreationOptions` ...) ayni imzayla dis ad olarak duruyor. Mesaj metinleri ve veri-testid degerleri ayni | eşit sıkılık |
+| `tests/roadmap-c14-fighter-ui`, `c15-monk-ui`, `c18-rogue-ui`, `dilim0-ui` | yalniz modul yolu degisti (yeni birlesik dosya); iddialar ayni | eşit sıkılık |
+| `tests/roadmap-c06-barbarian-start2-ui`, `start3-ui`, `start45-ui`, `roadmap-c10-starting-equipment-ui` | ekranin `handleSubmit` / `startingValidation` kodunu calistiran duzenek artik tek `startingCreationPayload` ve `startingSources` verir (eskiden sinif basina bir islev). Ayni paketler, ayni reddetmeler; start2'deki "yanlis sahibe yonlendirme" sahte islevleri yerine gercek dagitici sinifi dogru sahibe goturuyor (Barbarian seviye 2 ok:true, sahte caster sahibi olmadan) | eşit sıkılık (sahte yerine gercek yol) |
+| `tests/character-creation.test.mjs` (iki test) | `value="Fighter"` gibi gizli secim kutusu `option` degerleri yerine gorunen sinif kartinin `data-class-key` ozelligi okunur (D-559, D-573); ayni sinif kimlikleri ayni sikilikta | eşit sıkılık |
+| `character-creation-screen.tsx` | gizli eski test blogu (`select-character-race`, `select-character-class`, `button-mode-custom`) ve bagli olu `mode` durumu silindi; yeni `data-class-key` ozelligi; gonderilen istekten `race` anahtari cikti (sunucu `species` ile ayni karakteri kuruyor, `test_creation_without_race_key_is_identical`) | davranis: istekten bir anahtar eksildi |
+| `character-catalog-defaults.ts` | cevrimdisi katalogda Wizard `spells_count` 4 -> 6 (sunucu katalogu 6; ayni deger testle korunuyor) | gercek sapma duzeltmesi |
+| `ai-dnd/scripts/quality_gate/baselines/knip.json`, `fallow.json` | alti anahtarin yolu yeni birlesik dosyaya tasindi; sayilar ayni | gevşetme degil |
+| `ai-dnd/scripts/quality_gate/size_lock.json` | `character-creation-screen.tsx` 2514 -> 2482 | yalniz kuculdu |
+| `artifacts/ai-dnd-experience/package.json` | `test:standard` listesine uc yeni test dosyasi eklendi | ekleme |
+| yeni testler | `starting-creation-payload.test.mjs` (sinif tablosu), `creation-screen-split.test.mjs`, `default-catalog-matches-server.test.mjs`; `test_creation_without_race_key_is_identical` | ekleme |

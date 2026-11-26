@@ -86,6 +86,20 @@ class CreationHttpTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(restored.world_state['spellcasting_v1'], record.game_session.world_state['spellcasting_v1'])
                 self.assertEqual(restored.world_state['equipment'], record.game_session.world_state['equipment'])
 
+    async def test_creation_without_race_key_is_identical(self):
+        # D-564: the browser no longer sends the legacy `race` key; species alone must build the same character.
+        with_race = character_request(1)
+        without_race = copy.deepcopy(with_race)
+        self.assertEqual(without_race.pop('race'), without_race['species'])
+        first = await self.post_character(with_race)
+        second = await self.post_character(without_race)
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(second.status_code, 200, second.text)
+        one, two = first.json()['state']['character'], second.json()['state']['character']
+        self.assertEqual(two['race'], 'Human')
+        self.assertEqual(two['species'], 'Human')
+        self.assertEqual(one, two)
+
     async def test_a_random_fighter_discloses_its_scope(self):
         with patch('game.CLASSES', ('Fighter',)):
             response = await self.post_character({'mode': 'random'}, '/api/campaigns')

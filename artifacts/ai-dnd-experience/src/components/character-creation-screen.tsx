@@ -3,17 +3,14 @@ import { StartingEquipmentNotice } from '@/components/starting-equipment-notice'
 import { backgroundGoods, packageGoods } from '@/lib/starting-purse';
 import { asiChoiceLabel, sourceAsiChoice } from '@/lib/asi-choices';
 import { BarbarianStartingChoices, BarbarianStartingLevelControl, BarbarianStartingSummary } from '@/components/barbarian-starting-creation';
-import { FighterStartingChoices, FighterStartingLevelControl, FighterStartingSummary } from '@/components/fighter-starting-creation';
-import { MonkStartingChoices, MonkStartingLevelControl, MonkStartingSummary } from '@/components/monk-starting-creation';
 import { PaladinStartingChoices, PaladinStartingLevelControl, PaladinStartingSummary } from '@/components/paladin-starting-creation';
-import { RogueStartingChoices, RogueStartingLevelControl, RogueStartingSummary } from '@/components/rogue-starting-creation';
-import { readBarbarianStartingCreationOptions, barbarianStartingCreationFields, pruneBarbarianDraft } from '@/lib/barbarian-starting-creation';
-import { readFighterStartingCreationOptions, fighterStartingCreationFields, pruneFighterDraft } from '@/lib/fighter-starting-creation';
-import { readMonkStartingCreationOptions, monkStartingCreationFields, pruneMonkDraft } from '@/lib/monk-starting-creation';
-import { readPaladinStartingCreationOptions, paladinStartingCreationFields, prunePaladinDraft } from '@/lib/paladin-starting-creation';
-import { readRogueStartingCreationOptions, rogueStartingCreationFields, pruneRogueDraft } from '@/lib/rogue-starting-creation';
+import { FighterStartingChoices, FighterStartingLevelControl, FighterStartingSummary, MonkStartingChoices, MonkStartingLevelControl, MonkStartingSummary, RogueStartingChoices, RogueStartingLevelControl, RogueStartingSummary } from '@/components/simple-class-starting-creation';
+import { readBarbarianStartingCreationOptions, pruneBarbarianDraft } from '@/lib/barbarian-starting-creation';
+import { readPaladinStartingCreationOptions, prunePaladinDraft } from '@/lib/paladin-starting-creation';
+import { readFighterStartingCreationOptions, pruneFighterDraft, readMonkStartingCreationOptions, pruneMonkDraft, readRogueStartingCreationOptions, pruneRogueDraft } from '@/lib/simple-class-starting-creation';
+import { startingCreationPayload } from '@/lib/starting-creation-payload';
 import { StartingLevelControl, StartingLevelChoices, StartingHitPoints, StartingArmorClass, StartingDerivedValue, ProgressionEffectsNotice, StaleInitialSpellChoices } from '@/components/sorcerer-starting-creation';
-import { emptyStartingDraft, changeStartingLevel, pruneStartingDraft, readStartingCreationOptions, validateStartingDraft, startingCreationFields } from '@/lib/sorcerer-starting-creation';
+import { emptyStartingDraft, changeStartingLevel, pruneStartingDraft, readStartingCreationOptions } from '@/lib/sorcerer-starting-creation';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import {
   ArrowLeft,
@@ -255,7 +252,6 @@ export function CharacterCreationScreen({
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState<StepId>(initialStep);
-  const [mode, setMode] = useState<'custom' | 'random'>('custom');
   const [deathMode, setDeathMode] = useState<DeathMode>('PERMADEATH');
 
   // Form selections (no silent preselection: all start unchosen)
@@ -345,13 +341,8 @@ export function CharacterCreationScreen({
     () => readMonkStartingCreationOptions(propCatalog?.monk_starting_creation),
     [propCatalog?.monk_starting_creation],
   );
-  const startingValidation = characterClass === 'Barbarian'
-    ? barbarianStartingCreationFields(startingDraft, barbarianStartingMetadata)
-    : characterClass === 'Fighter' ? fighterStartingCreationFields(startingDraft, fighterStartingMetadata)
-    : characterClass === 'Paladin' ? paladinStartingCreationFields(startingDraft, paladinStartingMetadata, selectedSpells)
-    : characterClass === 'Rogue' ? rogueStartingCreationFields(startingDraft, rogueStartingMetadata)
-    : characterClass === 'Monk' ? monkStartingCreationFields(startingDraft, monkStartingMetadata)
-    : validateStartingDraft(characterClass, startingDraft, selectedSpells, startingMetadata, selectedCantrips);
+  const startingSources = { sorcerer: startingMetadata, barbarian: barbarianStartingMetadata, fighter: fighterStartingMetadata, paladin: paladinStartingMetadata, rogue: rogueStartingMetadata, monk: monkStartingMetadata };
+  const startingValidation = startingCreationPayload(characterClass, startingDraft, { ...startingSources, spells: selectedSpells, cantrips: selectedCantrips });
   useEffect(() => {
     // Sorcerer metadata must never rewrite another class's draft (a Berserker pick is not a Sorcerer subclass).
     if (characterClass === 'Sorcerer') setStartingDraft(draft => pruneStartingDraft(draft, selectedSpells, startingMetadata, selectedCantrips));
@@ -800,21 +791,14 @@ export function CharacterCreationScreen({
       starting_location_id: selectedLocation.entity_id,
     };
 
-    const progression = characterClass === 'Barbarian'
-      ? barbarianStartingCreationFields(startingDraft, barbarianStartingMetadata, derivedStats.allSkills)
-      : characterClass === 'Fighter' ? fighterStartingCreationFields(startingDraft, fighterStartingMetadata)
-      : characterClass === 'Paladin' ? paladinStartingCreationFields(startingDraft, paladinStartingMetadata, selectedSpells)
-      : characterClass === 'Rogue' ? rogueStartingCreationFields(startingDraft, rogueStartingMetadata)
-      : characterClass === 'Monk' ? monkStartingCreationFields(startingDraft, monkStartingMetadata)
-      : startingCreationFields(characterClass, startingDraft, selectedSpells, startingMetadata, selectedCantrips);
+    const progression = startingCreationPayload(characterClass, startingDraft, { ...startingSources, spells: selectedSpells, cantrips: selectedCantrips, ownedSkills: derivedStats.allSkills });
     if (!progression.ok) return;
 
     const characterInput: CharacterCreateInput = {
       ...progression.fields,
       mode: 'custom',
       name: name.trim(),
-      race: species, // legacy compatibility
-      class: characterClass, // legacy compatibility
+      class: characterClass,
       species,
       giant_ancestry: species === 'Goliath' && giantAncestry
         ? giantAncestry as CharacterCreateInput['giant_ancestry']
@@ -1138,6 +1122,7 @@ export function CharacterCreationScreen({
                       <div
                         key={clsKey}
                         className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
+                        data-class-key={clsKey}
                         role="button"
                         tabIndex={0}
                         aria-pressed={isSelected}
@@ -2490,23 +2475,6 @@ export function CharacterCreationScreen({
             )}
           </form>
 
-          {/* Hidden legacy test targets to preserve existing testing harnesses */}
-          <div style={{ display: 'none' }}>
-            <button data-testid="button-mode-custom" onClick={() => setMode('custom')}>Özel</button>
-            <select
-              data-testid="select-character-race"
-              value={species}
-              onChange={(e) => {
-                if (e.target.value !== species) setGiantAncestry('');
-                setSpecies(e.target.value);
-              }}
-            >
-              {catalog?.races && Object.keys(catalog.races).map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-            <select data-testid="select-character-class" value={characterClass} onChange={(e) => setCharacterClass(e.target.value)}>
-              {catalog?.classes && Object.keys(catalog.classes).map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
         </section>
       </div>
     </main>
