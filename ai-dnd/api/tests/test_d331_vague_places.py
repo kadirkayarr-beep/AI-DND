@@ -20,7 +20,7 @@ ASK = "Hangisine gidiyorsun?"
 LORE = "söylentiler belirsiz"
 
 
-class VaguePlaces(_ArrivalApi):
+class TestVaguePlaces(_ArrivalApi):
     TOWN_SEED = 4401
 
     async def asyncSetUp(self):
@@ -85,7 +85,8 @@ class VaguePlaces(_ArrivalApi):
         entry = heard_rumours.record_mention(
             game, world, npc, {"kind": "place", "name": "Kara Kuzgun Kütüphanesi", "place_kind": "library",
                                "about": "eski kitaplar var"}, 1)
-        self.assertIsNotNone(entry)
+        if entry is None:
+            self.fail("the heard place was not recorded")
         session = self.session()
         options = self.with_session(lambda: [c for c in grounded_action.candidates(session)
                                              if c["kind"] in {"place", "reference"}])
@@ -113,6 +114,8 @@ class VaguePlaces(_ArrivalApi):
         world = self.session().world_state
         local_places.create_local_place(world, CITY, "archive", name="Eski Arşiv")
         second = local_places.create_local_place(world, CITY, "archive", name="Yeni Arşiv")
+        if second is None:
+            self.fail("the second archive was not made")
         second["rumoured"] = True  # what record_mention writes for a place someone only named
         reply = await self.turn("Arşive gidiyorum.")
         text = self.narration(reply)
@@ -126,7 +129,10 @@ class VaguePlaces(_ArrivalApi):
     async def test_generic_alias_question_is_recorded_like_other_clarifications(self):
         world = self.session().world_state
         local_places.create_local_place(world, CITY, "archive", name="Eski Arşiv")
-        local_places.create_local_place(world, CITY, "archive", name="Yeni Arşiv")["rumoured"] = True
+        heard = local_places.create_local_place(world, CITY, "archive", name="Yeni Arşiv")
+        if heard is None:
+            self.fail("the second archive was not made")
+        heard["rumoured"] = True
         before = len(self.session().messages)
         reply = await self.turn("Arşive gidiyorum.")
         text = self.narration(reply)
@@ -138,6 +144,8 @@ class VaguePlaces(_ArrivalApi):
     async def test_a_generic_word_walks_when_the_town_holds_one_such_place(self):
         world = self.session().world_state
         only = local_places.create_local_place(world, CITY, "archive", name="Eski Arşiv")
+        if only is None:
+            self.fail("the archive was not made")
         reply = await self.turn("Arşive gidiyorum.")
         self.assertEqual(world["location"], only["id"], self.narration(reply))
 

@@ -643,15 +643,24 @@ def person_word_in(reply: Any) -> str:
     return word.strip() if isinstance(word, str) and not named else ""
 
 
+def _blow_in_words(reply: Any, route: Mapping[str, Any] | None, listed: Mapping[str, Any]) -> str | None:
+    """The listed person a blow is aimed at when it is not struck now and the line has no lasting act of its own."""
+    front = reply.get("front") if isinstance(reply, dict) else None
+    blow = front.get("strike_to") if isinstance(front, dict) else None
+    kind = route["kind"] if route is not None else None
+    if kind == "strike" or blow not in [row["id"] for row in listed["people"]] or acts_now(reply, "strike"):
+        return None
+    return None if kind in _LASTING and acts_now(reply) else blow
+
+
 def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
     """A route Python can stand behind, or None. Every id must be one this turn listed.
 
     D-109: an act the reading says is not done now (later, asked, refused, only looked at) changes nothing for good:
     it is words, said to the person it names or to nobody, and no old word reader takes it up again."""
     route = _route(reply, listed)
-    front = reply.get("front") if isinstance(reply, dict) else None
-    blow = front.get("strike_to") if isinstance(front, dict) else None
-    if (route is None or route["kind"] != "strike") and blow in [row["id"] for row in listed["people"]]             and not acts_now(reply, "strike") and (route is None or route["kind"] not in _LASTING or not acts_now(reply)):
+    blow = _blow_in_words(reply, route, listed)
+    if blow:
         return {"kind": "speak_to", "id": blow}  # a blow not struck now, on a line with no lasting act of its own: words to that person
     if route is None or route["kind"] not in _LASTING or acts_now(reply, "strike" if route["kind"] == "strike" else None):
         return route

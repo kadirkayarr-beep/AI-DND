@@ -1,6 +1,7 @@
 import combat_lifecycle
 import talk_mode
 import re
+import typing
 import interaction_adventure
 import talk_front
 import local_dialogue
@@ -106,7 +107,7 @@ def _rpt_target_id_combat(*, combat, npc_target, player_input, target_id, world_
                   if not isinstance(npc_target, dict) or npc.get("id") != npc_target.get("id")]
         if others:
             npc_target = game.most_plausible_addressee(others, player_input)
-            game._session()._set_scene_active_npc(npc_target, world_state.get("flags", {}).get("turn_index", 0))
+            game._set_scene_active_npc(npc_target, world_state.get("flags", {}).get("turn_index", 0))
     return npc_target
 
 
@@ -219,7 +220,7 @@ def _rpt_local_npc_place(*, interaction_mode, player_input, target_id, world_sta
 
 def _rpt_character_current_hp(*, entry_combat, world_state):
     if (
-        game._session().character.get("current_hp", 0) <= 0
+        typing.cast("game.GameSession", game._session()).character.get("current_hp", 0) <= 0  # the engine always has a session
         or world_state.get("player_combat_status") == "unconscious"
     ) and not (
         entry_combat["active"]

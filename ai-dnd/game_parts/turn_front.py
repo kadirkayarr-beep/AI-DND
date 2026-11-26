@@ -641,6 +641,30 @@ def _everyday_action_turn(player_input):
         "action_result": action_result,
     }
 
+def _the_place_meant(session, world, settlement, kind, person_place, player_input):
+    """The place record the line means and no question, or no record and the question that asks which place (D-299)."""
+    import local_places
+    record = person_place or local_places.named_in(world, settlement, player_input)
+    if record is not None:
+        return record, None
+    same_kind = local_places.places_of_kind(world, settlement, kind)
+    if len(same_kind) > 1 and any(place.get("rumoured") for place in same_kind):
+        # D-299: a heard place carries the generic word as an alias too, so the word names one place only when
+        # the town holds one; with a heard place beside it, the player is asked.
+        names = [str(place.get("name") or place["id"]) for place in same_kind]
+        narration = (f"Burada birden çok yer var: {', '.join(names[:-1])} ve {names[-1]}. "
+                     "Hangisine gidiyorsun?")
+        session.messages.extend([{"role": "user", "content": player_input},
+                                 {"role": "assistant", "content": narration}])  # as grounded_action._bookkeeping
+        return None, {
+            "messages": session.messages, "narration": narration, "model_calls": 0,
+            "action_result": {"action": "travel", "status": "clarification", "success": False,
+                              "candidates": [place["id"] for place in same_kind], "state_changes": [],
+                              "direct_response": narration},
+        }
+    return (same_kind[0] if same_kind else None), None
+
+
 def _local_place_turn(player_input):
     """LR00-P3 pilot: go to a named local place (archive, smithy, temple...).
 
@@ -662,24 +686,9 @@ def _local_place_turn(player_input):
             or (named_place or {}).get("place_kind"))
     if kind is None:
         return None
-    record = person_place or local_places.named_in(world, settlement, player_input)
-    if record is None:
-        same_kind = local_places.places_of_kind(world, settlement, kind)
-        if len(same_kind) > 1 and any(place.get("rumoured") for place in same_kind):
-            # D-299: a heard place carries the generic word as an alias too, so the word names one place only when
-            # the town holds one; with a heard place beside it, the player is asked.
-            names = [str(place.get("name") or place["id"]) for place in same_kind]
-            narration = (f"Burada birden çok yer var: {', '.join(names[:-1])} ve {names[-1]}. "
-                         "Hangisine gidiyorsun?")
-            session.messages.extend([{"role": "user", "content": player_input},
-                                     {"role": "assistant", "content": narration}])  # as grounded_action._bookkeeping
-            return {
-                "messages": session.messages, "narration": narration, "model_calls": 0,
-                "action_result": {"action": "travel", "status": "clarification", "success": False,
-                                  "candidates": [place["id"] for place in same_kind], "state_changes": [],
-                                  "direct_response": narration},
-            }
-        record = same_kind[0] if same_kind else None
+    record, which_asked = game._the_place_meant(session, world, settlement, kind, person_place, player_input)
+    if which_asked is not None:
+        return which_asked
     if record is not None and record.get("id") == current:
         if local_places.goes_further_in(world, current, player_input):
             import grounded_action
@@ -1615,10 +1624,11 @@ def _ask_before_the_heavy(asked):
     Asked for this sitting only, as "kavga mı başlatıyorsun?" is; a yes plays the asked line again (see
     ``_answered_heavy_question``). Eating and drinking are never asked: Undo takes those back."""
     session = game._session()
-    session._heavy_asked = {key: asked.get(key) for key in ("what", "id", "deed", "said")}
+    held = {"what": asked.get("what"), "id": asked.get("id"), "deed": asked.get("deed"), "said": asked.get("said")}
     last = getattr(session, "_front_last_reading", None)
     if isinstance(last, tuple) and last[0] == asked.get("said"):
-        session._heavy_asked["reading"] = last[1]  # D-263: the yes plays this reading again, no second model call
+        held["reading"] = last[1]  # D-263: the yes plays this reading again, no second model call
+    session._heavy_asked = held
     if asked["what"] == "threat":
         who = next((npc for npc in game.active_npcs() if npc.get("id") == asked.get("id")), None)
         name = living_world.public_npc_name(who) if who is not None else "o kişi"
@@ -1643,10 +1653,10 @@ def _answered_heavy_question(player_input):
         # D-109 review: a second question on the same line keeps the first yes (else the two would ask in turn forever);
         # the threat played again is not a second threat: its tie is made once while it is coming (world_happenings.tie)
         kept = given.get("allowed", []) if isinstance(given, dict) and given.get("said") == asked["said"] else []
-        session._heavy_confirmed = {"said": asked["said"],
-                                    "allowed": [*kept, [asked["what"], asked["id"], asked["deed"]]]}
+        confirmed = {"said": asked["said"], "allowed": [*kept, [asked["what"], asked["id"], asked["deed"]]]}
         if isinstance(asked.get("reading"), dict):
-            session._heavy_confirmed["reading"] = asked["reading"]
+            confirmed["reading"] = asked["reading"]
+        session._heavy_confirmed = confirmed
         return asked["said"]
     return player_input
 

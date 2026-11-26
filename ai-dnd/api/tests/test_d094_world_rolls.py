@@ -30,7 +30,7 @@ def reading(check, kind="attempt"):
     return {"front": {"kind": kind, "check": check, "timing": "now"}}
 
 
-class TheReadingMayNameAWorldCheck(unittest.TestCase):
+class TestTheReadingMayNameAWorldCheck(unittest.TestCase):
     def test_a_present_try_keeps_its_world_check(self):
         for skill in WORLD_CHECKS:
             with self.subTest(skill=skill):
@@ -46,16 +46,13 @@ class TheReadingMayNameAWorldCheck(unittest.TestCase):
 
     def test_the_engine_turns_the_reading_into_the_roll(self):
         session = game._session()
-        saved = getattr(session, "_front_check", None)
-        self.addCleanup(setattr, session, "_front_check", saved)
         for skill in WORLD_CHECKS:
-            session._front_check = skill
-            with self.subTest(skill=skill):
+            with self.subTest(skill=skill), patch.object(session, "_front_check", skill, create=True):
                 self.assertEqual(game.deterministic_check_for_action(LINES[skill]),
                                  {"action_type": "check", "skill": skill, "difficulty": "medium"})
 
 
-class TheEngineRollsTheWorldTry(FrontTable):
+class TestTheEngineRollsTheWorldTry(FrontTable):
     async def roll(self, skill, *, night):
         with fixed_town(self, 10941):
             await self.begin()
@@ -78,7 +75,7 @@ class TheEngineRollsTheWorldTry(FrontTable):
         self.assertIsNone(reply.get("skill_check_result"))
 
 
-class ATheftWithWordsAfterItIsStillATry(unittest.TestCase):
+class TestATheftWithWordsAfterItIsStillATry(unittest.TestCase):
     session = SimpleNamespace(_normalize_turkish_typos=game._normalize_turkish_typos)
 
     def test_trailing_words_and_a_typo_still_roll(self):

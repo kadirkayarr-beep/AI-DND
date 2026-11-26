@@ -1235,6 +1235,12 @@
   "session_bound": true,
   "signature": "(*, combat_action, monster_combat, player_input, target_id)"
  },
+ "_dpt_adventure_scene": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, action_id, player_input, session_id, talk)"
+ },
  "_dpt_bag_read": {
   "kind": "function",
   "module": "game_parts.turn_dispatch_steps",
@@ -1282,6 +1288,18 @@
   "module": "game_parts.turn_dispatch_steps",
   "session_bound": true,
   "signature": "(*, check_feature, combat_action, front_proposal, interaction_mode, player_input, read, target_id)"
+ },
+ "_dpt_grounded_local_act": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, action_id, interaction_mode, messages, player_input, session_id, target_id, talk)"
+ },
+ "_dpt_local_place_or_everyday": {
+  "kind": "function",
+  "module": "game_parts.turn_dispatch_steps",
+  "session_bound": true,
+  "signature": "(*, front, player_input, talk)"
  },
  "_dpt_narrative_spell": {
   "kind": "function",
@@ -4072,6 +4090,12 @@
   "module": "game_parts.turn_shop_guards",
   "session_bound": true,
   "signature": "(*, current_shop_count, finish_turn, shop_request, world_state)"
+ },
+ "_the_place_meant": {
+  "kind": "function",
+  "module": "game_parts.turn_front",
+  "session_bound": true,
+  "signature": "(session, world, settlement, kind, person_place, player_input)"
  },
  "_the_rest_of_the_line": {
   "kind": "function",

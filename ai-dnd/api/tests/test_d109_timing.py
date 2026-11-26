@@ -13,6 +13,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import equipment_economy
@@ -392,8 +393,13 @@ class ACrimeOrAThreatIsAskedFirst(FrontTable):
         self.assertEqual(session._heavy_asked["deed"], "burn")
 
 
-class EachActInALineHasItsOwnWhen(FrontTable):
+class TestEachActInALineHasItsOwnWhen(FrontTable):
     """G1.3 (D-109, D-260, D-261, D-262, D-263, D-177): the reading says when each act in the line is done."""
+
+    # Set by FrontTable.campaign_with_npc; the live session takes its per-turn attributes (_heavy_asked ...) as turns run.
+    world: dict[str, Any]
+    npc: dict[str, Any]
+    session: Any
 
     async def table(self, seed=10921):
         with fixed_town(self, seed):
@@ -444,7 +450,10 @@ class EachActInALineHasItsOwnWhen(FrontTable):
         self.assertEqual(self.elapsed(), clock)
         for timing, kind in (("later", "talk_around"), ("hypothetical", "talk_around"), ("now", "wait")):
             reading = {"front": {"kind": "wait", "timing": timing}}
-            self.assertEqual(front_proposal.validate(reading, _LISTED)["kind"], kind, timing)
+            route = front_proposal.validate(reading, _LISTED)
+            if route is None:
+                self.fail(f"no route for {timing}")
+            self.assertEqual(route["kind"], kind, timing)
 
     async def test_missing_timing_is_not_now(self):
         self.assertFalse(front_proposal.acts_now({"front": {"kind": "consume"}}))

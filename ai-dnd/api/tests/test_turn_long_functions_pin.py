@@ -78,7 +78,8 @@ def run_turn(flag, text, mode):
         s.world_state["location"] = "forest"
         s.world_state["locations"]["t11_kuyu"] = {"id": "t11_kuyu", "name": "Kuyu Başı", "type": "city",
                                                   "description": ""}
-        out = game.run_player_turn(text, interaction_mode=mode, session=s)
+        with patch.object(game, "_session", return_value=s):
+            out = game.run_player_turn(text, interaction_mode=mode)
     result = out.get("action_result") or {}
     return (result.get("action"), result.get("status"), out.get("narration"), out.get("model_calls"),
             s.world_state["location"], s.character.get("current_hp"), len(out.get("messages") or []))
@@ -93,7 +94,7 @@ def decide(narration, text, action_result):
     return (d["unsafe"], d["reason_code"], d["trigger_span"], d["scene_type"])
 
 
-class TurnLongFunctionsPin(unittest.TestCase):
+class TestTurnLongFunctionsPin(unittest.TestCase):
     def test_run_player_turn_table_both_flags(self):
         for flag in ("", "1"):
             for text, mode in TURNS:
@@ -101,7 +102,7 @@ class TurnLongFunctionsPin(unittest.TestCase):
                     self.assertEqual(run_turn(flag, text, mode), EXPECTED_TURNS[(flag, text)])
 
     def test_narration_safety_decision_table(self):
-        for (narration, text, result), expected in zip(DECISIONS, EXPECTED_DECISIONS):
+        for (narration, text, result), expected in zip(DECISIONS, EXPECTED_DECISIONS, strict=True):
             with self.subTest(narration=narration):
                 self.assertEqual(decide(narration, text, result), expected)
 
@@ -127,14 +128,17 @@ class TurnLongFunctionsPin(unittest.TestCase):
     def test_a_speech_debug_trail_that_cannot_write_warns_and_never_raises(self):
         """D-584: the third broad except (game._speech_debug_trail) logs a warning; the turn still never sees an error."""
         import tempfile
-        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {"AI_DND_SPEECH_DEBUG": folder}):
-            with self.assertLogs("game", level="WARNING") as logged:
-                game._speech_debug_trail({"x": 1})  # a folder, not a file: open(..., "a") fails
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.dict(os.environ, {"AI_DND_SPEECH_DEBUG": folder}),
+            self.assertLogs("game", level="WARNING") as logged,
+        ):
+            game._speech_debug_trail({"x": 1})  # a folder, not a file: open(..., "a") fails
         self.assertEqual(len(logged.records), 1)
         self.assertIn("could not be written", logged.records[0].getMessage())
 
 
-class TurnIndexAndUndoPin(EconomicHttpFixture):
+class TestTurnIndexAndUndoPin(EconomicHttpFixture):
     async def test_ordinary_turn_counts_once_and_undo_restores_it(self):
         before = self.money()
         turn_id, body = await self.real_turn("Tezgâha yaslanıp salonu dinliyorum.")
