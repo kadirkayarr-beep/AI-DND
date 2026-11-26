@@ -855,7 +855,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             or (walked and (getattr(session, "_front_coin", 0) or getattr(session, "_coin_paid", None)))  # coin read once
             or action_result.get("action") in {"dialogue", "query", "lodging", "shop_inquiry"}  # a room taken has answered its own price
             or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
-            or not ollama_adapter.model_calls_left(third=True)):  # D-419 (S20 a): the rest may take the third call
+            # D-419 (S20 a): the rest may take the third call
+            or not ollama_adapter.model_calls_left(third=True)):
         return result
     own_act = walked or read.get("kind") in game._OWN_ACTS
     hearer = None
@@ -934,14 +935,15 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     text = result.get("narration") if isinstance(result, dict) else None
     from api import ollama_adapter
     if (not isinstance(text, str) or not game._only_stock(text)
-            or session.world_state.get("combat", {}).get("active")
-            or (getattr(session, "_named_word", None) and not ollama_adapter.model_calls_left())):  # D-419: a name nobody here answers to keeps Python's line, unless a normal call is left (as before)
+            or session.world_state.get("combat", {}).get("active")):
         return result
     hearer = game._stock_hearer(result, player_input, target_id)
     if hearer is None:
         return result
     action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
-    if (snapshot is not None and interaction_mode != "say" and ollama_adapter.model_calls_left(third=True)  # D-419 (S20 a)
+    if (snapshot is not None and interaction_mode != "say"
+            # D-419 (S20 a): a name nobody here answers to never takes the third call
+            and ollama_adapter.model_calls_left(third=not getattr(session, "_named_word", None))
             and not action_result.get("state_changes")):
         person = hearer["id"]
         session._restore_runtime_snapshot(snapshot)

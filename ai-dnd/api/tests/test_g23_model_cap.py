@@ -477,6 +477,8 @@ class TestTheThirdCallInATurn(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(modes), 1)
         self.assertEqual(self.client.chat_calls, 2)
         self.assertNotIn("Benden uzak dur, derim.", reply["narration"])
+        # Python's person line replaces the stock line, as before
+        self.assertNotIn(game._GENERIC_NO_CHANGE_RESPONSE, reply["narration"])
 
 
 if __name__ == "__main__":
