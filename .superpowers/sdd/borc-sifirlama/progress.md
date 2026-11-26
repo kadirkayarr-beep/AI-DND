@@ -11,3 +11,4 @@ Task G0.2: complete (branch task/borc-g02-20261126, head 53d1b301, merge none: b
 - Ruling: D-086 closed on the plan's already_fixed basis (revert confirmed); CI trigger stays unknown, noted in the cell — wrong costs a one-line status edit. D-517 stays "kısmen" (verifier: remainder is live by design). Park: plan G0.2 names nonexistent module test_turn_core_route (real: test_engine_parts_pilot.TurnCoreRoute).
 Task G0.5: complete (branch task/borc-g05-20261126, head 404f8f36, merge cc33008c)
 Task G0.4: complete (branch task/borc-g04-20261126, head cc33008c, merge none: branch head already an ancestor of the wave branch; measurement file olcum-g04.md, D-302 closed per R-D078)
+Task G1.4: complete (branch task/borc-g14-20261126, head 4790fd35, merge a6b2acc8)
