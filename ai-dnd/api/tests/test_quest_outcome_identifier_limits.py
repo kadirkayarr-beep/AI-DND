@@ -238,7 +238,7 @@ class QuestOutcomeIdentifierApiTests(OutcomeAssertions, unittest.IsolatedAsyncio
         await self.http.aclose()
 
     async def new_session(self):
-        response = await self.http.post("/api/sessions")
+        response = await self.http.post("/api/game/sessions")
         self.assertEqual(response.status_code, 200, response.text)
         session_id = response.json()["session_id"]
         return session_id, self.manager.get(session_id).game_session

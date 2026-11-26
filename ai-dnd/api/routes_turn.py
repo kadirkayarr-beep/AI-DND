@@ -170,10 +170,6 @@ def register_turn_routes(application: FastAPI, *, get_record: Any, ensure_usable
         "/api/game/sessions/{session_id}/turn",
         response_model=TurnResponse,
     )
-    @application.post(
-        "/api/sessions/{session_id}/turn",
-        response_model=TurnResponse,
-    )
     def play_turn(session_id: str, request: TurnRequest) -> TurnResponse:
         record = get_record(session_id)
         run = _claim_turn(record, session_id, request, application=application, manager=manager,

@@ -497,9 +497,9 @@ class HttpBoundary(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await local.get("/api/campaigns")).json(), [])
             for method, path, body in (
                 ("GET", f"/api/campaigns/{campaign_a}", None),
-                ("GET", f"/api/sessions/{session_a}/state", None),
+                ("GET", f"/api/game/sessions/{session_a}/state", None),
                 ("POST", f"/api/campaigns/{campaign_a}/save", None),
-                ("POST", f"/api/sessions/{session_a}/turn", {"action_id": str(uuid4()), "message": "Bekle."}),
+                ("POST", f"/api/game/sessions/{session_a}/turn", {"action_id": str(uuid4()), "message": "Bekle."}),
             ):
                 response = await local.request(method, path, json=body, headers=_MARKER)
                 self.assertEqual(response.status_code, 404, path)

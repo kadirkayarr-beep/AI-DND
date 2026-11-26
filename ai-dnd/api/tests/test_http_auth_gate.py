@@ -82,29 +82,15 @@ class HttpAuthGateTests(unittest.IsolatedAsyncioTestCase):
         quest_id = str(uuid.uuid4())
         event_id = str(uuid.uuid4())
         protected = [
-            ("POST", "/api/sessions", None),
             ("POST", "/api/game/sessions", None),
-            ("GET", f"/api/sessions/{self.session_id}/state", None),
             ("GET", f"/api/game/sessions/{self.session_id}/state", None),
-            ("POST", f"/api/sessions/{self.session_id}/turn", {"action_id": str(uuid.uuid4()), "message": "Bekle."}),
             ("POST", f"/api/game/sessions/{self.session_id}/turn", {"action_id": str(uuid.uuid4()), "message": "Bekle."}),
-            ("POST", f"/api/sessions/{self.session_id}/undo", {
-                "action_id": str(uuid.uuid4()), "target_action_id": str(uuid.uuid4()),
-            }),
             ("POST", f"/api/game/sessions/{self.session_id}/undo", {
                 "action_id": str(uuid.uuid4()), "target_action_id": str(uuid.uuid4()),
             }),
-            ("POST", f"/api/sessions/{self.session_id}/quests/{quest_id}/accept", None),
             ("POST", f"/api/game/sessions/{self.session_id}/quests/{quest_id}/accept", None),
-            ("POST", f"/api/sessions/{self.session_id}/quests/{quest_id}/cancel", None),
             ("POST", f"/api/game/sessions/{self.session_id}/quests/{quest_id}/cancel", None),
-            ("POST", f"/api/sessions/{self.session_id}/species-actions", {"action_id": str(uuid.uuid4()), "action": "dash"}),
             ("POST", f"/api/game/sessions/{self.session_id}/species-actions", {"action_id": str(uuid.uuid4()), "action": "dash"}),
-            (
-                "POST",
-                f"/api/sessions/{self.session_id}/ambient-events/{event_id}/actions",
-                {"action": "ignore"},
-            ),
             (
                 "POST",
                 f"/api/game/sessions/{self.session_id}/ambient-events/{event_id}/actions",
@@ -165,8 +151,8 @@ class HttpAuthGateTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(foreign_campaign.status_code, 404)
             self.assertEqual(foreign_campaign.json(), absent_campaign.json())
             self.assertEqual(foreign_campaign.json(), _MISSING_CAMPAIGN)
-            foreign_session = await other.get(f"/api/sessions/{self.session_id}/state")
-            absent_session = await other.get(f"/api/sessions/{missing_session}/state")
+            foreign_session = await other.get(f"/api/game/sessions/{self.session_id}/state")
+            absent_session = await other.get(f"/api/game/sessions/{missing_session}/state")
             self.assertEqual(foreign_session.status_code, 404)
             self.assertEqual(foreign_session.json(), absent_session.json())
             self.assertEqual(foreign_session.json(), _MISSING_SESSION)

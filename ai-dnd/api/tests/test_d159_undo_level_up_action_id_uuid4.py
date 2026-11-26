@@ -65,7 +65,7 @@ class ActionIdHttp(unittest.IsolatedAsyncioTestCase):
 
     async def session_id(self, seed: int) -> str:
         with fixed_town(self, seed):
-            created = await self.http.post("/api/sessions")
+            created = await self.http.post("/api/game/sessions")
         self.assertEqual(created.status_code, 200, created.text)
         return created.json()["session_id"]
 

@@ -33,7 +33,7 @@ class PersistedSkillReceiptProjectionTests(NativeBase):
     def test_real_turn_skill_result_survives_detail_save_and_resume(self):
         message = "Köşede gizlenmeye çalışıyorum."
         response = self.client.post(
-            f"/api/sessions/{self.sid}/turn",
+            f"/api/game/sessions/{self.sid}/turn",
             json={"message": message, "action_id": str(uuid4())},
         )
         self.assertEqual(response.status_code, 200, response.text)
@@ -70,7 +70,7 @@ class PersistedSkillReceiptProjectionTests(NativeBase):
             self.assertEqual(resumed.json()["history"][-1]["skill_check_result"], result)
 
     def test_non_skill_legacy_history_does_not_gain_fabricated_check(self):
-        response = self.client.post(f"/api/sessions/{self.sid}/turn",
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn",
                                     json={"message": "Etrafıma bakıyorum.", "action_id": str(uuid4())})
         self.assertEqual(response.status_code, 200, response.text)
         detail = self.client.get(f"/api/campaigns/{self.campaign['campaign_id']}")
@@ -84,7 +84,7 @@ class PersistedSkillReceiptProjectionTests(NativeBase):
         from contextlib import closing
 
         response = self.client.post(
-            f"/api/sessions/{self.sid}/turn",
+            f"/api/game/sessions/{self.sid}/turn",
             json={"message": "Etrafıma bakıyorum.", "action_id": str(uuid4())}
         )
         self.assertEqual(response.status_code, 200, response.text)
@@ -123,7 +123,7 @@ class PersistedSkillReceiptProjectionTests(NativeBase):
 
         message = "Köşede gizlenmeye çalışıyorum."
         action = str(uuid4())
-        response = self.client.post(f"/api/sessions/{self.sid}/turn",
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn",
                                     json={"message": message, "action_id": action})
         self.assertEqual(response.status_code, 200, response.text)
         self.assertIsNotNone(response.json()["skill_check_result"])
@@ -134,7 +134,7 @@ class PersistedSkillReceiptProjectionTests(NativeBase):
         # annotated with another campaign's legitimate skill-result receipt.
         other = self.create_campaign()
         other_response = self.client.post(
-            f"/api/sessions/{other['session_id']}/turn",
+            f"/api/game/sessions/{other['session_id']}/turn",
             json={"message": "Etrafıma bakıyorum.", "action_id": str(uuid4())}
         )
         self.assertEqual(other_response.status_code, 200)

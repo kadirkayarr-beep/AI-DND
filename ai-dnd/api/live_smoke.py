@@ -40,7 +40,7 @@ def main() -> int:
             if health.get("model") != MODEL_NAME:
                 issues.append("API health reports an unexpected model")
 
-            creation = client.post(api_path("/sessions"))
+            creation = client.post(api_path("/game/sessions"))
             creation.raise_for_status()
             session_id = creation.json()["session_id"]
             state = creation.json()["state"]
@@ -54,7 +54,7 @@ def main() -> int:
             previous_location = state.get("location")
             for label, message in steps:
                 response = client.post(
-                    api_path(f"/sessions/{session_id}/turn"),
+                    api_path(f"/game/sessions/{session_id}/turn"),
                     json={"message": message, "action_id": str(uuid4())},
                 )
                 response.raise_for_status()
@@ -66,7 +66,7 @@ def main() -> int:
                     issues.append(f"{label}: empty narration")
 
                 canonical_response = client.get(
-                    api_path(f"/sessions/{session_id}/state")
+                    api_path(f"/game/sessions/{session_id}/state")
                 )
                 canonical_response.raise_for_status()
                 if canonical_response.json() != state:

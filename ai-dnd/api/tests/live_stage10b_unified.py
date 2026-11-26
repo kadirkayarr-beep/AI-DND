@@ -39,7 +39,7 @@ def _combat(state: dict[str, Any]) -> dict[str, Any]:
 
 def _post(client: httpx.Client, base: str, session_id: str, message: str, audit_path: Path, **extra: Any) -> dict[str, Any]:
     payload = {"message": message, **extra}
-    response = client.post(f"{base}/api/sessions/{session_id}/turn", json=payload, timeout=240)
+    response = client.post(f"{base}/api/game/sessions/{session_id}/turn", json=payload, timeout=240)
     body: dict[str, Any]
     try:
         parsed = response.json()

@@ -486,7 +486,7 @@ class HarnessServerWiringTests(unittest.TestCase):
                     }})
                 self.assertEqual(created.status_code, 200)
                 sid = created.json()["session_id"]
-                response = client.post(f"/api/sessions/{sid}/turn", json={"action_id": str(uuid4()), "message": bounded_encounter.ENTER},
+                response = client.post(f"/api/game/sessions/{sid}/turn", json={"action_id": str(uuid4()), "message": bounded_encounter.ENTER},
                                        headers={"X-AI-DND-Smoke-Request": "c" * 32})
                 self.assertEqual(response.status_code, 200)
                 from api.auth import current_principal, Principal
@@ -495,7 +495,7 @@ class HarnessServerWiringTests(unittest.TestCase):
                                  telemetry._REQUEST_DIAGNOSTIC_ID, telemetry._VALIDATION_OUTPUT_CALLS):
                     self.assertIsNone(variable.get())
                 app.state.authenticator = FixedAuthenticator(Principal(issuer="other", subject="other"))
-                denied = client.post(f"/api/sessions/{sid}/turn", json={"action_id": str(uuid4()), "message": bounded_encounter.ENTER})
+                denied = client.post(f"/api/game/sessions/{sid}/turn", json={"action_id": str(uuid4()), "message": bounded_encounter.ENTER})
                 self.assertEqual(denied.status_code, 404)
                 app.state.authenticator = FixedAuthenticator(TEST_PLAYER)
                 resumed = client.post(f"/api/campaigns/{created.json()['campaign_id']}/resume")

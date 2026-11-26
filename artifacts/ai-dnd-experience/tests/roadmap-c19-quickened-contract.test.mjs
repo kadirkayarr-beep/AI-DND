@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { PlayGameTurnBody, PlayLegacyTurnBody } from '../../../lib/api-zod/src/generated/api.ts';
-for (const [name, schema] of [['canonical', PlayGameTurnBody], ['legacy', PlayLegacyTurnBody]]) {
+import { PlayGameTurnBody } from '../../../lib/api-zod/src/generated/api.ts';
+for (const [name, schema] of [['canonical', PlayGameTurnBody]]) {
   const request = (choice) => ({action_id: '8a1f2c3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d', message: 'Cast', combat_action: {steps: [{kind: 'magic', ability: 'Magic Missile', ...choice}]}});
   test(`${name} retains explicit Quickened choice without adding an ordinary default`, () => {
     assert.equal(schema.parse(request({metamagic:'quickened_spell'})).combat_action.steps[0].metamagic, 'quickened_spell');

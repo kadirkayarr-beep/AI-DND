@@ -184,7 +184,7 @@ class F03FaultChains(unittest.TestCase):
 
     def state(self, stage):
         self.control("normal", stage)
-        response = self.client.get(f"{self.url}/api/sessions/{self.sid}/state")
+        response = self.client.get(f"{self.url}/api/game/sessions/{self.sid}/state")
         self.assertEqual(response.status_code, 200, response.text)
         return read(self.folder / f"{stage}.json")["snapshot"]
 
@@ -331,14 +331,14 @@ class F03FaultChains(unittest.TestCase):
         before = self.state("model-before")
         self.control("normal", "model-failed")
         body = {"message": "Mor bir düşünceyi yüksek sesle kuruyorum.", "interaction_mode": "do", "action_id": str(uuid4())}
-        response = self.client.post(f"{self.url}/api/sessions/{self.sid}/turn", json=body)
+        response = self.client.post(f"{self.url}/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(response.status_code, 503, response.text)
         failed = read(self.folder / "model-failed.json")
         self.assertGreater(failed["counts"]["synthetic_model_attempts"], 0)
         self.assertEqual(failed["snapshot"], before)
         self.assertEqual(self.state("model-after"), before)
         self.control("normal", "model-retry-failed")
-        retried = self.client.post(f"{self.url}/api/sessions/{self.sid}/turn", json=body)
+        retried = self.client.post(f"{self.url}/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(retried.status_code, 503, retried.text)
         self.assertEqual(read(self.folder / "model-retry-failed.json")["snapshot"], before)
         self.evidence("F03-AC006-model-failure", {"status": response.status_code,

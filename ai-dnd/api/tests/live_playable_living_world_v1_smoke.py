@@ -1440,7 +1440,7 @@ def _turn(client: httpx.Client, base: str, session_id: str, message: str,
     payload: dict[str, Any] = {"message": message, "action_id": str(uuid.uuid4())}
     if target_id:
         payload["target_id"] = target_id
-    response = client.post(f"{base}/api/sessions/{session_id}/turn",
+    response = client.post(f"{base}/api/game/sessions/{session_id}/turn",
                            json=payload, timeout=240,
                            headers={"X-AI-DND-Smoke-Request": request_id} if request_id else None)
     if response.status_code != 200:

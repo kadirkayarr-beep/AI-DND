@@ -30,7 +30,7 @@ class CloseoutTests(NativeBase):
     def test_whole_player_payload_hides_future_catalog(self):
         self.call("/explore begin")
         before = self.canonical()
-        payload = self.client.get(f"/api/sessions/{self.sid}/state").json()
+        payload = self.client.get(f"/api/game/sessions/{self.sid}/state").json()
         text = json.dumps(payload, ensure_ascii=False)
         for value in (catalog.FORK, catalog.ENTRY, catalog.HALL, catalog.VAULT,
                       "Sessiz Salon", "Eski Mahzen", "stone_secret", "stone_wire",
@@ -38,7 +38,7 @@ class CloseoutTests(NativeBase):
             self.assertNotIn(value, text, value)
         self.assertEqual(self.canonical(), before)
         self.enter()
-        text = json.dumps(self.client.get(f"/api/sessions/{self.sid}/state").json(), ensure_ascii=False)
+        text = json.dumps(self.client.get(f"/api/game/sessions/{self.sid}/state").json(), ensure_ascii=False)
         for value in (catalog.HALL, catalog.VAULT, "Sessiz Salon", "Eski Mahzen",
                       "stone_secret_door", "stone_wire", "stone_rubble", "stone_lever"):
             self.assertNotIn(value, text, value)
@@ -52,14 +52,14 @@ class CloseoutTests(NativeBase):
             {"id": "future_treasure", "location": catalog.VAULT, "name": "Future treasure", "description": "private"},
             {"id": "hidden_lever", "location": catalog.ENTRY, "name": "Hidden lever", "description": "private", "hidden": True},
         ])
-        payload = self.client.get(f"/api/sessions/{self.sid}/state").json()
+        payload = self.client.get(f"/api/game/sessions/{self.sid}/state").json()
         self.assertNotIn("future_treasure", json.dumps(payload))
         self.assertNotIn("hidden_lever", json.dumps(payload))
 
     def test_opening_a_known_door_reveals_only_its_adjacent_room(self):
         self.enter()
         self.open_hall()
-        payload = self.client.get(f"/api/sessions/{self.sid}/state").json()
+        payload = self.client.get(f"/api/game/sessions/{self.sid}/state").json()
         self.assertIn(catalog.HALL, payload["locations"])
         self.assertNotIn(catalog.VAULT, payload["locations"])
         self.assertEqual(payload["exploration"]["exits"][0]["destination"], catalog.HALL)
@@ -112,7 +112,7 @@ class CloseoutTests(NativeBase):
         self.assertEqual(self.session.rng.getstate(), before_rng)
         self.assertNotIn("stone_marker", self.session.world_state[catalog.KEY]["discoveries"])
         before = self.canonical()
-        self.client.get(f"/api/sessions/{self.sid}/state")
+        self.client.get(f"/api/game/sessions/{self.sid}/state")
         self.assertEqual(self.canonical(), before)
 
     def test_old_distance_journey_keeps_saved_timing(self):
@@ -148,12 +148,12 @@ class CloseoutTests(NativeBase):
             body, reply = self.call("/travel pace fast")
             before = self.canonical()
             changed = {**body, "message": "/travel pace slow"}
-            self.assertEqual(self.client.post(f"/api/sessions/{self.sid}/turn", json=changed).status_code, 409)
+            self.assertEqual(self.client.post(f"/api/game/sessions/{self.sid}/turn", json=changed).status_code, 409)
             self.assertEqual(self.canonical(), before)
-            replay = client.post(f"/api/sessions/{stale_sid}/turn", json=body)
+            replay = client.post(f"/api/game/sessions/{stale_sid}/turn", json=body)
             self.assertEqual(replay.status_code, 200)
             self.assertEqual(replay.json(), dict(reply, session_id=stale_sid))
-            response = client.post(f"/api/sessions/{stale_sid}/turn", json={
+            response = client.post(f"/api/game/sessions/{stale_sid}/turn", json={
                 "message": "/travel pace normal", "action_id": str(uuid4())})
             self.assertEqual(response.status_code, 409)
             self.assertEqual(self.canonical(), before)
@@ -191,7 +191,7 @@ class CloseoutTests(NativeBase):
     def test_investigation_requires_a_discovered_local_clue_and_never_discovers_from_prose(self):
         self.enter()
         before = self.canonical()
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json={
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json={
             "message": "/explore investigate stone_marker", "action_id": str(uuid4())})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(self.canonical(), before)

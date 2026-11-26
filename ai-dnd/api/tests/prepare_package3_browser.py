@@ -43,7 +43,7 @@ def prepare(store=None, *, complete=False):
         session.rng.seed(12345)
 
         def call(message):
-            r = client.post(f"/api/sessions/{sid}/turn", json={"message": message, "action_id": str(uuid4())})
+            r = client.post(f"/api/game/sessions/{sid}/turn", json={"message": message, "action_id": str(uuid4())})
             r.raise_for_status()
             return r.json()
 

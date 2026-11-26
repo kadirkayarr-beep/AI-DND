@@ -457,7 +457,7 @@ class WriterBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(saved_rows(self.store.path, campaign_id), before)
 
     async def test_a_session_without_a_campaign_keeps_working(self):
-        response = await self.http.post("/api/sessions")
+        response = await self.http.post("/api/game/sessions")
         self.assertEqual(response.status_code, 200, response.text)
         record = self.manager.get(response.json()["session_id"])
         self.assertIsNone(record.campaign_id)

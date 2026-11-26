@@ -63,8 +63,8 @@ async def probe() -> dict[str, object]:
                 ("POST", f"{prefix}/campaigns/{campaign_id}/resume", None),
                 ("POST", f"{prefix}/campaigns/{campaign_id}/save", None),
                 ("DELETE", f"{prefix}/campaigns/{campaign_id}", None),
-                ("POST", f"{prefix}/sessions/{session_id}/turn", {"message": "Bekle."}),
             ])
+        requests.append(("POST", f"/api/game/sessions/{session_id}/turn", {"message": "Bekle."}))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://isolated-testserver",

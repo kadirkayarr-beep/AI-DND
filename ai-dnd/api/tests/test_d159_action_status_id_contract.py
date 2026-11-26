@@ -25,7 +25,7 @@ class TemporarySessionActionIdContract(unittest.IsolatedAsyncioTestCase):
 
     async def session_id(self):
         with fixed_town(self, 11159):
-            created = await self.http.post("/api/sessions")
+            created = await self.http.post("/api/game/sessions")
         self.assertEqual(created.status_code, 200, created.text)
         return created.json()["session_id"]
 
