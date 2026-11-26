@@ -527,8 +527,17 @@ class ModelChain:
             raise _Skipped(f"http_{status}")
         reply = provider.read(json.loads(text))
         if provider.spend is not None:
-            provider.spend.add(reply)  # billed whether or not the game can use it
+            # Billed whether or not the game can use it. A reply that came back without its usage counts at the highest
+            # cost it could have had (D-150), never as a free call.
+            provider.spend.add(reply if reply.usage_known else self._most_it_could_cost(provider, call))
         return replace(reply, text=_for_the_game(reply, call))
+
+    @staticmethod
+    def _most_it_could_cost(provider: Provider, call: Mapping[str, Any]) -> Reply:
+        """The tokens a request of unknown outcome is counted at: the whole request body (a token is never shorter than
+        a byte of it) in, and the call's whole reply limit out."""
+        request = len(json.dumps(provider.body(call), ensure_ascii=False).encode("utf-8"))
+        return Reply("", input_tokens=request, output_tokens=_max_tokens(call), usage_known=False)
 
     def chat(self, call: Mapping[str, Any], local: Callable[[], Any]) -> tuple[Any, str | None]:
         """One engine call: the response in Ollama's shape, and the cloud provider that answered it.
@@ -559,6 +568,8 @@ class ModelChain:
                 # Anything else (a read that ran out of time, a body that cannot be read) may have been billed.
                 usage_known = billed.usage_known if billed else isinstance(
                     error, (_Skipped, httpx.ConnectError, httpx.ConnectTimeout))
+                if billed is None and not usage_known and provider.spend is not None:
+                    provider.spend.add(self._most_it_could_cost(provider, call))  # D-150: counted at the highest cost
                 self._notify(ChainAttempt(
                     provider.name, "skipped", reason, seconds,
                     *((billed.input_tokens, billed.output_tokens, billed.thought_tokens) if billed else (0, 0, 0)),

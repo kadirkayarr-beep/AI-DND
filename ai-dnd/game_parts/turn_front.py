@@ -855,7 +855,7 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             or (walked and (getattr(session, "_front_coin", 0) or getattr(session, "_coin_paid", None)))  # coin read once
             or action_result.get("action") in {"dialogue", "query", "lodging", "shop_inquiry"}  # a room taken has answered its own price
             or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
-            or not ollama_adapter.model_calls_left()):
+            or not ollama_adapter.model_calls_left(third=True)):  # D-419 (S20 a): the rest may take the third call
         return result
     own_act = walked or read.get("kind") in game._OWN_ACTS
     hearer = None
@@ -879,7 +879,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
         # whoever stands there; it is read as a line of its own (the turn's second call) and done by its own owner.
         session._front_reply = session._front_read = None
         session._front_ahead = False
-        said = game._dispatch_player_turn(rest, messages, None, None, action_id, session_id, None, None)
+        with ollama_adapter.third_call():
+            said = game._dispatch_player_turn(rest, messages, None, None, action_id, session_id, None, None)
         session._front_rest = ""  # the second part has no second part of its own
     else:
         # A rest that hands coin is read like any say line that names coin (the front step opens its card): the gate
@@ -891,7 +892,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             session._front_reply = session._front_read = None  # the walk's reading is spent: the coin line is read afresh
             session._front_ahead = False
         try:
-            said = game._dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
+            with ollama_adapter.third_call():
+                said = game._dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
         finally:
             session._thread_gate_done = False
     import front_proposal
@@ -934,17 +936,18 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
             or session.world_state.get("combat", {}).get("active")):
         return result
     hearer = game._stock_hearer(result, player_input, target_id)
-    if hearer is None:
+    if hearer is None or getattr(session, "_named_word", None):  # the reading named someone nobody here is: no one here is asked
         return result
     action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
     from api import ollama_adapter
-    if (snapshot is not None and interaction_mode != "say" and ollama_adapter.model_calls_left()
+    if (snapshot is not None and interaction_mode != "say" and ollama_adapter.model_calls_left(third=True)  # D-419 (S20 a)
             and not action_result.get("state_changes")):
         person = hearer["id"]
         session._restore_runtime_snapshot(snapshot)
         session._thread_gate_done = True
         try:
-            result = game._dispatch_player_turn(player_input, messages, person, None, action_id, session_id, None, "say")
+            with ollama_adapter.third_call():
+                result = game._dispatch_player_turn(player_input, messages, person, None, action_id, session_id, None, "say")
         finally:
             session._thread_gate_done = False
         text = result.get("narration")

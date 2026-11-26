@@ -752,6 +752,7 @@ def begin(session, *, typed: bool = False) -> None:
     """A new turn: no classifier reply held yet, and nothing has reached the step."""
     from api import ollama_adapter
     ollama_adapter.begin_turn_usage()
+    session._route_logged = False
     session._front_reply = None
     session._front_reply_called = False  # D-420: only this turn's reading counts
     session._front_last_reading = None  # D-263: set by this turn's reading, if it makes one
@@ -844,6 +845,24 @@ def log_turn(session, result: Any) -> None:
     repair = getattr(session, "_speech_repair", None)
     if repair:
         entry["speech"] = [*entry.get("speech", []), repair]  # D-332: the model's one repair, or its failure
+    session._route_logged = True  # D-408: log_refused leaves this turn alone
+    _write_route_rows(entry)
+
+
+def log_refused(session) -> None:
+    """D-408: a line the turn refused (a lost provider, 503) still leaves its two rows, marked refused, so the play
+    measurement shows it. Its route starts with "skipped:", so `share` does not count it as a free line."""
+    logged, session._route_logged = getattr(session, "_route_logged", False), False
+    if logged or not enabled():  # a turn that ran to its end wrote its own rows (log_turn): no second row, no double count
+        return
+    _write_route_rows({
+        "turn": getattr(session, "world_state", {}).get("flags", {}).get("turn_index", 0),
+        "route": "skipped:refused", "reached_model": getattr(session, "_front_reached", False),
+        "owner": None, "status": "refused", "narration_source": None, "model_calls": 0,
+    }, outcome="refused")
+
+
+def _write_route_rows(entry: Mapping[str, Any], outcome: str | None = None) -> None:
     _logger.info("Turn route %s", json.dumps(entry, ensure_ascii=False))
     path = os.environ.get(ROUTE_LOG, "").strip()
     if not path:
@@ -857,6 +876,8 @@ def log_turn(session, result: Any) -> None:
             handle.write(json.dumps({"at": at, **entry}, ensure_ascii=False) + "\n")
         with open(where.with_name(f"{where.stem}.usage{where.suffix}"), "a", encoding="utf-8") as handle:
             usage = {"at": at, "turn": entry["turn"], "route": entry["route"], **ollama_adapter.usage_summary()}
+            if outcome:
+                usage["outcome"] = outcome
             handle.write(json.dumps(usage, ensure_ascii=False) + "\n")
     except OSError:
         _logger.warning("The route log could not be written.")
