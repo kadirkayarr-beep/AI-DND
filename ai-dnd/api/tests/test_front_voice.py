@@ -21,6 +21,9 @@ class AnyBlowIsAnAttack(FrontTable):
     async def begin(self, **kwargs):
         await super().begin(**kwargs)
         self.npc.update(armor_class=10, max_hp=12, current_hp=12)  # what a person of the town really carries
+        # The player is sturdy: a foe who wins initiative strikes first, and one crit must not down a 12 HP player before
+        # the blow is thrown (then the result is "player_unconscious", which names no target, D-602).
+        self.session.character.update(max_hp=300, current_hp=300)
 
     async def blow(self, line, **front):
         await self.begin()
@@ -60,6 +63,19 @@ class AnyBlowIsAnAttack(FrontTable):
         reply = await self.blow("savuruyorum, omzuna")
         self.assert_attacked(reply)
         self.assertNotEqual(reply["combat_result"]["weapon"], "Unarmed Strike")
+
+    async def test_a_blow_is_named_when_the_foe_wins_initiative_and_hits_hard(self):
+        # D-602: the foe goes first and the player is not downed by it; the player's own blow still names the target.
+        await self.begin()
+        player_last = patch.object(
+            self.session, "roll_initiative_player", side_effect=lambda: 1 + self.session.character["dexterity_mod"]
+        )
+        foe_first = patch.object(self.session, "roll_initiative", side_effect=lambda base=0: 20 + base)
+        with player_last, foe_first:
+            self.client.front = {"kind": "attempt", "strike_to": self.npc["id"]}
+            reply = await self.line("savuruyorum, omzuna", "Ne yapıyorsun sen?")
+        self.assert_attacked(reply)
+        self.assertNotEqual(reply["combat_result"]["outcome"], "player_unconscious")
 
     async def test_a_swing_in_a_fight_is_a_blow_too(self):
         # Both sides are sturdy before the first blow: the fight's records are made from these numbers, so neither
