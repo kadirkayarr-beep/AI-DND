@@ -7,3 +7,5 @@
 - Open count (plan definition, 284 before): 284 -> 257 (D-023 also leaves the hand list because it is now ertelendi). Script count says 258 with D-023 still hand-listed.
 - Ruling: S24-S30 rows get a note only, closed in their own G2.x/G3.x tasks — G0.1 scope is S1-S12 — wrong costs a one-line status edit.
 Task G0.3: complete
+Task G0.2: complete (branch task/borc-g02-20261126, head 53d1b301, merge none: branch had no commits and was already an ancestor of the wave branch)
+- Ruling: D-086 closed on the plan's already_fixed basis (revert confirmed); CI trigger stays unknown, noted in the cell — wrong costs a one-line status edit. D-517 stays "kısmen" (verifier: remainder is live by design). Park: plan G0.2 names nonexistent module test_turn_core_route (real: test_engine_parts_pilot.TurnCoreRoute).
