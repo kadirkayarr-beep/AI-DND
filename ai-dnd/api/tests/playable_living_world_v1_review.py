@@ -12,9 +12,11 @@ import re
 import stat
 from typing import Any
 
+from api.ollama_adapter import turn_call_cap
+
 
 MODEL_NAME = "qwen3:8b"
-MAX_MODEL_CALLS_PER_TURN = 2
+MAX_MODEL_CALLS_PER_TURN = turn_call_cap([], most=True)  # the adapter's ceiling (D-417), not a copy of two
 MAX_ORDINARY_FALLBACKS = 2
 MAX_EVIDENCE_FILE_BYTES = 16 * 1024 * 1024
 ATTESTATION_FILENAME = "manual-review-attestation.json"

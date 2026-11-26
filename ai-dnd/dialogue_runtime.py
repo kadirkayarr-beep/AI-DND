@@ -411,6 +411,19 @@ def observe_turn(session,before,old_hp,result,player_text,action_id):
             if session.messages and session.messages[-1].get('role')=='assistant': session.messages[-1]['content']=result['narration']
 
 
+def _count_initiative_call(result):
+    """The initiative's call goes into the turn's count as the adapter counted it, so a turn of a reading, a narration and an
+    initiative says three (D-418). Outside a counted turn the count is the result's own plus one."""
+    from incidents import arbiter
+    spent=arbiter.calls_used()
+    result['model_calls']=result.get('model_calls',0)+1 if spent is None else spent
+    evidence=result.get('_engine_event_evidence')
+    if isinstance(evidence,dict) and isinstance(evidence.get('telemetry'),dict):
+        telemetry=evidence['telemetry']
+        telemetry['narration_model_calls']=telemetry.get('narration_model_calls',0)+1
+        telemetry['total_model_calls']=result['model_calls']
+
+
 def _append_initiative(session,result,player_text,action_id=None):
     w=session.world_state;action=result.get('action_result',{})
     if action.get('action') not in {'explore','query'} or w.get('combat',{}).get('active') or result.get('model_calls',0)>=2:
@@ -419,12 +432,6 @@ def _append_initiative(session,result,player_text,action_id=None):
     if chosen is None: return
     event=initiative_context(w,chosen,chosen['dialogue_observation'])
     session.require_player_can_act()
-    result['model_calls']=result.get('model_calls',0)+1
-    evidence=result.get('_engine_event_evidence')
-    if isinstance(evidence,dict) and isinstance(evidence.get('telemetry'),dict):
-        telemetry=evidence['telemetry']
-        telemetry['narration_model_calls']=telemetry.get('narration_model_calls',0)+1
-        telemetry['total_model_calls']=result['model_calls']
     try:
         from model_phase import initiative_call,resolved_narration_scope
         with resolved_narration_scope(True),initiative_call():  # it may use the call a front reading took
@@ -437,6 +444,8 @@ def _append_initiative(session,result,player_text,action_id=None):
         # Optional social beat does not undo the already valid physical result.
         action['initiative_status']='unavailable'
         return
+    finally:
+        _count_initiative_call(result)
     chosen['dialogue_initiative_handled']=event['event_id']
     speech=f"{living_world.public_npc_name(chosen)}: “{reply['spoken_text']}”"
     result['narration']=result.get('narration','')+' '+speech

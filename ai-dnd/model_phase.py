@@ -94,6 +94,8 @@ def in_repair_call() -> bool:
 
 class ModelCall(str):
     """One counted call's provider name, marked with whether it was the front reading, an initiative or a repair."""
+    third: bool = False  # set by the adapter: the call took the turn's third call (D-419)
+
     def __new__(cls, provider: str):
         value = super().__new__(cls, provider)
         value.front = _FRONT.get()

@@ -131,7 +131,8 @@ class FrontTable(unittest.IsolatedAsyncioTestCase):
         self.client.fails = None
         reply = await self.line("etrafa şöyle bir göz atayım")
         self.assertTrue(reply["narration"].strip())
-        self.assertEqual(len(self.routes()), rows + 1, "the refused line wrote no route row")
+        self.assertEqual(len(self.routes()), rows + 2, "the refused line wrote one refused row (D-408), the retry one more")
+        self.assertEqual(self.routes()[-2]["status"], "refused")
         self.assertIs(self.routes()[-1]["reached_model"], True)
 
     async def test_the_front_reading_is_the_classifier_call_and_the_cap_holds(self):

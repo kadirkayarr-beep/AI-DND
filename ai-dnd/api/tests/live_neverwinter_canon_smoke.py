@@ -26,11 +26,13 @@ import uuid
 
 import httpx
 
+from api.ollama_adapter import turn_call_cap
+
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 MODEL_NAME = "qwen3:8b"
 DISCLOSED_NAME = "Arven"
-MAX_MODEL_CALLS_PER_TURN = 2
+MAX_MODEL_CALLS_PER_TURN = turn_call_cap([], most=True)  # the adapter's ceiling (D-417), not a copy of two
 START_SELECTION = {
     "setting_id": "forgotten_realms",
     "region_pack_id": "fr:pack:the_north:neverwinter:v1",
@@ -519,7 +521,7 @@ def run_smoke() -> dict[str, Any]:
             calls = audit.get("model_calls")
             _require(
                 type(calls) is int and 0 <= calls <= MAX_MODEL_CALLS_PER_TURN,
-                f"{label}: model-call count missing or above the two-call limit.",
+                f"{label}: model-call count missing or above the model-call ceiling.",
             )
             _require(
                 audit.get("model") == MODEL_NAME,

@@ -87,6 +87,12 @@ _HISTORY_ITEM = re.compile(r"\n(?=- )")
 LOCAL_KEEP_ALIVE = "30m"
 # Ollama runs one request at a time here (OLLAMA_NUM_PARALLEL=1, one loaded model): local calls queue.
 _LOCAL_CALL_LOCK = threading.Lock()
+# D-494: a local call waits this long for the lock. One hung call ends at PROVIDER_TIMEOUT_SECONDS, so a wait of a
+# little more than that frees the queue behind it; a longer one would hold the turn lock past the turn's own limit.
+LOCAL_LOCK_WAIT_SECONDS = 100
+_LOCAL_BUSY_MESSAGE = "The local model stayed busy."
+# D-496: /api/health reads the whole usage file for its spend warning; the warning is kept this many seconds.
+SPEND_WARNING_CACHE_SECONDS = 5
 # Rough Turkish estimate for the prompt-size warning: one token per three characters. Not a tokenizer count.
 _CHARS_PER_TOKEN = 3
 _DEFAULT_REPLY_TOKENS = 700
@@ -103,6 +109,7 @@ _MODEL_CALLS: ContextVar[list[str] | None] = ContextVar(
 _TURN_USAGE: ContextVar[list[dict[str, Any]] | None] = ContextVar(
     "ai_dnd_api_turn_usage", default=None
 )
+_THIRD_CALL: ContextVar[bool] = ContextVar("ai_dnd_api_third_call", default=False)
 _WORLD_METADATA_PROVIDER: ContextVar[
     Callable[[], Mapping[str, str]] | None
 ] = ContextVar("ai_dnd_api_world_metadata_provider", default=None)
@@ -336,20 +343,70 @@ def usage_summary() -> dict[str, Any]:
     return summary
 
 
-def turn_call_cap(calls: list[str]) -> int:
-    """The turn's call budget. An NPC's optional initiative may also use the one call a front reading took; one repair may pass the cap."""
-    initiative = in_initiative_call() or any(getattr(call, "initiative", False) for call in calls)
+@contextmanager
+def third_call() -> Iterator[None]:
+    """D-419 (Kadir S20 a): the calls made inside may take the turn's one extra call, as an NPC's initiative may.
+
+    Used for "the rest of the line" (the second part of a line) and for a person asked again after a stock answer.
+    """
+    token = _THIRD_CALL.set(True)
+    try:
+        yield
+    finally:
+        _THIRD_CALL.reset(token)
+
+
+def _counted(provider: str) -> ModelCall:
+    """One counted call: the phase marks (front, initiative, repair) and whether it took the third call."""
+    call = ModelCall(provider)
+    call.third = _THIRD_CALL.get()
+    return call
+
+
+def _spare_call(calls: list[str], *, initiative: bool, third: bool) -> int:
+    """The one call past the plain cap, from one source only: an initiative after a front reading, one repair, or the
+    third call of a line's rest. Counted per call: only the call asking for it (initiative, repair, third) may use it."""
     front = any(getattr(call, "front", False) for call in calls)
     repaired = any(getattr(call, "repair", False) for call in calls)
     plain = not any(getattr(call, "initiative", False) for call in calls)
     repair = (repaired and not in_repair_call()) or (in_repair_call() and plain and not repaired)  # one repair after a failed check, never a second or a fourth call
-    return MAX_MODEL_CALLS_PER_TURN + (1 if (initiative and front) or repair else 0)
+    return 1 if (initiative and front) or repair or third else 0
 
 
-def model_calls_left() -> int | None:
-    """Calls this turn may still make, or None outside a counted turn."""
+def turn_call_cap(calls: list[str], *, most: bool = False) -> int:
+    """The most calls a finished turn may hold. most=True gives the most any turn may hold (the live scripts check against it)."""
+    if most:
+        return MAX_MODEL_CALLS_PER_TURN + 1
+    return MAX_MODEL_CALLS_PER_TURN + _spare_call(
+        calls, initiative=any(getattr(call, "initiative", False) for call in calls),
+        third=any(getattr(call, "third", False) for call in calls))
+
+
+def _may_make_a_call(calls: list[str]) -> bool:
+    """Whether the call being made right now fits. The spare call belongs to this call alone, never to a later one (D-416)."""
+    spent_third = any(getattr(call, "third", False) for call in calls)
+    spare = _spare_call(calls, initiative=in_initiative_call(), third=_THIRD_CALL.get() and not spent_third)
+    return len(calls) < MAX_MODEL_CALLS_PER_TURN + spare
+
+
+def model_calls_left(*, third: bool = False) -> int | None:
+    """Calls this turn may still make, or None outside a counted turn. third=True counts the third call too, when no call has taken it."""
     calls = _MODEL_CALLS.get()
-    return None if calls is None else max(0, MAX_MODEL_CALLS_PER_TURN - len(calls))
+    if calls is None:
+        return None
+    spare = 1 if third and not any(getattr(call, "third", False) for call in calls) else 0
+    return max(0, MAX_MODEL_CALLS_PER_TURN + spare - len(calls))
+
+
+@contextmanager
+def _local_turn() -> Iterator[None]:
+    """The local model's turn in the queue. The wait ends (D-494): a busy model answers with a timeout, never a wait without end."""
+    if not _LOCAL_CALL_LOCK.acquire(timeout=LOCAL_LOCK_WAIT_SECONDS):
+        raise TimeoutError(_LOCAL_BUSY_MESSAGE)
+    try:
+        yield
+    finally:
+        _LOCAL_CALL_LOCK.release()
 
 
 def _provider_outage(error: Exception) -> bool:
@@ -376,6 +433,7 @@ class AuthenticatedOllamaAdapter:
         # Measures the local model's calls (the chain's observer writes the cloud ones); None writes nothing.
         self.usage_ledger: UsageLedger | None = None
         self._warned_day: str | None = None  # the ledger day whose spend warning is already in the log
+        self._warning_kept: tuple[float, str | None] | None = None  # D-496: (when read, the warning) for a few seconds
         # Only from_environment turns this on: the app then warms the local model once at start.
         self.warm_up_on_start = False
         self._warm_up_thread: threading.Thread | None = None
@@ -434,8 +492,12 @@ class AuthenticatedOllamaAdapter:
         """
         if self.usage_ledger is None:
             return None
+        kept = self._warning_kept
+        if kept is not None and self._now() - kept[0] < SPEND_WARNING_CACHE_SECONDS:
+            return kept[1]
         try:
             text = self.usage_ledger.warning()
+            self._warning_kept = (self._now(), text)
             if text is not None:
                 day = self.usage_ledger.day()
                 if day != self._warned_day:
@@ -590,9 +652,9 @@ class AuthenticatedOllamaAdapter:
 
         calls = _MODEL_CALLS.get()
         if calls is not None:
-            if len(calls) >= turn_call_cap(calls):
+            if not _may_make_a_call(calls):
                 raise RuntimeError("Model call budget exhausted.")
-            calls.append(ModelCall(self.model_name))
+            calls.append(_counted(self.model_name))
         _logger.info("Ollama chat request started (model=%s)", self.model_name)
         try:
             prepared = _attach_world_metadata(kwargs)
@@ -607,7 +669,7 @@ class AuthenticatedOllamaAdapter:
             style = not (in_classifier_call() or in_front_call())
 
             def ask_local() -> Any:
-                with _LOCAL_CALL_LOCK:  # the clock starts after the queue: only the model's own time is measured
+                with _local_turn():  # the clock starts after the queue: only the model's own time is measured
                     started = time.monotonic()
                     local_response = self._ask_local_model(args, prepared, options, style=style)
                     local_seconds.append(time.monotonic() - started)
@@ -622,7 +684,7 @@ class AuthenticatedOllamaAdapter:
             if provider is None and local_seconds:
                 self._note_local_call(response, local_seconds[0])
             if provider is not None and calls is not None:
-                calls[-1] = ModelCall(provider)
+                calls[-1] = _counted(provider)
             note_usage(provider or self.model_name, response)
             return response
         except Exception as error:

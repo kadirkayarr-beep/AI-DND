@@ -37,6 +37,7 @@ from urllib.parse import quote
 import httpx
 
 from api.tests.playable_living_world_v1_review import (
+    MAX_MODEL_CALLS_PER_TURN,
     ReviewFinalizationError,
     finalize_review,
 )
@@ -752,7 +753,6 @@ def _install_telemetry(game: Any, before_turn: Any = None) -> None:
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 MODEL_NAME = "qwen3:8b"
-MAX_MODEL_CALLS_PER_TURN = 2
 BUDGET_EXEMPT_TURN_IDS = frozenset({27, 30, 31, 32, 33})
 START_SELECTION = {
     "setting_id": "forgotten_realms",
