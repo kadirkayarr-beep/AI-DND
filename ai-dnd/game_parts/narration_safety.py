@@ -533,7 +533,7 @@ def _narration_safety_decision(
             )
         attack_claims_assessed = True
 
-    text = narration.casefold()
+    text = game._nsd_text_without_awarded_xp(text=narration.casefold())  # D-012: the real award may be said
     input_text = str(player_input).casefold()
 
     def is_verified_attack_damage_claim(claim):
@@ -1166,7 +1166,7 @@ def _narration_safety_decision(
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
     outcome = action_outcome or game._mechanical_outcome(player_input)
-    _exit = game._nsd_outcome_failure_critical(outcome=outcome, reject=reject, text=text)
+    _exit = game._nsd_outcome_failure_critical(action_result=action_result, outcome=outcome, reject=reject, text=text)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
     _exit = game._nsd_outcome_success_critical(action_result=action_result, outcome=outcome, reject=reject, text=text)

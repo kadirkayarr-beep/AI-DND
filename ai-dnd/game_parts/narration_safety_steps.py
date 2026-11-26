@@ -59,8 +59,24 @@ def _nsd_outcome_success_critical(*, action_result, outcome, reject, text):
     return game._TURN_FALL_THROUGH
 
 
-def _nsd_outcome_failure_critical(*, outcome, reject, text):
+def _nsd_text_without_awarded_xp(*, text):
+    """D-012 (owner S21 a): the model may say the real award in its own words; any other amount stays refused."""
+    pending = getattr(game._session(), "_xp_level_up", None)
+    awarded = pending.get("xp_gained") if isinstance(pending, dict) else None
+    if type(awarded) is not int or awarded <= 0:
+        return text
+    unit = r"(?:deneyim puan\w*|xp)"
+    verb = r"(?:kazan\w*|al\w*|elde et\w*)"
+    return re.sub(rf"\b{awarded}\s*{unit}\b.{{0,35}}?\b{verb}\b|\b{verb}\b.{{0,35}}?\b{awarded}\s*{unit}\b", " ", text)
+
+
+def _nsd_outcome_failure_critical(*, action_result, outcome, reject, text):
     if outcome in ("failure", "critical_failure"):
+        seen = game._normalize_turkish_typos(text)
+        gave_way = game._YIELDS.search(seen)
+        if (gave_way and isinstance(action_result, dict) and not game._TELLS_FAILURE.search(seen)
+                and action_result.get("skill") in ("Intimidation", "Persuasion", "Deception")):
+            return reject("SKILL_RESULT_CONTRADICTION", gave_way.group(0))  # D-241: a lost try moves no one
         contradicted_success = re.search(
             r"başarılı olur|başarıya ulaşır|başarır|kazanırsın|"
             r"izleri bul\w*|gizli geçidi bul\w*|"

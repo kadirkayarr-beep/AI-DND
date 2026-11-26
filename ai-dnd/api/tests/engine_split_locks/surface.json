@@ -707,6 +707,10 @@
   "kind": "data",
   "type": "Pattern"
  },
+ "_YIELDS": {
+  "kind": "data",
+  "type": "Pattern"
+ },
  "_a_walk": {
   "kind": "function",
   "module": "game_parts.places",
@@ -2732,8 +2736,8 @@
  "_nsd_outcome_failure_critical": {
   "kind": "function",
   "module": "game_parts.narration_safety_steps",
-  "session_bound": true,
-  "signature": "(*, outcome, reject, text)"
+  "signature": "(*, action_result, outcome, reject, text)",
+  "session_bound": true
  },
  "_nsd_outcome_success_critical": {
   "kind": "function",
@@ -2788,6 +2792,12 @@
   "module": "game_parts.narration_safety_steps",
   "session_bound": true,
   "signature": "(*, reject, speech_fields, world_state)"
+ },
+ "_nsd_text_without_awarded_xp": {
+  "kind": "function",
+  "module": "game_parts.narration_safety_steps",
+  "session_bound": true,
+  "signature": "(*, text)"
  },
  "_nsd_travel_result_action": {
   "kind": "function",

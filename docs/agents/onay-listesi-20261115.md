@@ -692,3 +692,12 @@ Dal `task/borc-g21-20261126`. Yalniz test kodu degisti; motor kodu ayni.
 | `ai-dnd/api/tests/test_smoke_turn_diagnostics.py` `test_failed_calls_count_and_requests_have_distinct_safe_correlation` | sabit `3` basarisiz deneme -> `MAX_MODEL_CALLS_PER_TURN + 1` (tavan artik adaptorden okunur ve 3; test "tavandan bir fazla deneme" demek istiyordu) | gevşetme olabilir (sabit sayi turetilmis sayi oldu; ayni iddia: deneme sayisi tavani asar) |
 | `ai-dnd/api/tests/live_*_smoke.py`, `playable_living_world_v1_review.py` | `MAX_MODEL_CALLS_PER_TURN = 2` kopyalari kalkti; sinir `turn_call_cap((), most=True)` (= 3) (D-417). Canli betikler artik 3 cagrili turu kabul eder (bayrak acik, tanikli yarali kesif turu) | gevşetme olabilir (canli duman tur basina cagri siniri 2 -> 3; adaptorun gercek tavani) |
 | yeni testler | `ai-dnd/api/tests/test_g23_model_cap.py` (21 test: D-150 bilinmeyen kullanim en yuksek maliyetle, 4xx faturalanmaz; D-416; D-419; D-417 statik; D-494; D-496; D-418; D-405; D-408) | ekleme |
+
+## G2.4 (borc-sifirlama): zar ve anlati celiskisi
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/game_parts/narration_safety.py` `_narration_safety_decision` (D-012, Kadir S21 a) | Modelin, bu turda Python'un kaydettigi gercek deneyim odulunu ayni tutarla kendi cumlesiyle soylemesi (`25 deneyim puani kazandin`) artik `CANONICAL_XP_CONTRADICTION` ile reddedilmez; baska tutar ve tutarsiz `deneyim puani kazandin` hala reddedilir | gevşetme olabilir (guvenlik denetimi bilincli olarak gevsedi: yalniz kayitli tutarla birebir ayni sayi gecer) |
+| `ai-dnd/api/tests/engine_split_locks/surface.json` | Yeni adlar `_YIELDS`, `_nsd_text_without_awarded_xp`; `_nsd_outcome_failure_critical` imzasina `action_result` eklendi (altin dosya canli yuzeye esitlendi) | ekleme |
+| `ai-dnd/api/tests/test_d251_bold_line_variety.py` | `bold_acts._fresh` -> `bold_acts.fresh_line` (adi acik oldu, baska modulden de cagriliyor); iddialar ayni | eşit sıkılıkta yeniden yazım |
+| yeni test | `ai-dnd/api/tests/test_d226_roll_before_speech.py` (D-226, D-241, D-242, D-251, D-012) | ekleme |
