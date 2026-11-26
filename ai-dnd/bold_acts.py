@@ -1286,15 +1286,22 @@ def repair_counter_tip(world: dict[str, Any]) -> list[str]:
     return dropped
 
 
+def _decided_or_spoken(session, server: dict[str, Any] | None, requested: bool) -> dict[str, Any] | None:
+    """The decision's own offer, or None for a room asked for in talk that the person answers first (D-425)."""
+    import money_owner
+    return None if not requested and money_owner.room_by_speech(session, server) else decided(session)
+
+
 def shop_offer(session, text: str, server: dict[str, Any] | None = None, *, requested: bool = False) -> dict[str, Any] | None:
     """A line that wants something on the list opens the counter's offer. Words move no coin and no goods:
     only the one counter trade (shop_trade.commit) does, at the price this offer shows.
 
     Under this turn's money decision the words are not read: the decision alone says which offer opens (`decided`),
-    also for a line said straight to whoever serves."""
+    also for a line said straight to whoever serves, except a room asked for in talk with no coin held out: that one
+    is answered by the person's speech first and its card opens after the reply (`money_owner.room_by_speech`)."""
     import money_owner
     if money_owner.current(session) is not None:
-        return decided(session)
+        return _decided_or_spoken(session, server, requested)
     folded = fold(session, text)
     wanted = shop_trade.priced_in(folded)
     server = server if server is not None else _server_here(session)
