@@ -12,3 +12,4 @@ Task G0.2: complete (branch task/borc-g02-20261126, head 53d1b301, merge none: b
 Task G0.5: complete (branch task/borc-g05-20261126, head 404f8f36, merge cc33008c)
 Task G0.4: complete (branch task/borc-g04-20261126, head cc33008c, merge none: branch head already an ancestor of the wave branch; measurement file olcum-g04.md, D-302 closed per R-D078)
 Task G1.4: complete (branch task/borc-g14-20261126, head 4790fd35, merge a6b2acc8)
+Task G1.1: complete (branch task/borc-g11-20261126, head 510a64a6, merge d6a05637)
