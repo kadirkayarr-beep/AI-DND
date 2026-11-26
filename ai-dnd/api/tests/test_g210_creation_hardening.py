@@ -13,7 +13,7 @@ import httpx
 from pydantic import ValidationError
 
 from api import character_creation
-from api.auth import FixedAuthenticator, OidcAuthenticator, OidcSettings
+from api.auth import FailClosedAuthenticator, FixedAuthenticator, OidcAuthenticator, OidcSettings
 from api.dnd_2024_rules import (
     ABILITY_KEYS,
     BACKGROUND_DEFINITIONS,
@@ -47,7 +47,7 @@ def snap(session):
             hashlib.sha256(character.encode()).hexdigest()[:16]]
 
 
-class CreationSplitKeepsTheCharacter(unittest.TestCase):
+class TestCreationSplitKeepsTheCharacter(unittest.TestCase):
     """D-540: every class, package and background option, and random seeds, still produce the same purse, items and record."""
 
     def test_custom_classes_packages_and_options_match_the_recorded_result(self):
@@ -69,7 +69,7 @@ class CreationSplitKeepsTheCharacter(unittest.TestCase):
                 self.assertEqual(snap(random_created(seed)), GOLDEN[f"random|{seed}"])
 
 
-class BackgroundBonusLimits(unittest.TestCase):
+class TestBackgroundBonusLimits(unittest.TestCase):
     """D-319: only +1/+2 on permitted abilities, and only the six abilities."""
 
     def bonuses(self, **extra):
@@ -106,7 +106,7 @@ class BackgroundBonusLimits(unittest.TestCase):
         self.assertIn("at least 3", str(caught.exception))
 
 
-class CreateInputShape(unittest.TestCase):
+class TestCreateInputShape(unittest.TestCase):
     """D-313: list sizes and the dictionary keys are bounded in the model, with no change to the published schema."""
 
     def body(self, **fields):
@@ -137,7 +137,7 @@ class CreateInputShape(unittest.TestCase):
                                                       proficient_skills=["Stealth"]))
 
 
-class OneBlankCheck(unittest.TestCase):
+class TestOneBlankCheck(unittest.TestCase):
     """D-539: one shared check, same refusal for empty, blank and missing."""
 
     def test_empty_blank_and_missing_are_refused_with_the_same_text(self):
@@ -162,7 +162,7 @@ class OneBlankCheck(unittest.TestCase):
             self.assertIn(text, str(caught.exception))
 
 
-class CampaignHttp(unittest.IsolatedAsyncioTestCase):
+class TestCampaignHttp(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = campaigns.CampaignApiTests.asyncSetUp
     asyncTearDown = campaigns.CampaignApiTests.asyncTearDown
 
@@ -196,7 +196,7 @@ class CampaignHttp(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(second.json()["detail"]["code"], "campaign_id_conflict")
 
 
-class HostedSurface(unittest.IsolatedAsyncioTestCase):
+class TestHostedSurface(unittest.IsolatedAsyncioTestCase):
     """D-314: outside local play there are no docs routes and the health body is status only."""
 
     def adapter(self):
@@ -216,6 +216,20 @@ class HostedSurface(unittest.IsolatedAsyncioTestCase):
         for path in ("/docs", "/redoc", "/openapi.json"):
             with self.subTest(path=path):
                 self.assertEqual((await self.get(self.hosted(), path)).status_code, 404)
+
+    async def test_fail_closed_is_hosted_too(self):
+        for path in ("/docs", "/redoc", "/openapi.json"):
+            with self.subTest(path=path):
+                self.assertEqual((await self.get(FailClosedAuthenticator(), path)).status_code, 404)
+        response = await self.get(FailClosedAuthenticator(), "/api/health")
+        self.assertEqual(set(response.json()), {"status", "engine", "model"})
+        self.assertNotIn("x-ai-dnd-instance", response.headers)
+
+    def test_start_local_treats_a_hidden_chain_as_on(self):
+        text = (Path(__file__).resolve().parents[3] / "start_local.ps1").read_text(encoding="utf-8")
+        helper = text.split("function Test-ChainOn", 1)[1].split("function ", 1)[0]
+        self.assertIn("X-AI-DND-Instance", helper)
+        self.assertIn("return $true", helper)
 
     async def test_local_keeps_the_docs_routes(self):
         for path in ("/docs", "/redoc", "/openapi.json"):
@@ -241,7 +255,7 @@ def refusal(index, **overrides):
     return IdentitySuggestionRequest.model_validate(body)
 
 
-class IdentityRejectionsPerOwner(unittest.TestCase):
+class TestIdentityRejectionsPerOwner(unittest.TestCase):
     """D-316: one owner's refused requests cannot fill the shared store for the others."""
 
     def test_forty_refusals_do_not_make_another_owner_storage_full(self):

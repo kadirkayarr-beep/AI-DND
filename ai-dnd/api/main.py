@@ -22,6 +22,7 @@ from pydantic import BaseModel, ValidationError
 from api import action_contract, failure_policy, runtime_recovery
 from api.auth import (
     AuthenticationError,
+    FixedAuthenticator,
     OidcAuthenticator,
     Principal,
     current_principal,
@@ -569,8 +570,8 @@ def create_app(
 
     if authenticator is _UNSET:
         authenticator = select_authenticator(os.environ)
-    # D-314: hosted (OIDC or Clerk) has no docs routes; local play and tests keep them.
-    hosted = type(authenticator) in (OidcAuthenticator, ClerkAuthenticator)
+    # D-314: anything but local play, the fixed test authenticator and none (OIDC, Clerk, fail-closed) has no docs routes.
+    hosted = authenticator is not None and type(authenticator) not in (LocalPlayAuthenticator, FixedAuthenticator)
     docs = {"docs_url": None, "redoc_url": None, "openapi_url": None} if hosted else {}
     application = FastAPI(
         title="AI-DND API",

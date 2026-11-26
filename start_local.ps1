@@ -37,7 +37,10 @@ function Test-SelectedGameApi([string]$Url) {
 
 function Test-ChainOn([string]$Url) {
     try {
-        return [bool](Invoke-RestMethod -Uri $Url -TimeoutSec 5).model_chain
+        $r = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
+        # A hosted API hides the chain and the instance header: unknown, so treat as on.
+        if (-not $r.Headers["X-AI-DND-Instance"]) { return $true }
+        return [bool]($r.Content | ConvertFrom-Json).model_chain
     } catch {
         return $false
     }
