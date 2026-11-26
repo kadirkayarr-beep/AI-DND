@@ -114,8 +114,6 @@
   "fallow|artifacts/ai-dnd-experience/tests/r02-live-fixture/main.tsx|unused_files|": 1,
   "fallow|artifacts/ai-dnd-experience/tests/r03-fixture/main.tsx|unused_files|": 1,
   "fallow|artifacts/ai-dnd-experience/tests/r09-fixture/main.tsx|unused_files|": 1,
-  "fallow|lib/db/package.json|unused_dependencies|drizzle-zod": 1,
-  "fallow|lib/db/package.json|unused_dependencies|zod": 1,
   "fallow|package.json|unused_dependencies|@replit/connectors-sdk": 1,
   "fallow|package.json|unused_dev_dependencies|prettier": 1,
   "fallow|pnpm-workspace.yaml|unused_dependency_overrides|@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64": 1,

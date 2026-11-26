@@ -112,8 +112,6 @@
   "knip|artifacts/ai-dnd-experience/tests/r02-live-fixture/main.tsx|files|artifacts/ai-dnd-experience/tests/r02-live-fixture/main.tsx": 1,
   "knip|artifacts/ai-dnd-experience/tests/r03-fixture/main.tsx|files|artifacts/ai-dnd-experience/tests/r03-fixture/main.tsx": 1,
   "knip|artifacts/ai-dnd-experience/tests/r09-fixture/main.tsx|files|artifacts/ai-dnd-experience/tests/r09-fixture/main.tsx": 1,
-  "knip|lib/db/package.json|dependencies|drizzle-zod": 1,
-  "knip|lib/db/package.json|dependencies|zod": 1,
   "knip|package.json|dependencies|@replit/connectors-sdk": 1,
   "knip|package.json|devDependencies|prettier": 1,
   "knip|pnpm-workspace.yaml|catalog|tsx": 1,
