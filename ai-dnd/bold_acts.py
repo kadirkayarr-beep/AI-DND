@@ -585,7 +585,7 @@ def answer_to_known_doer(session, result: Any) -> None:
     result["narration"] = " ".join([str(result.get("narration") or ""), line]).strip()
 
 
-def _fresh(session, kind: str, table: tuple[str, ...]) -> str:
+def fresh_line(session, kind: str, table: tuple[str, ...]) -> str:
     """A line from the table, never the one this table gave last time (D-251)."""
     flags = session.world_state.setdefault("flags", {})
     said = flags.get(_LINES_SAID)
@@ -598,7 +598,7 @@ def _fresh(session, kind: str, table: tuple[str, ...]) -> str:
 
 def _pick_line(session, npc: dict[str, Any]) -> str:
     name = living_world.public_npc_name(npc)
-    return _fresh(session, "caught", _CAUGHT).format(n=name)
+    return fresh_line(session, "caught", _CAUGHT).format(n=name)
 
 
 def _check(session, skill: str, dc: int) -> dict[str, Any]:
@@ -715,11 +715,11 @@ def _carried(session, person: dict[str, Any] | None, thing: str) -> Any:
 def _empty_line(session, thing: str | None = None) -> str:
     """What an empty hand says: a named thing is told as that thing (armour as armour), never as money (D-229)."""
     if thing is None:
-        return _fresh(session, "empty", _NOTHING_THERE)
+        return fresh_line(session, "empty", _NOTHING_THERE)
     import equipment_economy
     if equipment_economy.is_armor_or_shield({"name": thing}):
-        return _fresh(session, "wont_lift", _WONT_LIFT).format(t=thing.lower())
-    return _fresh(session, "no_such_thing", _NO_SUCH_THING).format(t=thing.lower())
+        return fresh_line(session, "wont_lift", _WONT_LIFT).format(t=thing.lower())
+    return fresh_line(session, "no_such_thing", _NO_SUCH_THING).format(t=thing.lower())
 
 
 def _hand_to_whom(session, text: str) -> dict[str, Any] | None:
@@ -817,7 +817,7 @@ def _steal(session, text: str) -> dict[str, Any]:
             purse = _purse_of(world, victim)
             coins = min(coins, purse)
             if coins <= 0:  # D-230: same draw as before, so the seeded rolls after it stay the same
-                line = _fresh(session, "purse_empty", _PURSE_EMPTY).format(n=living_world.public_npc_name(victim))
+                line = fresh_line(session, "purse_empty", _PURSE_EMPTY).format(n=living_world.public_npc_name(victim))
                 return _reply(session, line, "theft", "empty", check, [])
             wallets[victim["id"]] = purse - coins
         wallets["player"] = wallets.get("player", 0) + coins

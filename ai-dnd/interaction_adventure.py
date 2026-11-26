@@ -983,6 +983,36 @@ _HEARD_LINES = (
 )
 
 
+# D-251: the fixed travel lines, never the one said last (as the theft tables in bold_acts).
+TRAVEL_INTENDED = (
+    "{p} yönüne gitmek istediğini anladım; henüz oraya ulaşmadın.",
+    "Gözün {p} tarafında; ama henüz yola çıkmadın, oraya varmış değilsin.",
+    "{p} için yola koyulmak niyetindesin; şimdilik olduğun yerdesin.",
+)
+TRAVEL_NO_ROAD = (
+    "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin.",
+    "Sokaklarda bir süre arıyorsun; aradığın yere giden bir yol çıkmıyor, olduğun yerde kalıyorsun.",
+    "Oraya çıkan yolu kimse göstermiyor, kendin de bulamıyorsun; olduğun yerdesin.",
+)
+
+# D-226: what a won or lost try on a person looks like when no model reply could be used (the dice decided it).
+_SOCIAL_LINES = {
+    ("Intimidation", True): "{n} yutkunuyor, gözlerini kaçırıp bir adım geri çekiliyor; sözün işledi.",
+    ("Intimidation", False): "{n} kollarını kavuşturup sana bakıyor; sözün ona işlemiyor.",
+    ("Persuasion", True): "{n} bir an düşünüp başını sallıyor; sözün onu ikna etti.",
+    ("Persuasion", False): "{n} başını iki yana sallıyor; sözün onu ikna etmiyor.",
+    ("Deception", True): "{n} sana inanmış görünüyor; yalanın tuttu.",
+    ("Deception", False): "{n} gözlerini kısıyor; yalanına inanmıyor.",
+}
+
+
+def social_outcome_line(name, skill, outcome):
+    """The person's own line for a try the dice decided; None for a skill that has none or an outcome not won or lost."""
+    won = {"success": True, "failure": False}.get(outcome)
+    line = _SOCIAL_LINES.get((skill, won))
+    return line.format(n=name or "Karşındaki") if line else None
+
+
 def _asks(text):
     """A question, with or without its mark: the owner often leaves it out."""
     import grounded_action

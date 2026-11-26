@@ -57,7 +57,7 @@ class NamedEmptyHandsVaryToo(unittest.TestCase):
         for seed in range(30):
             with self.subTest(purse=seed):
                 s = session(seed)
-                lines = [bold_acts._fresh(s, "purse_empty", bold_acts._PURSE_EMPTY) for _ in range(6)]
+                lines = [bold_acts.fresh_line(s, "purse_empty", bold_acts._PURSE_EMPTY) for _ in range(6)]
                 for first, second in zip(lines, lines[1:]):
                     self.assertNotEqual(first, second)
 
