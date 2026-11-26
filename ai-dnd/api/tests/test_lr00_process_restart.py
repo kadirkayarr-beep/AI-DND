@@ -128,7 +128,7 @@ class LR00ProcessRestartTests(unittest.TestCase):
                     campaign_id, sid = created["campaign_id"], created["session_id"]
 
                     def state():
-                        response = client.get(f"{base}/api/sessions/{sid}/state")
+                        response = client.get(f"{base}/api/game/sessions/{sid}/state")
                         self.assertEqual(response.status_code, 200)
                         return response.json()
 
@@ -138,7 +138,7 @@ class LR00ProcessRestartTests(unittest.TestCase):
                             combat = state()["combat"]
                             body.update(combat_action={"steps": steps}, combat_id=combat["combat_id"],
                                         combat_round=combat["round"], combat_turn_index=combat["current_turn_index"])
-                        response = client.post(f"{base}/api/sessions/{sid}/turn", json=body)
+                        response = client.post(f"{base}/api/game/sessions/{sid}/turn", json=body)
                         self.assertEqual(response.status_code, 200)
                         return body, response.json()
 
@@ -173,12 +173,12 @@ class LR00ProcessRestartTests(unittest.TestCase):
                     self.assertEqual(restored.payload, payload_before)
                     self.assertEqual(restored.history, history_before)
                     self.assertEqual(restored.combat_history, combat_history_before)
-                    replay = client.post(f"{base}/api/sessions/{sid}/turn", json=command)
+                    replay = client.post(f"{base}/api/game/sessions/{sid}/turn", json=command)
                     self.assertEqual(replay.status_code, 200)
                     self.assertEqual(replay.json(), dict(accepted, session_id=sid))
                     self.assertEqual(state(), after)
                     duplicate_action = {**command, "action_id": str(uuid4())}
-                    rejected = client.post(f"{base}/api/sessions/{sid}/turn", json=duplicate_action)
+                    rejected = client.post(f"{base}/api/game/sessions/{sid}/turn", json=duplicate_action)
                     self.assertEqual(rejected.status_code, 400)
                     self.assertEqual(state(), after)
                     final = store.get_campaign(campaign_id)

@@ -214,7 +214,7 @@ class RealSessionContract(RealEconomicSession):
 class BoundedEncounterContract(NativeBase):
     maxDiff = None
     def public_state(self):
-        response = self.client.get(f"/api/sessions/{self.sid}/state")
+        response = self.client.get(f"/api/game/sessions/{self.sid}/state")
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 

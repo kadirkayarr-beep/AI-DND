@@ -96,7 +96,7 @@ def _post_turn(
     message: str,
 ) -> dict[str, Any]:
     response = client.post(
-        f"{base_url}/api/sessions/{session_id}/turn",
+        f"{base_url}/api/game/sessions/{session_id}/turn",
         json={"message": message, "action_id": str(uuid.uuid4())},
         timeout=240,
     )

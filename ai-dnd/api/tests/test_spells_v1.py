@@ -42,16 +42,16 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
         await self.http.aclose()
 
     async def test_client_cannot_submit_spell_damage_or_healing(self):
-        created = await self.http.post("/api/sessions")
+        created = await self.http.post("/api/game/sessions")
         session_id = created.json()["session_id"]
         response = await self.http.post(
-            f"/api/sessions/{session_id}/turn",
+            f"/api/game/sessions/{session_id}/turn",
             json={"action_id": str(uuid.uuid4()), "message": "I cast Fire Bolt", "damage": 99, "healing": 20, "spell_slots_remaining": {"1": 9}},
         )
         self.assertEqual(response.status_code, 422)
 
     async def test_failed_cast_turn_restores_slots_and_hp(self):
-        created = await self.http.post("/api/sessions")
+        created = await self.http.post("/api/game/sessions")
         session_id = created.json()["session_id"]
         session = self.manager.get(session_id, principal=TEST_PLAYER).game_session
         session.character["spell_slots_remaining"] = {"1": 2}
@@ -66,7 +66,7 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
 
         session.run_player_turn = broken_cast
         response = await self.http.post(
-            f"/api/sessions/{session_id}/turn",
+            f"/api/game/sessions/{session_id}/turn",
             json={"action_id": str(uuid.uuid4()), "message": "I cast Magic Missile"},
         )
         self.assertEqual(response.status_code, 500)

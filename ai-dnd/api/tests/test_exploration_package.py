@@ -25,7 +25,7 @@ class ExplorationPackageTests(NativeBase):
 
     def reject(self, message):
         before = self.canonical()
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json={
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json={
             "message": message, "action_id": str(uuid4())})
         self.assertEqual(response.status_code, 400, response.text)
         self.assertEqual(self.canonical(), before)
@@ -54,7 +54,7 @@ class ExplorationPackageTests(NativeBase):
 
     def test_catalog_is_opt_in_and_does_not_claim_visits(self):
         before = self.canonical()
-        state = self.client.get(f"/api/sessions/{self.sid}/state").json()
+        state = self.client.get(f"/api/game/sessions/{self.sid}/state").json()
         self.assertIsNone(state["exploration"])
         self.assertFalse(set(catalog.LOCATIONS) & set(self.session.world_state["locations"]))
         self.assertEqual(self.canonical(), before)
@@ -117,7 +117,7 @@ class ExplorationPackageTests(NativeBase):
         self.assertEqual(reply["state"]["journey"]["distance_miles"], 6)
         self.assertEqual(reply["state"]["journey"]["duration_seconds"], 5400)
         self.assertEqual(self.session.world_state["campaign_time"]["elapsed_seconds"] - before, 2700)
-        self.assertEqual(self.client.post(f"/api/sessions/{self.sid}/turn", json=body).json(), reply)
+        self.assertEqual(self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body).json(), reply)
         self.assertEqual(self.canonical(), canonical)
         manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
         with TestClient(create_app(session_manager=manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))) as client:
@@ -125,7 +125,7 @@ class ExplorationPackageTests(NativeBase):
             sid = resumed["session_id"]
             session = manager.get(sid).game_session
             expected = copy.deepcopy((session.serialize_game_state(), session.rng.getstate()))
-            self.assertEqual(client.post(f"/api/sessions/{sid}/turn", json=body).json(), dict(reply, session_id=sid))
+            self.assertEqual(client.post(f"/api/game/sessions/{sid}/turn", json=body).json(), dict(reply, session_id=sid))
             self.assertEqual((session.serialize_game_state(), session.rng.getstate()), expected)
 
     def test_failure_can_only_choose_an_authored_lost_route(self):
@@ -160,7 +160,7 @@ class ExplorationPackageTests(NativeBase):
     def test_search_is_local_and_secret_door_requires_exact_target(self):
         self.enter()
         self.check("/explore search")
-        state = self.client.get(f"/api/sessions/{self.sid}/state").json()
+        state = self.client.get(f"/api/game/sessions/{self.sid}/state").json()
         identities = {r["id"] for r in state["exploration"]["discoveries"]}
         self.assertEqual(identities, {"stone_secret", "stone_wire"})
         self.assertNotIn("stone_marker", identities)
@@ -201,7 +201,7 @@ class ExplorationPackageTests(NativeBase):
         self.assertEqual(self.session.character["current_hp"], hp - 2)
         self.assertEqual(self.session.world_state[catalog.KEY]["trap_states"]["stone_wire"], "triggered")
         canonical = self.canonical()
-        self.assertEqual(self.client.post(f"/api/sessions/{self.sid}/turn", json=body).json(), result)
+        self.assertEqual(self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body).json(), result)
         self.assertEqual(self.canonical(), canonical)
         self.call("/explore exit hall_entry")
         self.call("/explore trap stone_wire neutralize")
@@ -225,12 +225,12 @@ class ExplorationPackageTests(NativeBase):
         before = self.canonical()
         body = {"message": "/explore search", "action_id": str(uuid4())}
         with patch.object(self.manager._campaign_store, "save_campaign", side_effect=CampaignStorageError("test")):
-            response = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+            response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertGreaterEqual(response.status_code, 400)
         self.assertEqual(self.canonical(), before)
         self.assertIsNone(self.manager.get_turn_action(self.manager.get(self.sid), body["action_id"]))
         with patch("game.roll_d20", return_value=20):
-            accepted = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+            accepted = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(accepted.status_code, 200, accepted.text)
         self.assertIn("stone_secret", self.session.world_state[catalog.KEY]["discoveries"])
 
@@ -351,7 +351,7 @@ class ExplorationPackageTests(NativeBase):
         self.arrive(catalog.CAMP)
         self.arrive(catalog.ENTRY, roll=1)
         self.assertEqual(self.session.world_state["location"], catalog.FORK)
-        state = self.client.get(f"/api/sessions/{self.sid}/state").json()
+        state = self.client.get(f"/api/game/sessions/{self.sid}/state").json()
         self.assertEqual(state["world"]["weather"], "fog")
         self.assertEqual(state["world"]["environment"], "wilderness")
         self.assertEqual(state["exploration"]["weather"], "fog")

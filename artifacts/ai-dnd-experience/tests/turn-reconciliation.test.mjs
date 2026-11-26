@@ -374,7 +374,7 @@ test('F03 synthetic real HTTP save rollback component recovery retry', {skip: !p
   if(!response.ok) throw Object.assign(new Error('Synthetic API fault'),{status:response.status,detail:result.detail});
   return result;
  };
- const refresh=()=>request(`/api/sessions/${config.sid}/state`);
+ const refresh=()=>request(`/api/game/sessions/${config.sid}/state`);
  const before=await refresh();
  const first=speciesHarness({refresh});
  first.client.setQueryData(['state','session-a'],before);

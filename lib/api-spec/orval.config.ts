@@ -83,7 +83,6 @@ export default defineConfig({
       override: {
         operations: {
           playGameTurn: { zod: { coerce: sharedZodCoerce, strict: { body: true } } },
-          playLegacyTurn: { zod: { coerce: sharedZodCoerce, strict: { body: true } } },
           createCampaign: { zod: { strict: { body: true } } },
           createLegacyCampaign: { zod: { strict: { body: true } } },
           // Empty noncaster choices must not swallow invalid objects in the union.

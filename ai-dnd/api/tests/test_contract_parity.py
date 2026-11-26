@@ -867,23 +867,17 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC)
         self.assertEqual(runtime_routes, documented_routes)
-        # 42 earlier routes + the three canonical-only action-intent routes (unresolved, status, abandon)
-        # + GET and POST level-up in both alias families
+        # 42 earlier routes - the ten legacy /sessions aliases removed in D-532
+        # + the three canonical-only action-intent routes (unresolved, status, abandon)
+        # + GET and POST level-up (canonical only now)
         # + the canonical-only read of the counter offer (GET shop)
         # + the canonical-only spell preparation window (GET and POST spellcasting/prepare, 4C.2).
-        self.assertEqual(len(documented_routes), 52)
+        self.assertEqual(len(documented_routes), 42)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
             ("GET", "/api/game/character-options", "/api/character-options"),
             ("GET", "/api/game/character-creation-catalog", "/api/character-creation-catalog"),
-            ("POST", "/api/game/sessions", "/api/sessions"),
-            ("GET", "/api/game/sessions/{session_id}/state", "/api/sessions/{session_id}/state"),
-            ("POST", "/api/game/sessions/{session_id}/turn", "/api/sessions/{session_id}/turn"),
-            ("POST", "/api/game/sessions/{session_id}/undo", "/api/sessions/{session_id}/undo"),
-            ("POST", "/api/game/sessions/{session_id}/species-actions", "/api/sessions/{session_id}/species-actions"),
-            ("GET", "/api/game/sessions/{session_id}/level-up", "/api/sessions/{session_id}/level-up"),
-            ("POST", "/api/game/sessions/{session_id}/level-up", "/api/sessions/{session_id}/level-up"),
             ("GET", "/api/game/campaigns", "/api/campaigns"),
             ("POST", "/api/game/campaigns", "/api/campaigns"),
             ("GET", "/api/game/campaigns/{campaign_id}", "/api/campaigns/{campaign_id}"),
@@ -1430,7 +1424,6 @@ class ContractParityTests(unittest.TestCase):
         }
         for path in (
             "/game/sessions",
-            "/sessions",
             "/game/campaigns/{campaign_id}/resume",
             "/campaigns/{campaign_id}/resume",
         ):
@@ -1541,7 +1534,6 @@ class ContractParityTests(unittest.TestCase):
         }
         for path in (
             "/game/sessions/{session_id}/turn",
-            "/sessions/{session_id}/turn",
         ):
             published = _operation(path, "post")
             runtime = runtime_spec["paths"][f"{base_path}{path}"]["post"]
@@ -1589,7 +1581,6 @@ class ContractParityTests(unittest.TestCase):
         }
         for path in (
             "/game/sessions/{session_id}/species-actions",
-            "/sessions/{session_id}/species-actions",
         ):
             published = _operation(path, "post")
             runtime = runtime_spec["paths"][f"{base_path}{path}"]["post"]
@@ -2890,7 +2881,6 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
     def test_species_action_wrong_route_bindings_fail_in_both_formats(self):
         for path in (
             "/game/sessions/{session_id}/species-actions",
-            "/sessions/{session_id}/species-actions",
         ):
             for binding in ("requestBody", "response"):
                 for flow_style in (False, True):
@@ -4766,7 +4756,6 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
     def test_session_creation_and_campaign_resume_wrong_bindings_fail_in_both_formats(self):
         for path in (
             "/game/sessions",
-            "/sessions",
             "/game/campaigns/{campaign_id}/resume",
             "/campaigns/{campaign_id}/resume",
         ):
@@ -5042,7 +5031,6 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
     def test_turn_wrong_route_bindings_fail_in_both_formats(self):
         for path in (
             "/game/sessions/{session_id}/turn",
-            "/sessions/{session_id}/turn",
         ):
             for binding in ("requestBody", "response"):
                 for flow_style in (False, True):

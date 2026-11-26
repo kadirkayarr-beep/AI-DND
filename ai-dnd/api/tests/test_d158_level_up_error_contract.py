@@ -11,7 +11,7 @@ from api.tests import test_spells_v1 as spells  # module import: its tests are n
 from api.tests import test_d107_open_action_gate as gate  # module import: its tests are not re-collected here
 from api.tests.town_seed import fixed_town
 
-LEVEL_UP_PATHS = ("/game/sessions/{session_id}/level-up", "/sessions/{session_id}/level-up")
+LEVEL_UP_PATHS = ("/game/sessions/{session_id}/level-up",)
 EXPECTED = {
     "get": {"200", "401", "404", "409", "500", "503"},
     "post": {"200", "401", "404", "409", "422", "500", "503"},
@@ -83,7 +83,7 @@ class LevelUpErrorAnswersAreDocumented(unittest.IsolatedAsyncioTestCase):
 
     async def test_real_error_answers_are_published_statuses(self):
         with fixed_town(self, 11158):
-            created = await self.http.post("/api/sessions")
+            created = await self.http.post("/api/game/sessions")
         self.assertEqual(created.status_code, 200, created.text)
         session_id = created.json()["session_id"]
         body = {"action_id": str(uuid.uuid4()), "campaign_id": str(uuid.uuid4()), "expected_revision": 0,

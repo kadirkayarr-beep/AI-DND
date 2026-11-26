@@ -49,7 +49,7 @@ class FakeOllamaClient:
 
 
 async def _campaign(http: httpx.AsyncClient) -> tuple[str, dict]:
-    created = await http.post("/api/sessions")
+    created = await http.post("/api/game/sessions")
     if created.status_code != 200:
         raise RuntimeError(f"session HTTP {created.status_code}: {created.text[:400]}")
     body = created.json()
@@ -71,7 +71,7 @@ async def _observe_model_failures() -> dict:
                     session.world_state["location"] = "tavern"
                 before = serialize_session_state(session)
                 response = await http.post(
-                    f"/api/sessions/{session_id}/turn",
+                    f"/api/game/sessions/{session_id}/turn",
                     json={"message": message, "action_id": str(uuid4())},
                 )
                 after = serialize_session_state(session)

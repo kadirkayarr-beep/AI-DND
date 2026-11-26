@@ -194,13 +194,3 @@ def register_species_routes(
                 _raise_if_commit_unconfirmed(manager, record, action_id, request_hash, response_payload, error)
                 restore_command()
                 raise
-
-    @application.post(
-        "/api/sessions/{session_id}/species-actions",
-        response_model=SpeciesTraitCommandResult,
-    )
-    def resolve_species_trait_action_compat(
-        session_id: str,
-        request: SpeciesTraitActionRequest,
-    ) -> dict[str, Any]:
-        return resolve_species_trait_action(session_id, request)

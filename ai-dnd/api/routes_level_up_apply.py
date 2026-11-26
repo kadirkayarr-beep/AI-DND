@@ -35,8 +35,6 @@ def register_level_up_apply_routes(
 ) -> None:
     @application.post("/api/game/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
                       operation_id="applyGameSessionLevelUp")
-    @application.post("/api/sessions/{session_id}/level-up", response_model=LevelUpCommandResult,
-                      include_in_schema=False)
     def apply_earned_level_up(session_id: str, request: LevelUpApplyRequest) -> dict[str, Any]:
         import character_progression as progression
         record = get_record(session_id)

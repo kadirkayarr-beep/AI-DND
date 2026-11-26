@@ -38,12 +38,12 @@ class BoundedNativeAttackTests(NativeBase):
         request=self.request(target)
         with patch('game.ollama.chat',side_effect=AssertionError('no model')), \
              patch('game.ask_dungeon_master',side_effect=AssertionError('no model')):
-            result=self.client.post(f'/api/sessions/{self.sid}/turn',json=request)
+            result=self.client.post(f'/api/game/sessions/{self.sid}/turn',json=request)
         self.assertEqual(result.status_code,200,result.text)
         self.assertIsNotNone(self.session.world_state['equipment']['main_hand'])
         before=self.canonical()
         saved=self.client.get(f"/api/campaigns/{self.campaign['campaign_id']}").json()
-        replay=self.client.post(f'/api/sessions/{self.sid}/turn',json=request)
+        replay=self.client.post(f'/api/game/sessions/{self.sid}/turn',json=request)
         self.assertEqual(replay.status_code,200,replay.text)
         self.assertEqual(replay.json(),result.json())
         self.assertEqual(self.canonical(),before)
@@ -56,7 +56,7 @@ class BoundedNativeAttackTests(NativeBase):
         saved=self.client.get(f"/api/campaigns/{self.campaign['campaign_id']}").json()
         import weapon_attack
         with patch.object(weapon_attack,'_resolve',side_effect=RuntimeError('synthetic failure after draw preparation')):
-            result=self.client.post(f'/api/sessions/{self.sid}/turn',json=request)
+            result=self.client.post(f'/api/game/sessions/{self.sid}/turn',json=request)
         self.assertEqual(result.status_code,500,result.text)
         self.assertEqual(self.canonical(),before)
         self.assertEqual(self.client.get(f"/api/campaigns/{self.campaign['campaign_id']}").json(),saved)

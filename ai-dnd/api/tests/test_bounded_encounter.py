@@ -72,7 +72,7 @@ class NativeBase(unittest.TestCase):
     def call(self, message, steps=None, action_id=None):
         body = {"message": message, "action_id": str(action_id or uuid4())}
         if steps is not None:
-            state_response = self.client.get(f"/api/sessions/{self.sid}/state")
+            state_response = self.client.get(f"/api/game/sessions/{self.sid}/state")
             self.assertEqual(state_response.status_code, 200, state_response.text)
             state = state_response.json()
             combat = state["combat"]
@@ -80,7 +80,7 @@ class NativeBase(unittest.TestCase):
                 combat_action={"steps": steps}, combat_id=combat["combat_id"],
                 combat_round=combat["round"], combat_turn_index=combat["current_turn_index"],
             )
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(response.status_code, 200, response.text)
         return body, response.json()
 
@@ -275,7 +275,7 @@ class HttpPersistenceAcceptanceTests(NativeBase):
         # process's buffer or append persistent history a second time.
         resumed_messages = copy.deepcopy(self.session.messages)
         history_before = self.client.get(f"/api/campaigns/{self.campaign['campaign_id']}").json()["history"]
-        replay = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+        replay = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(replay.status_code, 200, replay.text)
         original["session_id"] = self.sid
         self.assertEqual(replay.json(), original)
@@ -289,13 +289,13 @@ class HttpPersistenceAcceptanceTests(NativeBase):
         body, _ = self.call(owner.START)
         before = self.canonical()
         body["message"] = "Farklı bir hamle"
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json=body)
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json=body)
         self.assertEqual(response.status_code, 409)
         self.assertEqual(before, self.canonical())
 
     def test_unrelated_free_text_still_requires_existing_model_service(self):
         before = self.canonical()
-        response = self.client.post(f"/api/sessions/{self.sid}/turn", json={"action_id": str(uuid4()), "message": "Etrafa bakıyorum"})
+        response = self.client.post(f"/api/game/sessions/{self.sid}/turn", json={"action_id": str(uuid4()), "message": "Etrafa bakıyorum"})
         self.assertEqual(response.status_code, 503)
         self.assertEqual(before, self.canonical())
 
@@ -332,7 +332,7 @@ class MovementRegressionBase(NativeBase):
         history = self.client.get(f"/api/campaigns/{self.campaign['campaign_id']}").json()["history"]
         messages = copy.deepcopy(self.session.messages)
         endpoint = "species-actions" if species_endpoint else "turn"
-        replay = self.client.post(f"/api/sessions/{self.sid}/{endpoint}", json=body)
+        replay = self.client.post(f"/api/game/sessions/{self.sid}/{endpoint}", json=body)
         self.assertEqual(replay.status_code, 200, replay.text)
         self.assertEqual(replay.json(), dict(original, session_id=self.sid))
         self.assertEqual(before, self.canonical())
@@ -435,7 +435,7 @@ class CloudJauntRegressionTests(MovementRegressionBase):
         self.enter()
         body = {"action": "cloud_jaunt", "action_id": str(uuid4())}
         uses = self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"]
-        response = self.client.post(f"/api/sessions/{self.sid}/species-actions", json=body)
+        response = self.client.post(f"/api/game/sessions/{self.sid}/species-actions", json=body)
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"],
                          uses - 1)
@@ -460,7 +460,7 @@ class CloudJauntRegressionTests(MovementRegressionBase):
         # Negative fixture only: exhaust uses, never supply geometry.
         self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"] = 0
         before = self.canonical()
-        response = self.client.post(f"/api/sessions/{self.sid}/species-actions", json={
+        response = self.client.post(f"/api/game/sessions/{self.sid}/species-actions", json={
             "action": "cloud_jaunt", "action_id": str(uuid4()),
         })
         self.assertEqual(response.status_code, 409, response.text)
@@ -479,7 +479,7 @@ class CloudJauntRegressionTests(MovementRegressionBase):
     def test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng(self):
         world = copy.deepcopy(self.session.world_state)
         rng = self.session.rng.getstate()
-        response = self.client.post(f"/api/sessions/{self.sid}/species-actions", json={
+        response = self.client.post(f"/api/game/sessions/{self.sid}/species-actions", json={
             "action": "cloud_jaunt", "action_id": str(uuid4()),
         })
         self.assertEqual(response.status_code, 200, response.text)

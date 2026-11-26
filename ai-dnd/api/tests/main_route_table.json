@@ -238,19 +238,6 @@ false,
 "[]"
 ],
 [
-"/api/sessions",
-[
-"POST"
-],
-"create_session",
-null,
-null,
-true,
-"<class 'api.schemas.SessionResponse'>",
-false,
-"[]"
-],
-[
 "/api/game/sessions",
 [
 "POST"
@@ -420,19 +407,6 @@ false,
 "[]"
 ],
 [
-"/api/sessions/{session_id}/state",
-[
-"GET"
-],
-"read_state",
-null,
-null,
-true,
-"dict[str, typing.Any]",
-false,
-"[]"
-],
-[
 "/api/game/sessions/{session_id}/state",
 [
 "GET"
@@ -485,19 +459,6 @@ false,
 "[]"
 ],
 [
-"/api/sessions/{session_id}/turn",
-[
-"POST"
-],
-"play_turn",
-null,
-null,
-true,
-"<class 'api.schemas.TurnResponse'>",
-false,
-"[]"
-],
-[
 "/api/game/sessions/{session_id}/turn",
 [
 "POST"
@@ -507,19 +468,6 @@ null,
 null,
 true,
 "<class 'api.schemas.TurnResponse'>",
-false,
-"[]"
-],
-[
-"/api/sessions/{session_id}/undo",
-[
-"POST"
-],
-"undo_last_turn",
-null,
-null,
-true,
-"<class 'api.schemas.TurnUndoResponse'>",
 false,
 "[]"
 ],
@@ -537,37 +485,11 @@ false,
 "[]"
 ],
 [
-"/api/sessions/{session_id}/quests/{quest_id}/accept",
-[
-"POST"
-],
-"accept_quest",
-null,
-null,
-true,
-"<class 'api.schemas.QuestCommandResult'>",
-false,
-"[]"
-],
-[
 "/api/game/sessions/{session_id}/quests/{quest_id}/accept",
 [
 "POST"
 ],
 "accept_quest",
-null,
-null,
-true,
-"<class 'api.schemas.QuestCommandResult'>",
-false,
-"[]"
-],
-[
-"/api/sessions/{session_id}/quests/{quest_id}/cancel",
-[
-"POST"
-],
-"cancel_quest",
 null,
 null,
 true,
@@ -602,19 +524,6 @@ false,
 "[]"
 ],
 [
-"/api/sessions/{session_id}/species-actions",
-[
-"POST"
-],
-"resolve_species_trait_action_compat",
-null,
-null,
-true,
-"<class 'api.schemas.SpeciesTraitCommandResult'>",
-false,
-"[]"
-],
-[
 "/api/game/sessions/{session_id}/spellcasting/prepare",
 [
 "GET"
@@ -641,19 +550,6 @@ false,
 "[]"
 ],
 [
-"/api/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
-[
-"POST"
-],
-"resolve_ambient_event_action",
-null,
-null,
-true,
-"<class 'api.schemas.AmbientEventCommandResult'>",
-false,
-"[]"
-],
-[
 "/api/game/sessions/{session_id}/ambient-events/{event_instance_id}/actions",
 [
 "POST"
@@ -663,19 +559,6 @@ null,
 null,
 true,
 "<class 'api.schemas.AmbientEventCommandResult'>",
-false,
-"[]"
-],
-[
-"/api/sessions/{session_id}/level-up",
-[
-"GET"
-],
-"preview_earned_level_up",
-null,
-null,
-false,
-"<class 'api.schemas.LevelUpPreviewResponse'>",
 false,
 "[]"
 ],
@@ -703,19 +586,6 @@ null,
 true,
 "<class 'api.schemas.ShopCounterResponse'>",
 true,
-"[]"
-],
-[
-"/api/sessions/{session_id}/level-up",
-[
-"POST"
-],
-"apply_earned_level_up",
-null,
-null,
-false,
-"<class 'api.schemas.LevelUpCommandResult'>",
-false,
 "[]"
 ],
 [

@@ -381,7 +381,7 @@ def _post_turn(
     if target_id is not None:
         payload["target_id"] = target_id
     response = client.post(
-        f"{base_url}/api/sessions/{session_id}/turn",
+        f"{base_url}/api/game/sessions/{session_id}/turn",
         json=payload,
         timeout=240,
     )
