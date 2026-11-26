@@ -24,3 +24,5 @@ Task G1.8: complete (branch task/borc-g18-20261126, head 1e978cdc, merge 5886f80
 Task DK1.1: complete (branch task/borc-dk11-20261126, head d827a075, merge a8212fef)
 Task DK1.2: complete (branch task/borc-dk12-20261126, head d5aa5402, merge ffd9213a)
 Task DK1.A: complete (branch task/borc-dk1a-20261126, head b0596a63015556a5477536b9e6e03fadd5c9116d, merge 2d6e77bc8ffe553804ba75689725753faa40aea0)
+
+Task DK1.B: complete (branch task/borc-dk1b-20261126, head 1ce42a4bf57137b82a7e3447b18fe03b5d93aa35, merge 205f151af75a8d568b7755046f61231c783c9f5a)
