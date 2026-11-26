@@ -25,8 +25,7 @@ Kurallar için tek kaynak `CLAUDE.md`'dir ("Çalışma ve test disiplini", "Sahi
 ## Arayüz
 
 - Kampanya ve oyun arayüzü: `artifacts/ai-dnd-experience`
-- `artifacts/ai-dnd-web`: yalnız oturum yüzeyi, kampanya özelliği yok
-- `artifacts/api-server`: oyun API'si değildir
+- Oyun API'si FastAPI'dir (`ai-dnd/api`); `artifacts/` altında başka arayüz ya da API paketi yoktur (`api-server` ve `ai-dnd-web` kaldırıldı)
 
 ## Eski kayıtlar
 

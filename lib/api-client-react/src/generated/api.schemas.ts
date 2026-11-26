@@ -3904,7 +3904,7 @@ export type CharacterCreateInputAbilityScores = { [key: string]: unknown } | nul
 export type CharacterCreateInputBackgroundAbilityBonuses = { [key: string]: unknown } | null;
 
 /**
- * Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
+ * Custom mode requires a non-null name, class, and species (race is the older alias for species and is accepted instead of it). Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
  */
 export interface CharacterCreateInput {
   mode: CharacterCreateInputMode;

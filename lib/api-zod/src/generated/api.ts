@@ -17908,7 +17908,7 @@ export const CreateCampaignBody = zod.strictObject({
   "appearance": zod.string().max(createCampaignBodyCharacterOneAppearanceMax).nullish(),
   "personality": zod.string().max(createCampaignBodyCharacterOnePersonalityMax).nullish(),
   "backstory": zod.string().max(createCampaignBodyCharacterOneBackstoryMax).nullish()
-}).describe('Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
+}).describe('Custom mode requires a non-null name, class, and species (race is the older alias for species and is accepted instead of it). Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.strictObject({
   "setting_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneSettingIdMax),
   "region_pack_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneRegionPackIdMax),
@@ -24478,7 +24478,7 @@ export const CreateLegacyCampaignBody = zod.strictObject({
   "appearance": zod.string().max(createLegacyCampaignBodyCharacterOneAppearanceMax).nullish(),
   "personality": zod.string().max(createLegacyCampaignBodyCharacterOnePersonalityMax).nullish(),
   "backstory": zod.string().max(createLegacyCampaignBodyCharacterOneBackstoryMax).nullish()
-}).describe('Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
+}).describe('Custom mode requires a non-null name, class, and species (race is the older alias for species and is accepted instead of it). Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.strictObject({
   "setting_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneSettingIdMax),
   "region_pack_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneRegionPackIdMax),
