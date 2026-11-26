@@ -116,9 +116,6 @@ export function MonkStartingLevelControl(props: Omit<LevelControlProps, 'metadat
 export function FighterStartingChoices(props: Omit<ChoicesProps, 'metadata'> & { metadata?: FighterStartingCreationOptions }) { return SimpleStartingChoices({ cls: 'fighter', ...props }); }
 export function RogueStartingChoices(props: Omit<ChoicesProps, 'metadata'> & { metadata?: RogueStartingCreationOptions }) { return SimpleStartingChoices({ cls: 'rogue', ...props }); }
 export function MonkStartingChoices(props: Omit<ChoicesProps, 'metadata'> & { metadata?: MonkStartingCreationOptions }) { return SimpleStartingChoices({ cls: 'monk', ...props }); }
-export function FighterStartingScope(props: { metadata?: FighterStartingCreationOptions; level?: number }) { return SimpleStartingScope({ cls: 'fighter', ...props }); }
-export function RogueStartingScope(props: { metadata?: RogueStartingCreationOptions; level?: number }) { return SimpleStartingScope({ cls: 'rogue', ...props }); }
-export function MonkStartingScope(props: { metadata?: MonkStartingCreationOptions; level?: number }) { return SimpleStartingScope({ cls: 'monk', ...props }); }
 export function FighterStartingSummary(props: { draft: StartingDraft; metadata?: FighterStartingCreationOptions }) { return SimpleStartingSummary({ cls: 'fighter', ...props }); }
 export function RogueStartingSummary(props: { draft: StartingDraft; metadata?: RogueStartingCreationOptions }) { return SimpleStartingSummary({ cls: 'rogue', ...props }); }
 export function MonkStartingSummary(props: { draft: StartingDraft; metadata?: MonkStartingCreationOptions }) { return SimpleStartingSummary({ cls: 'monk', ...props }); }

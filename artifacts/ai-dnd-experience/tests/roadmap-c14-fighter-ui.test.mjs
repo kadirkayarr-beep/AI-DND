@@ -114,7 +114,7 @@ test('starting components show the live levels and the server scope, and choosin
   const select = byId(tree, 'fighter-starting-level');
   select.props.onChange({ target: { value: '4' } }); assert.equal(picked, undefined);
   select.props.onChange({ target: { value: '3' } }); assert.equal(picked, 3);
-  const html = render(React.createElement(ui.FighterStartingScope, { metadata: helper.readFighterStartingCreationOptions(raw5()), level: 5 }));
+  const html = render(React.createElement(ui.FighterStartingLevelControl, { draft: draftN(5), metadata: helper.readFighterStartingCreationOptions(raw5()), onChange: () => {}, onRetry: () => {} }));
   assert.match(html,/>1 özellik</);assert.doesNotMatch(html,/Extra Attack supported/);assert.match(html,/Bu seviyede oyunda işleyenler/); assert.match(html,/Bu seviyedeki 1 özellik henüz oyunda tam işlemiyor\./);assert.doesNotMatch(html,/Higher-start equipment pending/); assert.doesNotMatch(html, /Second Wind supported/);
   const missing = render(React.createElement(ui.FighterStartingLevelControl, { draft: draftN(3), onChange: () => {}, onRetry: () => {} }));
   assert.match(missing, /kullanılamıyor/);

@@ -12,11 +12,15 @@ import copy
 import os
 import unittest
 import uuid
+from typing import Any
 from unittest.mock import patch
+
+import httpx
 
 os.environ.setdefault("AI_DND_DISABLE_DEFAULT_APP", "1")
 
 from api.main import create_app  # noqa: E402
+from api.session_manager import SessionManager  # noqa: E402
 import api.tests.test_campaign_api as campaign_api  # noqa: E402
 from api.tests.town_seed import default_town  # noqa: E402
 
@@ -28,7 +32,9 @@ NEVERWINTER_START = {
 }
 
 
-class AmbientEventRouteExits(unittest.IsolatedAsyncioTestCase):
+class AmbientEventRouteExitsTests(unittest.IsolatedAsyncioTestCase):
+    http: httpx.AsyncClient
+    manager: SessionManager
     asyncSetUp = campaign_api.CampaignApiTests.asyncSetUp
     asyncTearDown = campaign_api.CampaignApiTests.asyncTearDown
     create_campaign = campaign_api.CampaignApiTests.create_campaign
@@ -102,7 +108,9 @@ class AmbientEventRouteExits(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.observed(), settled)
 
 
-class DeathRollbackWritesNoJournal(unittest.IsolatedAsyncioTestCase):
+class DeathRollbackWritesNoJournalTests(unittest.IsolatedAsyncioTestCase):
+    http: httpx.AsyncClient
+    manager: SessionManager
     asyncSetUp = campaign_api.CampaignApiTests.asyncSetUp
     asyncTearDown = campaign_api.CampaignApiTests.asyncTearDown
 
@@ -138,7 +146,9 @@ class DeathRollbackWritesNoJournal(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(after, before, "control: a normal turn changes the journal, so the rollback case means something")
 
 
-class TurnIndexAndUndo(unittest.IsolatedAsyncioTestCase):
+class TurnIndexAndUndoTests(unittest.IsolatedAsyncioTestCase):
+    http: httpx.AsyncClient
+    manager: SessionManager
     asyncSetUp = campaign_api.CampaignApiTests.asyncSetUp
     asyncTearDown = campaign_api.CampaignApiTests.asyncTearDown
 
@@ -163,10 +173,11 @@ class TurnIndexAndUndo(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(restored.messages), messages_before)
 
 
-class RouteTableAliases(unittest.TestCase):
+class RouteTableAliasesTests(unittest.TestCase):
     def routes(self):
         app = create_app(ollama_adapter=None, authenticator=None)
-        return [(method, route.path, route.name) for route in app.routes for method in sorted(getattr(route, "methods", None) or [])]
+        routes: list[Any] = list(app.routes)  # Mount and websocket routes have no methods or no name; read them untyped
+        return [(method, route.path, route.name) for route in routes for method in sorted(getattr(route, "methods", None) or [])]
 
     def test_no_duplicate_method_path_pairs(self):
         pairs = [(method, path) for method, path, _ in self.routes()]
