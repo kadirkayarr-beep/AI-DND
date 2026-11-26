@@ -2,7 +2,7 @@
 
 The model reads a line said in conversation once (front_proposal); Python checks the ids it names. The old word
 routes ask `old_owner_allowed` before they answer, so they are the fallback and not a second reader.
-Nothing here writes game state."""
+Nothing here writes game state, except `remember_verified_focus`, which only calls the engine's own focus writers."""
 
 from __future__ import annotations
 
@@ -48,6 +48,25 @@ def old_owner_allowed(front: dict | None, owner: str) -> bool:
     if front is None or not is_plain_talk(front):
         return True
     return owner == "shop_presence" and front.get("asks") == "shop"
+
+
+def remember_verified_focus(session, player_input, npc, spoken, action_id) -> None:
+    """D-413, D-414: the reading made this line talk to `npc` and they answered by speech, so no old owner wrote the
+    conversation focus. Python writes only what it can check itself: the locked inn it knows, or the one profile fact
+    the spoken answer repeats word for word (never the model's own word for the topic)."""
+    import game
+    import interaction_adventure
+    import local_dialogue
+    if getattr(session, "_front_kind", None) != "speak_to":
+        return
+    game._remember_owner_locked_tavern_focus(player_input, npc, action_id)
+    profile = npc.get("personal_profile") if isinstance(npc, dict) else None
+    said = local_dialogue.normalize_text(spoken)
+    facts = {field: local_dialogue.normalize_text(profile.get(field)) if isinstance(profile, dict) else ""
+             for field in interaction_adventure.SHAREABLE_PROFILE_FIELDS}
+    repeated = [field for field, fact in facts.items() if fact and fact in said]
+    if len(repeated) == 1:
+        game._remember_accepted_profile_focus(player_input, npc, action_id, field=repeated[0])
 
 
 def current(session) -> dict | None:
