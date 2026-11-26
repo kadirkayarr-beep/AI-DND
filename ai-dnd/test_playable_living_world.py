@@ -19,7 +19,7 @@ import grounded_action
 from api.serializers import serialize_session_state, serialize_combat_result
 from api.campaign_journal import empty_campaign_journal, update_campaign_journal
 import front_proposal
-from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
+from api.tests.front_reading import reading_only
 
 
 class PlayableLivingWorldTests(unittest.TestCase):

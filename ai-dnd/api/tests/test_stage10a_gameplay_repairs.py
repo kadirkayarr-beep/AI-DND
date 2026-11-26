@@ -7,7 +7,7 @@ import combat_lifecycle
 import front_proposal
 import game
 import quest_catalog
-from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
+from api.tests.front_reading import reading_only
 from local_dialogue import (
     explicit_player_name_disclosure,
     quest_availability_question,

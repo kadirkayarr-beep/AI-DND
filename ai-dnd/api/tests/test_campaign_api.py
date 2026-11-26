@@ -24,6 +24,7 @@ import httpx
 import adventure.templates as adventure_templates
 import adventure.transitions as adventure_transitions
 from api.tests.town_seed import default_town
+from api.tests.front_reading import UnscriptedReadingError, call_kind, with_reading as read_first
 
 TOWN_SEED = 8050
 
@@ -139,27 +140,14 @@ class PublicDetailSpeechClient:
             {"spoken_text": self.line, "stage_direction": ""}, ensure_ascii=False)}}
 
 
-def call_kind(schema):
-    """A model call's kind by its requested schema (the order of journeys.runner.call_kind, which imports this file):
-    the front reading's schema also carries the classifier's fields, so ``front`` is looked at before ``intent``."""
-    properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
-    for key, kind in (("arrival", "arrival"), ("front", "front"), ("intent", "intent"), ("spoken_text", "speech"),
-                      ("steps", "steps"), ("narration", "narration")):
-        if key in properties:
-            return kind
-    return None
-
-
-def read_first(*kinds):
-    """What one line spends, by kind: flag on, the front reading is asked first (owner rule G1, 2026-11-19)."""
-    return (["front"] if front_proposal.enabled() else []) + list(kinds)
-
-
 class FakeOllamaClient:
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
 
     def chat(self, *args, **kwargs):
+        if call_kind(kwargs.get("format")) == "front":
+            # D-410: the engine swallows a failed reading; this one says by name that none was scripted
+            raise UnscriptedReadingError(type(self).__name__)
         raise AssertionError("Campaign API tests must not call a real model.")
 
 
@@ -2819,6 +2807,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                      else ["intent"] if path == "conditional_hint" else ["speech"])
                     self.assertEqual(calls_after_replay, calls_after_first)
                     self.assertEqual(replay.json(), first.json())
+                if path == "conditional_hint":
+                    with self.subTest(path=path, check="the queued proposal was read"):
+                        # D-415: the proposal left the queue on the first turn, so it was read and rejected there (a
+                        # reading that could not take it would leave it queued and the test would prove nothing).
+                        self.assertEqual(client.conversation_replies, [])
                 with self.subTest(path=path, check="no interaction or memory effects"):
                     self.assertEqual(after_first, before)
                     self.assertEqual(after_replay, before)
@@ -8194,10 +8187,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         # Unexpected model calls fail offline rather than inventing lore; only the front reading is answered.
-        from api.tests.test_ai_freedom_resolution_boundary import _reading_only
+        from api.tests.front_reading import reading_only
         kinds = []
         reading_model = FakeOllamaClient()
-        reading_model.chat = _reading_only(kinds)
+        reading_model.chat = reading_only(kinds)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(reading_model),

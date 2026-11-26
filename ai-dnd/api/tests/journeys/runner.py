@@ -50,6 +50,7 @@ from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
+from api.tests.front_reading import call_kind, schema_properties
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.journeys.report import scenario_outcome
 from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect, check_invariant, check_start_hour
@@ -157,23 +158,6 @@ class StepResult:
     varis: Mapping[str, Any] | None = None
 
 
-def _properties(schema: Any) -> Mapping[str, Any]:
-    properties = schema.get("properties", {}) if isinstance(schema, Mapping) else {}
-    return properties if isinstance(properties, Mapping) else {}
-
-
-def call_kind(schema: Any) -> str | None:
-    """The model call's kind, told apart by its requested schema: ``arrival`` (looked at first: its schema carries
-    ``narration`` too), ``front``, ``intent``, ``speech``, ``steps``, ``narration``, or None for a call no scenario
-    can script."""
-    properties = _properties(schema)
-    for key, kind in (("arrival", "arrival"), ("front", "front"), ("intent", "intent"), ("spoken_text", "speech"), ("steps", "steps"),
-                      ("narration", "narration")):
-        if key in properties:
-            return kind
-    return None
-
-
 class NarratorInput:
     """The engine's model call for one step, wrapped: every call goes through unchanged, and the messages of
     each narrator call are kept, and apart from them the messages of the last speech call. It sits on
@@ -255,7 +239,7 @@ class ScriptedClient(fixtures.FakeOllamaClient):
         self.unexpected: list[list[str]] = []
 
     def chat(self, *args, **kwargs):
-        properties = _properties(kwargs.get("format"))
+        properties = schema_properties(kwargs.get("format"))
         kind = call_kind(kwargs.get("format"))
         if kind == "front":
             packet = {**self._intent_packet(properties), "front": self._front()}

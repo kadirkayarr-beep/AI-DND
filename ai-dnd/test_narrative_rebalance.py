@@ -14,7 +14,7 @@ import living_world
 import interaction_adventure
 import campaign_time
 import front_proposal
-from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
+from api.tests.front_reading import reading_only
 
 
 

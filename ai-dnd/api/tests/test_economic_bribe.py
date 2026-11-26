@@ -73,6 +73,21 @@ class Arrest(unittest.TestCase):
     def fighting(self):
         return bool(self.w.get("combat", {}).get("active"))
 
+    def assert_room_coin_is_only_noted(self, result, pressed):
+        """Five coppers to the innkeeper under arrest (D-421 2): no bribe card, no payment, one press, and the money
+        owner's decision is unclear with the coin noted for the innkeeper's turn only. Returns that decision."""
+        self.assertEqual(len(pressed), 1)
+        self.assertEqual(bribe_cards(self.w), [])
+        self.assertNotIn("bribe_card_opened", self.deed()["hold"])
+        decision = money_owner.current(self.s)
+        self.assertEqual((decision.kind, decision.npc_id, decision.amount_cp, decision.source),
+                         ("unclear", "barman", 5, "structural"))
+        self.assertEqual(self.prepared(), [], result["narration"])
+        self.assertNotIn(bold_acts.COIN_NOT_TENDERED, result["narration"])
+        self.assertEqual(self.w["currency"]["player"], 500)
+        self.assertIn(("barman", money_owner.unclear_note(5)), self.s._turn_notes)
+        return decision
+
     def counting(self, name):
         calls = []
         real = getattr(world_reactions, name)
@@ -211,20 +226,11 @@ class TheBribeCard(Arrest):
         pressed, spy = self.counting("_press")
         with spy:
             result = self.s.run_player_turn("hancıya 5 bakır verip oda tutuyorum")
-        self.assertEqual(len(pressed), 1)
-        self.assertEqual(bribe_cards(self.w), [])
-        self.assertNotIn("bribe_card_opened", self.deed()["hold"])
         del deed
         # Design §12 D29 (plan Task 8): five coppers fit neither an open offer nor the room's price, so the money
         # owner's decision is unclear; the room words are not read for it. No card opens, nothing is paid, and the
         # coin is noted for the innkeeper's turn only.
-        decision = money_owner.current(self.s)
-        self.assertEqual((decision.kind, decision.npc_id, decision.amount_cp, decision.source),
-                         ("unclear", "barman", 5, "structural"))
-        self.assertEqual(self.prepared(), [], result["narration"])
-        self.assertNotIn(bold_acts.COIN_NOT_TENDERED, result["narration"])
-        self.assertEqual(self.w["currency"]["player"], 500)
-        self.assertIn(("barman", money_owner.unclear_note(5)), self.s._turn_notes)
+        self.assert_room_coin_is_only_noted(result, pressed)
         # Coin held out with nobody named goes to the guard's word.
         self.s._coin_paid = None
         self.s._front_coin = 5
@@ -266,13 +272,7 @@ class AFailedReadingStillDecidesTheCoin(Arrest):
         self.assertEqual(self.s._front_route, "fallback:failed")
         self.assertEqual([(d.kind, d.npc_id, d.amount_cp, d.source) for d in made],
                          [("unclear", "barman", 5, "structural")])
-        self.assertIs(money_owner.current(self.s), made[0])
-        self.assertIn(("barman", money_owner.unclear_note(5)), self.s._turn_notes)
-        self.assertEqual(bribe_cards(self.w), [])
-        self.assertEqual(self.prepared(), [], result["narration"])
-        self.assertEqual(self.w["currency"]["player"], 500)
-        self.assertEqual(len(pressed), 1)
-        self.assertNotIn("bribe_card_opened", self.deed()["hold"])
+        self.assertIs(self.assert_room_coin_is_only_noted(result, pressed), made[0])  # the structural decision, once
 
     def test_an_unusable_reading_is_a_failed_reading_for_the_coin(self):
         self.held()
@@ -289,9 +289,11 @@ class AFailedReadingStillDecidesTheCoin(Arrest):
         self.assertEqual(self.w["currency"]["player"], 500)
 
     def test_a_failed_reading_puts_coin_held_out_to_nobody_to_the_arresting_guard(self):
-        self.held()
+        self.held(since=world_reactions.ARREST_PATIENCE + 3)
         made, spy = self.deciding()
-        with spy:
+        forced, forcing = self.counting("_force")
+        pressed, pressing = self.counting("_press")
+        with spy, forcing, pressing:
             result = self.s.run_player_turn("100 bakır uzatıyorum")
         self.assertEqual(self.s._front_route, "fallback:failed")
         self.assertEqual([(d.kind, d.npc_id, d.amount_cp, d.source) for d in made],
@@ -300,6 +302,11 @@ class AFailedReadingStillDecidesTheCoin(Arrest):
         self.assertEqual((card["status"], card["proposal"]["recipient_id"], card["proposal"]["amount_cp"]),
                          ("prepared", "guard", 100), result["narration"])
         self.assertEqual(self.w["currency"]["player"], 500)  # the card moves nothing until it is confirmed
+        # D-411: the first card of a hold pauses that turn's escalation, as when the coin was planted (TheBribeCard)
+        self.assertEqual(pressed, [])  # the turn the first card opens is settled there: the guard is not pressed at all
+        self.assertEqual(forced, [])
+        self.assertFalse(self.fighting())
+        self.assertIs(self.deed()["hold"]["bribe_card_opened"], True)
 
     def test_a_failed_reading_with_coin_for_nobody_found_keeps_it_in_hand_and_asks_who(self):
         # No arrest: the structural decision names nobody, so it is not kept; the coin waits in hand with no decision
@@ -346,7 +353,8 @@ class BribeConfirmations(EconomicHttpFixture):
     async def open_bribe(self, amount=100):
         self.hold_by_guard()
         session = self.record.game_session
-        with planted(session, _bribe_held_out=amount),                 patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        with planted(session, _bribe_held_out=amount), \
+                patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
             session.run_player_turn("/item list")
         self.save()
         [card] = bribe_cards(self.world)
