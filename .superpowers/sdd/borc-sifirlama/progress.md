@@ -17,3 +17,6 @@ Task G1.1: complete (branch task/borc-g11-20261126, head 510a64a6, merge d6a0563
 - Ruling: flag-on runs in round 1 for G0.2, G1.1, G1.4 used labels without the fon token, so they ran flag-off; G1.1 and G1.4 rechecked flag-on in round 2 Recheck; G0.2 had no code change.
 Task G1.5: complete (branch task/borc-g15-20261126, head 91935555, merge 1ab4a501)
 Task G1.2: complete (branch task/borc-g12-20261126, head f6f59c4d, merge 3f65ba71)
+Task G1.6: complete (branch task/borc-g16-20261126, head a336aa12, merge 79390bba)
+Task G1.7: complete (branch task/borc-g17-20261126, head 485f3bb6, merge f97afe77)
+Task G1.3: complete (branch task/borc-g13-20261126, head 08ecabab, merge 322eb7ec)
