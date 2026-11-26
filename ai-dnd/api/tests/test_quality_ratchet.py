@@ -22,6 +22,8 @@ from quality_gate.ratchet import (  # noqa: E402
     compare,
     count_findings,
     finding_key,
+    load_baseline,
+    parse_radon,
     parse_ruff,
 )
 
@@ -444,6 +446,62 @@ class PythonGateTests(unittest.TestCase):
             self.assertRegex(ln, r"^[A-Za-z_][\w.]*  # unused .+$", ln)
             self.assertNotIn('"', ln.split("#", 1)[0])
             self.assertNotIn("'", ln.split("#", 1)[0])
+
+
+
+# G1.8 (D-592): the radon complexity ratchet. A function of rank E or F may get simpler, never more complex; a new one fails.
+def radon_block(name, cc, classname=None, closures=()):
+    row = {"type": "method" if classname else "function", "rank": "F", "complexity": cc, "lineno": 1, "endline": 9,
+           "name": name, "col_offset": 0, "closures": list(closures)}
+    if classname:
+        row["classname"] = classname
+    return row
+
+
+def radon_report(**files):
+    return json.dumps({path.replace("__", "/"): blocks for path, blocks in files.items()})
+
+
+class TestRadonRatchet(unittest.TestCase):
+    def counts(self, text):
+        return count_findings(parse_radon(text))
+
+    def test_only_rank_e_and_f_are_findings(self):
+        text = radon_report(a=[radon_block("big", 31), radon_block("edge", 30), radon_block("small", 5)])
+        self.assertEqual(self.counts(text), {"radon|a|cc|big": 31})
+
+    def test_class_and_closure_names_are_part_of_the_key(self):
+        text = radon_report(a=[radon_block("run", 40, classname="Game", closures=[radon_block("inner", 33)])])
+        self.assertEqual(self.counts(text), {"radon|a|cc|Game.run": 40, "radon|a|cc|Game.run.inner": 33})
+
+    def test_a_windows_path_is_the_same_key(self):
+        win = json.dumps({"game_parts" + chr(92) + "turn.py": [radon_block("f", 35)]})
+        self.assertEqual(self.counts(win), {"radon|game_parts/turn.py|cc|f": 35})
+
+    def test_simpler_is_fine_more_complex_and_new_fail(self):
+        base = self.counts(radon_report(a=[radon_block("f", 50), radon_block("g", 40)]))
+        self.assertEqual(compare(base, self.counts(radon_report(a=[radon_block("f", 44), radon_block("g", 40)]))), [])
+        self.assertEqual(compare(base, self.counts(radon_report(a=[radon_block("f", 51), radon_block("g", 40)]))),
+                         ["radon|a|cc|f: 51 found, baseline allows 50"])
+        self.assertEqual(compare(base, self.counts(radon_report(a=[radon_block("f", 50), radon_block("g", 40), radon_block("h", 31)]))),
+                         ["radon|a|cc|h: 31 found, baseline allows 0"])
+
+    def test_a_function_that_drops_below_the_bar_leaves_the_findings(self):
+        base = self.counts(radon_report(a=[radon_block("f", 50)]))
+        self.assertEqual(compare(base, self.counts(radon_report(a=[radon_block("f", 30)]))), [])
+
+    def test_a_radon_error_or_garbage_is_a_tool_error(self):
+        for text in ("", "not json", "[]", json.dumps({"a.py": "SyntaxError"})):
+            with self.subTest(text=text), self.assertRaises(ToolOutputError):
+                parse_radon(text)
+
+    def test_the_committed_baseline_is_loadable_and_names_the_three_split_functions(self):
+        baseline = load_baseline(ratchet.BASELINE_DIR / "radon.json")
+        for key in ("radon|game_parts/turn.py|cc|_run_player_turn_internal",
+                    "radon|game_parts/turn.py|cc|_dispatch_player_turn",
+                    "radon|game_parts/narration_safety.py|cc|_narration_safety_decision"):
+            self.assertIn(key, baseline)
+        self.assertTrue(all(v >= ratchet.RADON_MIN_CC for v in baseline.values()))
 
 
 if __name__ == "__main__":

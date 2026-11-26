@@ -19,37 +19,19 @@ def _nsd_speech_fields_narration(*, reject, speech_fields, world_state):
 
 def _nsd_door_open_claim(*, door, reject, text):
     if door:
-        open_claim = re.search(
-            r"(?:kapı|kapısı|giriş)\b.{0,35}\b"
-            r"(?:açıldı|açılır|açık|aralandı|aralanır|kırıldı|parçalandı)\b",
-            text,
+        # (what the narration says, whether the door's real state contradicts it); the first contradiction rejects
+        claims = (
+            ((r"(?:kapı|kapısı|giriş)\b.{0,35}\b"
+              r"(?:açıldı|açılır|açık|aralandı|aralanır|kırıldı|parçalandı)\b"), lambda: not door["open"]),
+            (r"(?:kapı|kapısı|giriş)\b.{0,35}\b(?:kapalı|kilitli)\b", lambda: door["open"]),
+            (r"(?:kapı|kapısı)\b.{0,35}\b(?:kırıldı|parçalandı|yıkıldı)", lambda: not door.get("broken", False)),
+            (r"(?:kilit|kapı|kapısı)\b.{0,35}\b(?:açıldı|kilitsiz|çözüldü)", lambda: door["locked"]),
+            (r"(?:kilit|kapı|kapısı)\b.{0,35}\bkilitli\b", lambda: not door["locked"]),
         )
-        closed_claim = re.search(
-            r"(?:kapı|kapısı|giriş)\b.{0,35}\b(?:kapalı|kilitli)\b",
-            text,
-        )
-        if open_claim and not door["open"]:
-            return reject("DOOR_STATE_CONTRADICTION", open_claim.group(0))
-        if closed_claim and door["open"]:
-            return reject("DOOR_STATE_CONTRADICTION", closed_claim.group(0))
-        broken_claim = re.search(
-            r"(?:kapı|kapısı)\b.{0,35}\b(?:kırıldı|parçalandı|yıkıldı)",
-            text,
-        )
-        if broken_claim and not door.get("broken", False):
-            return reject("DOOR_STATE_CONTRADICTION", broken_claim.group(0))
-        unlocked_claim = re.search(
-            r"(?:kilit|kapı|kapısı)\b.{0,35}\b(?:açıldı|kilitsiz|çözüldü)",
-            text,
-        )
-        if unlocked_claim and door["locked"]:
-            return reject("DOOR_STATE_CONTRADICTION", unlocked_claim.group(0))
-        locked_claim = re.search(
-            r"(?:kilit|kapı|kapısı)\b.{0,35}\bkilitli\b",
-            text,
-        )
-        if locked_claim and not door["locked"]:
-            return reject("DOOR_STATE_CONTRADICTION", locked_claim.group(0))
+        for pattern, contradicted in claims:
+            claim = re.search(pattern, text)
+            if claim and contradicted():
+                return reject("DOOR_STATE_CONTRADICTION", claim.group(0))
     return game._TURN_FALL_THROUGH
 
 

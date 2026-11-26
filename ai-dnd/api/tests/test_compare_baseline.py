@@ -1,18 +1,23 @@
 """compare_baseline: the wave gate's baseline comparison tool (debt-zero plan, G0.5)."""
+import contextlib
 import copy
 import importlib.util
+import io
 import json
-import subprocess
+import runpy
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 TOOL = Path(__file__).resolve().parents[3] / "docs" / "agents" / "kalite-taramasi-20261125" / "compare_baseline.py"
 
 
 def _load():
     spec = importlib.util.spec_from_file_location("compare_baseline", TOOL)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {TOOL}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -140,19 +145,30 @@ class CompareBaselineTests(unittest.TestCase):
         self.assertTrue(in_touched and outside)
         self.assertNotEqual(in_touched[0], outside[0])
 
+    def _cli(self, *args):
+        """Run the tool as a script, in this process: its exit code and what it printed."""
+        out = io.StringIO()
+        with (
+            mock.patch.object(sys, "argv", [str(TOOL), *args]),
+            contextlib.redirect_stdout(out),
+            self.assertRaises(SystemExit) as stop,
+        ):
+            runpy.run_path(str(TOOL), run_name="__main__")
+        return stop.exception.code, out.getvalue()
+
     def test_command_line_exit_codes(self):
         with tempfile.TemporaryDirectory() as tmp:
             base_path, new_path = Path(tmp, "b.json"), Path(tmp, "n.json")
             base_path.write_text(json.dumps(self.base), encoding="utf-8")
             new_path.write_text(json.dumps(self.base), encoding="utf-8")
-            ok = subprocess.run([sys.executable, str(TOOL), str(base_path), str(new_path)], capture_output=True, text=True)
-            self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
+            ok_code, ok_out = self._cli(str(base_path), str(new_path))
+            self.assertEqual(ok_code, 0, ok_out)
             grown = self._new()
             grown["tools"]["ruff_extra"]["B023|ai-dnd/x.py"] = 3
             new_path.write_text(json.dumps(grown), encoding="utf-8")
-            bad = subprocess.run([sys.executable, str(TOOL), str(base_path), str(new_path), "--touched", "ai-dnd/x.py"], capture_output=True, text=True)
-            self.assertEqual(bad.returncode, 1)
-            self.assertIn("B023|ai-dnd/x.py", bad.stdout)
+            bad_code, bad_out = self._cli(str(base_path), str(new_path), "--touched", "ai-dnd/x.py")
+            self.assertEqual(bad_code, 1)
+            self.assertIn("B023|ai-dnd/x.py", bad_out)
 
 
 if __name__ == "__main__":

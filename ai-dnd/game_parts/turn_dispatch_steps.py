@@ -9,6 +9,7 @@ from core_resolution import (
     resolution_action_scope,
 )
 import contextlib
+import typing
 import game
 
 
@@ -163,14 +164,15 @@ def _td_combat_mode(*, combat_action, interaction_mode, player_input, target_id)
 
 
 def _dpt_validate_combat_request(*, player_input, target_id):
+    session: typing.Any = game._session()  # the engine always has one; its per-turn attributes are set as turns run
     try:
-        combat_lifecycle.validate_request(game._session(), player_input, target_id)
+        combat_lifecycle.validate_request(session, player_input, target_id)
     except combat_lifecycle.CombatRequestError as error:
         if error.code != "combat_travel":
             raise
         # held for the turn's reading: a walk toward someone in the fight is combat movement (_approach_turn takes it);
         # any other reading of the line is refused as walking off, as before
-        game._session()._walk_off = error
+        session._walk_off = error
 
 
 def _dpt_surrendered_spell_question(*, action_id, player_input, session_id, spell_command, target_id):
@@ -184,58 +186,74 @@ def _dpt_surrendered_spell_question(*, action_id, player_input, session_id, spel
 
 
 def _dpt_native_exploration_command(*, action_id, combat_action, exploration, player_input, session_id):
-    if (combat_action is None and game._session().character.get("current_hp", 0) > 0
-            and exploration.native_request(player_input, game._session())):
+    session: typing.Any = game._session()
+    if (combat_action is None and session.character.get("current_hp", 0) > 0
+            and exploration.native_request(player_input, session)):
         with resolution_action_scope(action_id, session_id):
-            exploration_result = exploration.resolve_command(game._session(), player_input)
+            exploration_result = exploration.resolve_command(session, player_input)
         if exploration_result is not None:
             return exploration_result
     return game._TURN_FALL_THROUGH
 
 
+def _dpt_adventure_scene(*, action_id, player_input, session_id, talk):
+    # D-123: the quest shortcut's rolls (a check, the road's Survival) belong to this turn like any journey's.
+    with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+        return None if talk else game._adventure_scene_turn(player_input)
+
+
+def _dpt_grounded_local_act(*, action_id, interaction_mode, messages, player_input, session_id, target_id, talk):
+    """LR00 fix: read a local physical action once, bind it to a real target and let its owner resolve it
+    (grounded_action). None = older owners."""
+    import grounded_action
+    session: typing.Any = game._session()
+    if talk or game._scene_observation_proposal_turn(player_input, session.world_state, interaction_mode):
+        return None
+    if (living_world.is_anchored_structure_inquiry(player_input)
+            and living_world.affirmative_structure_inspection(player_input, interaction_mode)):
+        return None
+    with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
+        grounded = grounded_action.resolve_turn(
+            session, player_input, interaction_mode=interaction_mode, target_id=target_id,
+        )
+    if grounded is None:
+        return None
+    return game._spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
+
+
+def _dpt_local_place_or_everyday(*, front, player_input, talk):
+    local_place = None if talk else game._local_place_turn(player_input)
+    if local_place is not None:
+        return local_place
+    # BM Task 8: a reading that named something (a place, a person, a thing) belongs to that owner; the everyday
+    # words run only when there was no reading, or it said unclear / attempt.
+    return (game._everyday_action_turn(player_input)
+            if front is None or front["kind"] in {"unclear", "attempt"} else None)
+
+
 def _dpt_out_of_combat_commands(*, action_id, combat_action, front, interaction_mode, messages, player_input, session_id, target_id):
-    if (
+    session: typing.Any = game._session()
+    if not (
         combat_action is None
         and interaction_mode not in {"say", "ask_dm"}
-        and not game._session().world_state.get("combat", {}).get("active")
+        and not session.world_state.get("combat", {}).get("active")
     ):
-        hideout = adventure_play.resolve_dungeon_turn(game._session(), player_input, game._hideout_check)
-        if hideout is not None:
-            return hideout
-        # Read as talk, a look or sitting down: the words of a line walk nowhere. The route log shows these lost all traffic.
-        talk = front is not None and front["kind"] in {"talk_around", "look", "sit"}
-        # D-123: the quest shortcut's rolls (a check, the road's Survival) belong to this turn like any journey's.
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            scene = None if talk else game._adventure_scene_turn(player_input)
-        if scene is not None:
-            return scene
-        # LR00 fix: read a local physical action once, bind it to a real target
-        # and let its owner resolve it (grounded_action). None = older owners.
-        import grounded_action
-        if not talk and not game._scene_observation_proposal_turn(
-            player_input, game._session().world_state, interaction_mode
-        ) and not (
-            living_world.is_anchored_structure_inquiry(player_input)
-            and living_world.affirmative_structure_inspection(
-                player_input, interaction_mode
-            )
-        ):
-            with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-                grounded = grounded_action.resolve_turn(
-                    game._session(), player_input, interaction_mode=interaction_mode, target_id=target_id,
-                )
-            if grounded is not None:
-                return game._spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
-        local_place = None if talk else game._local_place_turn(player_input)
-        if local_place is not None:
-            return local_place
-        # BM Task 8: a reading that named something (a place, a person, a thing) belongs to that owner; the everyday
-        # words run only when there was no reading, or it said unclear / attempt.
-        everyday = (game._everyday_action_turn(player_input)
-                    if front is None or front["kind"] in {"unclear", "attempt"} else None)
-        if everyday is not None:
-            return everyday
-    return game._TURN_FALL_THROUGH
+        return game._TURN_FALL_THROUGH
+    hideout = adventure_play.resolve_dungeon_turn(session, player_input, game._hideout_check)
+    if hideout is not None:
+        return hideout
+    # Read as talk, a look or sitting down: the words of a line walk nowhere. The route log shows these lost all traffic.
+    talk = front is not None and front["kind"] in {"talk_around", "look", "sit"}
+    scene = game._dpt_adventure_scene(action_id=action_id, player_input=player_input, session_id=session_id, talk=talk)
+    if scene is not None:
+        return scene
+    grounded = game._dpt_grounded_local_act(action_id=action_id, interaction_mode=interaction_mode, messages=messages,
+                                            player_input=player_input, session_id=session_id, target_id=target_id,
+                                            talk=talk)
+    if grounded is not None:
+        return grounded
+    owned = game._dpt_local_place_or_everyday(front=front, player_input=player_input, talk=talk)
+    return owned if owned is not None else game._TURN_FALL_THROUGH
 
 
 def _dpt_free_dialogue(*, action_id, combat_action, interaction_mode, player_input, session_id, target_id):
@@ -274,8 +292,9 @@ def _dpt_narrative_spell(*, action_id, check_evidence, check_feature, combat_act
 
 def _dpt_owner_reply(*, owner_reply):
     if owner_reply is not None:
+        session: typing.Any = game._session()
         return {
-            "messages": game._session().messages,
+            "messages": session.messages,
             "narration": owner_reply.get("direct_response") or "",
             "model_calls": 0,
             "action_result": owner_reply,
@@ -330,9 +349,10 @@ def _dpt_stand_down(*, action_id, combat_action, player_input, session_id):
 
 
 def _dpt_active_combat_response(*, combat_action, monster_combat, player_input, target_id):
-    if combat_action is None and game._session().world_state.get("combat", {}).get("active"):
-        with initiative.atomic(game._session()):
-            proposal_result = monster_combat.player_response(game._session(), player_input, target_id)
+    session: typing.Any = game._session()
+    if combat_action is None and session.world_state.get("combat", {}).get("active"):
+        with initiative.atomic(session):
+            proposal_result = monster_combat.player_response(session, player_input, target_id)
             if proposal_result is not None:
                 return proposal_result
     return game._TURN_FALL_THROUGH
@@ -357,16 +377,18 @@ def _dpt_ends_in_speech(*, combat_action, front, interaction_mode, player_input,
 
 
 def _dpt_front_step_read(*, check_feature, combat_action, front_proposal, interaction_mode, player_input, read, target_id):
-    if (front_proposal.enabled() and not getattr(game._session(), "_front_ahead", False)
-            and not getattr(game._session(), "_front_strike", None)):
+    session: typing.Any = game._session()
+    if (front_proposal.enabled() and not getattr(session, "_front_ahead", False)
+            and not getattr(session, "_front_strike", None)):
         read = game._front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
-        game._session()._front_read = read
-        game._session()._front_ahead = True
+        session._front_read = read
+        session._front_ahead = True
     return read
 
 
 def _dpt_fallen_turn(*, action_id, messages, player_input, session_id, target_id):
-    if game._session().character.get("current_hp", 0) <= 0:
+    session: typing.Any = game._session()
+    if session.character.get("current_hp", 0) <= 0:
         # A body on the ground has no moves left: whatever is typed or clicked is this turn's save.
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
             return game._run_player_turn_internal(player_input, messages, target_id, {"direct_result": None},
@@ -386,11 +408,16 @@ def _dpt_natural_inventory_query(*, interaction_mode, player_input):
 
 
 def _dpt_front_gate(*, front, interaction_mode, player_input, target_id):
-    gate = (None if front is not None and (front.get("dropped") or front["kind"] == "wield"
-                                           or game._take_names_a_job(front))
-            else game._front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
-            else game._front_consume(front, player_input) if front is not None and front["kind"] == "consume"
-            else game._front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
-            else game._front_work(front, player_input) if front is not None and front["kind"] == "work"
-            else game._thread_gate(player_input, target_id, interaction_mode, front=front))
-    return gate
+    if front is None:
+        return game._thread_gate(player_input, target_id, interaction_mode, front=front)
+    if front.get("dropped") or front["kind"] == "wield" or game._take_names_a_job(front):
+        return None
+    if front["kind"] == "offer_answer":
+        return game._front_offer_gate(front, player_input)
+    if front["kind"] == "consume":
+        return game._front_consume(front, player_input)
+    if front["kind"] == "hand_over":
+        return game._front_hand_over(front, player_input)
+    if front["kind"] == "work":
+        return game._front_work(front, player_input)
+    return game._thread_gate(player_input, target_id, interaction_mode, front=front)

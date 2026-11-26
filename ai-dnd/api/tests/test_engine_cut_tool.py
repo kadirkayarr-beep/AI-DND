@@ -693,7 +693,9 @@ class TurnExitsLiftTests(unittest.TestCase):
             self.assertLess(fn.end_lineno - fn.lineno + 1, 151)
 
     # G1.8 (D-530): blocks cut out of _dispatch_player_turn with cut_block.py (cut_check CHANGED 0).
-    G18_DISPATCH_CUTS = {"_dpt_active_combat_response", "_dpt_bag_read", "_dpt_ends_in_speech",
+    # DK1.A: three more split out of _dpt_out_of_combat_commands to bring its radon rank back to B (gate growth fix).
+    G18_DISPATCH_CUTS = {"_dpt_active_combat_response", "_dpt_adventure_scene", "_dpt_bag_read", "_dpt_ends_in_speech",
+                         "_dpt_grounded_local_act", "_dpt_local_place_or_everyday",
                          "_dpt_equipment_economy", "_dpt_fallen_turn", "_dpt_flight",
                          "_dpt_free_dialogue", "_dpt_front_gate", "_dpt_front_step_read",
                          "_dpt_narrative_spell", "_dpt_native_exploration_command", "_dpt_natural_inventory_query",
