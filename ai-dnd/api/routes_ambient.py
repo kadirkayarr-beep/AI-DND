@@ -10,7 +10,7 @@ import copy
 import hashlib
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
@@ -27,6 +27,9 @@ from api.persistence.campaign_models import (
 )
 from api.schemas import AmbientEventActionRequest, AmbientEventCommandResult, AmbientEventResult
 from api.serializers import redact_sensitive_values
+
+
+AmbientStatus = Literal["APPLIED", "REJECTED", "NO_EFFECT", "ALREADY_APPLIED"]  # the status of AmbientEventResult
 
 
 @dataclass
@@ -52,7 +55,7 @@ class AmbientRun:
 
     def response_for(
         self,
-        status: str,
+        status: AmbientStatus,
         reason_code: str | None = None,
         transition_id: str | None = None,
         canonical_event_id: str | None = None,
@@ -85,19 +88,23 @@ class AmbientRun:
         if closed is not None:
             raise closed from None
 
-    def refuse_unsaved(self, error: Exception) -> None:
+    def unsaved_refusal(self, error: Exception) -> HTTPException:
+        """Put the live game back, log the error type only, and return the 500 for the caller to raise."""
         self.put_back()
         self.api_main._logger.error(
             "Ambient-event result could not be persisted (error_type=%s)",
             type(error).__name__,
         )
-        raise HTTPException(
+        return HTTPException(
             status_code=500,
             detail={
                 "code": "event_persistence_error",
                 "message": "The event result could not be saved safely.",
             },
-        ) from None
+        )
+
+    def refuse_unsaved(self, error: Exception) -> None:
+        raise self.unsaved_refusal(error) from None
 
 
 def register_ambient_routes(application: FastAPI, *, get_record: Any, require_current: Any, refuse_while_action_open: Any,
@@ -158,31 +165,7 @@ def _replay_stored_receipt(run: AmbientRun, campaign_http_exception: Any, action
     if previous.get("archived"):
         raise action_archived_error()
     try:
-        if "legacy_ambient_result" in previous:
-            prior = previous["legacy_ambient_result"]
-        elif "legacy_ambient_result" in previous["response"]:
-            prior = previous["response"]["legacy_ambient_result"]
-        else:
-            saved = AmbientEventCommandResult.model_validate(
-                previous["response"]["ambient_event_response"], strict=True,
-            )
-            if (
-                saved.result.action_id != run.action_id
-                or saved.result.event_instance_id != run.event_instance_key
-            ):
-                raise ValueError("Ambient event response identity mismatch.")
-            prior = saved.result.model_dump()
-        # Legacy receipts reserve identity without a complete HTTP
-        # response. Only validate the fields used by this projection.
-        if not isinstance(prior, dict) or any(
-            prior.get(key) is not None and (
-                not isinstance(prior[key], str) or len(prior[key]) > limit
-            )
-            for key, limit in (
-                ("transition_id", 160), ("canonical_event_id", 36),
-            )
-        ):
-            raise ValueError("Invalid ambient event projection.")
+        prior = _stored_projection(run, previous)
     except (KeyError, TypeError, ValueError):
         raise campaign_http_exception(
             CampaignCorruptError("Campaign ambient event response is invalid.")
@@ -192,37 +175,78 @@ def _replay_stored_receipt(run: AmbientRun, campaign_http_exception: Any, action
                             prior.get("transition_id"), prior.get("canonical_event_id"))
 
 
+def _stored_projection(run: AmbientRun, previous: dict[str, Any]) -> dict[str, Any]:
+    """The stored result of this action id; KeyError, TypeError or ValueError when the stored reply is unusable."""
+    if "legacy_ambient_result" in previous:
+        prior = previous["legacy_ambient_result"]
+    elif "legacy_ambient_result" in previous["response"]:
+        prior = previous["response"]["legacy_ambient_result"]
+    else:
+        saved = AmbientEventCommandResult.model_validate(
+            previous["response"]["ambient_event_response"], strict=True,
+        )
+        if (
+            saved.result.action_id != run.action_id
+            or saved.result.event_instance_id != run.event_instance_key
+        ):
+            raise ValueError("Ambient event response identity mismatch.")
+        prior = saved.result.model_dump()
+    # Legacy receipts reserve identity without a complete HTTP
+    # response. Only validate the fields used by this projection.
+    if not isinstance(prior, dict) or any(
+        prior.get(key) is not None and (
+            not isinstance(prior[key], str) or len(prior[key]) > limit
+        )
+        for key, limit in (
+            ("transition_id", 160), ("canonical_event_id", 36),
+        )
+    ):
+        raise ValueError("Invalid ambient event projection.")
+    return prior
+
+
 def _replay_from_journal(run: AmbientRun) -> dict[str, Any] | None:
     """An action id or event that the journal already holds: a conflict or ALREADY_APPLIED with the canonical event."""
     for event in reversed(run.record.journal.get("notable_events", [])):
-        prior = event.get("event_result")
-        if isinstance(prior, dict) and prior.get("action_id") == run.action_id and (
-            prior.get("event_instance_id") != run.event_instance_key
-            or prior.get("action") != run.request.action
-        ):
-            return run.response_for("REJECTED", "action_id_conflict")
-        if (
-            event.get("event_type") != "ambient_event_outcome"
-            or not isinstance(prior, dict)
-            or prior.get("event_instance_id") != run.event_instance_key
-        ):
-            continue
-        if (
-            prior.get("action_id") == run.action_id
-            and prior.get("action") != run.request.action
-        ):
-            return run.response_for(
-                "REJECTED",
-                "action_id_conflict",
-                canonical_event_id=event.get("event_id"),
-            )
+        replayed = _replay_for_event(run, event)
+        if replayed is not None:
+            return replayed
+    return None
+
+
+def _reuses_action_id_elsewhere(run: AmbientRun, prior: Any) -> bool:
+    """The action id was used already, for another event or another action."""
+    return isinstance(prior, dict) and prior.get("action_id") == run.action_id and (
+        prior.get("event_instance_id") != run.event_instance_key
+        or prior.get("action") != run.request.action
+    )
+
+
+def _replay_for_event(run: AmbientRun, event: dict[str, Any]) -> dict[str, Any] | None:
+    prior = event.get("event_result")
+    if _reuses_action_id_elsewhere(run, prior):
+        return run.response_for("REJECTED", "action_id_conflict")
+    if (
+        event.get("event_type") != "ambient_event_outcome"
+        or not isinstance(prior, dict)
+        or prior.get("event_instance_id") != run.event_instance_key
+    ):
+        return None
+    if (
+        prior.get("action_id") == run.action_id
+        and prior.get("action") != run.request.action
+    ):
         return run.response_for(
-            "ALREADY_APPLIED",
-            "event_already_resolved",
-            transition_id=prior.get("transition_id"),
+            "REJECTED",
+            "action_id_conflict",
             canonical_event_id=event.get("event_id"),
         )
-    return None
+    return run.response_for(
+        "ALREADY_APPLIED",
+        "event_already_resolved",
+        transition_id=prior.get("transition_id"),
+        canonical_event_id=event.get("event_id"),
+    )
 
 
 def _take_snapshots(run: AmbientRun) -> None:
@@ -236,117 +260,142 @@ def _take_snapshots(run: AmbientRun) -> None:
 
 
 def _resolve(run: AmbientRun) -> dict[str, Any] | None:
-    """The engine's click and the journal and response built from it; a refused click is returned, an applied one is staged."""
-    api_main, record, session = run.api_main, run.record, run.session
+    """The engine's click and the journal and response built from it; a refused click is returned, an applied one is staged.
+    Anything that goes wrong while staging puts the live game back and ends in the 500 (the handler always raises)."""
     try:
-        transition = session.resolve_ambient_event_action(
-            run.event_instance_key,
-            run.action_id,
-            run.request.action,
-        )
-        run.transition = transition
-        status = transition.get("status")
-        transition_id = transition.get("transition_id")
-        if status != "APPLIED":
-            api_main._rollback_session(record, session, run.snapshot)
-            record.journal = run.journal_snapshot
-            canonical_event_id = None
-            if status == "ALREADY_APPLIED" and isinstance(
-                transition_id, str
-            ):
-                canonical_event_id = next(
-                    (
-                        item.get("event_id")
-                        for item in reversed(
-                            record.journal.get("notable_events", [])
-                        )
-                        if item.get("event_type") == "npc_met"
-                        and item.get("related_npc_id") == transition_id
-                    ),
-                    None,
-                )
-            return run.response_for(
-                status,
-                transition.get("reason_code"),
-                transition_id=transition_id,
-                canonical_event_id=canonical_event_id,
-                # The panel's line for a refused click; nothing changed, so the last turn's undo stands.
-                message=refusals.text_for(transition.get("reason_code"))
-                if status == "REJECTED" else None,
-            )
+        return _click_and_stage(run)
+    except Exception as error:
+        raise run.unsaved_refusal(error) from error
 
-        after_save = session.serialize_game_state()
-        record.journal = api_main.update_campaign_journal(
-            record.journal,
-            run.snapshot["save"],
-            after_save,
-            {
-                "action": "interact",
-                "npc_id": transition_id,
-                "target_id": transition_id,
-            },
-            api_main.world_metadata_for_state(
-                session.world_state,
-                getattr(session, "world_metadata", None),
-            ),
+
+def _click_and_stage(run: AmbientRun) -> dict[str, Any] | None:
+    api_main, record, session = run.api_main, run.record, run.session
+    transition = session.resolve_ambient_event_action(
+        run.event_instance_key,
+        run.action_id,
+        run.request.action,
+    )
+    run.transition = transition
+    status = transition.get("status")
+    transition_id = transition.get("transition_id")
+    if status != "APPLIED":
+        api_main._rollback_session(record, session, run.snapshot)
+        record.journal = run.journal_snapshot
+        canonical_event_id = None
+        if status == "ALREADY_APPLIED" and isinstance(
+            transition_id, str
+        ):
+            canonical_event_id = next(
+                (
+                    item.get("event_id")
+                    for item in reversed(
+                        record.journal.get("notable_events", [])
+                    )
+                    if item.get("event_type") == "npc_met"
+                    and item.get("related_npc_id") == transition_id
+                ),
+                None,
+            )
+        return run.response_for(
+            status,
+            transition.get("reason_code"),
+            transition_id=transition_id,
+            canonical_event_id=canonical_event_id,
+            # The panel's line for a refused click; nothing changed, so the last turn's undo stands.
+            message=refusals.text_for(transition.get("reason_code"))
+            if status == "REJECTED" else None,
         )
-        record.journal, canonical_event = api_main.append_ambient_event_outcome(
-            record.journal,
-            after_save["world_state"],
+
+    after_save = session.serialize_game_state()
+    record.journal = api_main.update_campaign_journal(
+        record.journal,
+        run.snapshot["save"],
+        after_save,
+        {
+            "action": "interact",
+            "npc_id": transition_id,
+            "target_id": transition_id,
+        },
+        api_main.world_metadata_for_state(
+            session.world_state,
+            getattr(session, "world_metadata", None),
+        ),
+    )
+    record.journal, canonical_event = api_main.append_ambient_event_outcome(
+        record.journal,
+        after_save["world_state"],
+        event_instance_id=run.event_instance_key,
+        action_id=run.action_id,
+        transition_id=transition_id,
+    )
+    response = AmbientEventCommandResult(
+        session_id=run.session_id,
+        state=api_main.serialize_session_state(session, record.journal, record.lore_authority),
+        result=AmbientEventResult(
             event_instance_id=run.event_instance_key,
             action_id=run.action_id,
+            status="APPLIED",
+            reason_code=transition.get("reason_code"),
             transition_id=transition_id,
-        )
-        response = AmbientEventCommandResult(
-            session_id=run.session_id,
-            state=api_main.serialize_session_state(session, record.journal, record.lore_authority),
-            result=AmbientEventResult(
-                event_instance_id=run.event_instance_key,
-                action_id=run.action_id,
-                status="APPLIED",
-                reason_code=transition.get("reason_code"),
-                transition_id=transition_id,
-                canonical_event_id=canonical_event["event_id"],
-            ),
-        )
-        run.response_payload = redact_sensitive_values(response.model_dump())
-        # Without a history row a click left a receipt and no line of story.
-        run.turn_entry = {
-            "player_message": transition["player_message"],
-            "narration": transition["narration"],
-            "narration_source": "deterministic_system",  # ambient_actions builds this line itself
-        }
-    except Exception as error:
-        run.refuse_unsaved(error)
+            canonical_event_id=canonical_event["event_id"],
+        ),
+    )
+    run.response_payload = redact_sensitive_values(response.model_dump())
+    # Without a history row a click left a receipt and no line of story.
+    run.turn_entry = {
+        "player_message": transition["player_message"],
+        "narration": transition["narration"],
+        "narration_source": "deterministic_system",  # ambient_actions builds this line itself
+    }
     return None
 
 
+class _SaveFailed(Exception):
+    """The save raised; carries the original error to `_settle_failed_save`."""
+
+    def __init__(self, error: Exception) -> None:
+        super().__init__(type(error).__name__)
+        self.error = error
+
+
 def _save(run: AmbientRun) -> None:
-    api_main, record = run.api_main, run.record
     try:
-        run.manager.save_campaign_locked(record, turn_action_receipt={
+        _write_receipt_and_history(run)
+    except _SaveFailed as failed:
+        _settle_failed_save(run, failed.error)
+
+
+def _write_receipt_and_history(run: AmbientRun) -> None:
+    try:
+        run.manager.save_campaign_locked(run.record, turn_action_receipt={
             "action_id": run.action_id, "request_hash": run.request_hash,
             "response": {"action_id": run.action_id, "ambient_event_response": run.response_payload},
         }, turn_entry=run.turn_entry)
     except Exception as error:
-        # D-103: as in the quest route, a save that raised may still have committed. Rolling back under a
-        # stored receipt and history row would split the live game from storage, so ask storage first.
-        certain = isinstance(error, (CampaignStaleError, CampaignNotFoundError, CampaignNotActiveError))
-        landed = SaveLanded.NOT_LANDED if certain else run.manager.campaign_save_landed(record, run.token_before)
-        if landed is SaveLanded.UNKNOWN:
-            record.usable = False
-            api_main._logger.critical("Ambient-event save failed and could not be reconciled; session closed")
-            decision = failure_policy.classify_failure(
-                failure_policy.ActionPhase.RECONCILIATION, "unknown", error,
-            )
-            raise HTTPException(
-                status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown"),
-            ) from None
-        if landed is SaveLanded.NOT_LANDED:
-            run.refuse_unsaved(error)
-        api_main._logger.error(
-            "Ambient-event save committed but was not acknowledged (error_type=%s)", type(error).__name__,
+        # Whatever the save raised, `_settle_failed_save` decides from storage what it meant.
+        raise _SaveFailed(error) from error
+
+
+def _settle_failed_save(run: AmbientRun, error: Exception) -> None:
+    api_main, record = run.api_main, run.record
+    # D-103: as in the quest route, a save that raised may still have committed. Rolling back under a
+    # stored receipt and history row would split the live game from storage, so ask storage first.
+    certain = isinstance(error, (CampaignStaleError, CampaignNotFoundError, CampaignNotActiveError))
+    landed = SaveLanded.NOT_LANDED if certain else run.manager.campaign_save_landed(record, run.token_before)
+    if landed is SaveLanded.UNKNOWN:
+        record.usable = False
+        api_main._logger.critical("Ambient-event save failed and could not be reconciled; session closed")
+        decision = failure_policy.classify_failure(
+            failure_policy.ActionPhase.RECONCILIATION, "unknown", error,
         )
+        raise HTTPException(
+            status_code=decision.status_code, detail=decision.detail(commit_status="outcome_unknown"),
+        ) from None
+    if landed is SaveLanded.NOT_LANDED:
+        run.refuse_unsaved(error)
+    api_main._logger.error(
+        "Ambient-event save committed but was not acknowledged (error_type=%s)", type(error).__name__,
+    )
 
 
 def _adopt_undo_point(run: AmbientRun) -> dict[str, Any]:
