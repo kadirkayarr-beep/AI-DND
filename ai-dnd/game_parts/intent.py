@@ -1177,7 +1177,9 @@ def deterministic_check_for_action(player_input):
     reading = getattr(game._session(), "_front_check", "")
     if reading not in game._READING_CHECKS or game.named_skill(player_input):
         return found
-    if found is None or (found.get("action_type") == "check" and found.get("skill") in game._READING_CHECKS):
+    social = {"Intimidation", "Deception", "Persuasion", "Insight"}
+    corrects = reading in social and found is not None and found.get("skill") in social
+    if found is None or (found.get("action_type") == "check" and corrects):  # a world check only fills a gap
         return {"action_type": "check", "skill": reading, "difficulty": "medium"}
     return found
 
