@@ -6910,7 +6910,8 @@ components:
       title: SorcererStartingLevel5Options
     CharacterCreateInput:
       type: object
-      description: Custom mode requires non-null name, race, and class. Human and
+      description: Custom mode requires a non-null name, class, and species (race is the older
+        alias for species and is accepted instead of it). Human and
         Half-Elf clients provide their species bonus skills separately from class
         skills. Random mode rejects non-null custom fields; omitted or explicit null
         custom fields are allowed.
