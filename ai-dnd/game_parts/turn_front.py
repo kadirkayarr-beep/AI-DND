@@ -671,6 +671,8 @@ def _local_place_turn(player_input):
             names = [str(place.get("name") or place["id"]) for place in same_kind]
             narration = (f"Burada birden çok yer var: {', '.join(names[:-1])} ve {names[-1]}. "
                          "Hangisine gidiyorsun?")
+            session.messages.extend([{"role": "user", "content": player_input},
+                                     {"role": "assistant", "content": narration}])  # as grounded_action._bookkeeping
             return {
                 "messages": session.messages, "narration": narration, "model_calls": 0,
                 "action_result": {"action": "travel", "status": "clarification", "success": False,

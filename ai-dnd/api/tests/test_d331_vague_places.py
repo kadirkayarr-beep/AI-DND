@@ -9,6 +9,7 @@ from unittest.mock import patch
 import game
 import grounded_action
 import heard_rumours
+import local_dialogue
 import local_places
 import npc_statements
 from api.tests.test_arrival_wiring import _ArrivalApi
@@ -92,6 +93,9 @@ class VaguePlaces(_ArrivalApi):
         self.assertIn(entry["place_id"], [o["id"] for o in named], [o["label"] for o in named])
 
     async def test_misrouted_lines(self):
+        for line in ("4 bakırım var mı?", "Teşekkür edip tavernaya gidiyorum.", "Teşekkür edip handan çıkıyorum."):
+            # the lore gate (turn.py world_subject_question) is this classifier in "do" mode: it must not own these
+            self.assertFalse(local_dialogue.is_world_subject_question(line), line)
         world = self.session().world_state
         self.speaker()
         reply = await self.turn("4 bakırım var mı?")
@@ -118,6 +122,18 @@ class VaguePlaces(_ArrivalApi):
         self.assertIn("Yeni Arşiv", text)
         reply = await self.turn("Yeni Arşiv'e gidiyorum.")  # its own name still walks
         self.assertEqual(world["location"], second["id"], self.narration(reply))
+
+    async def test_generic_alias_question_is_recorded_like_other_clarifications(self):
+        world = self.session().world_state
+        local_places.create_local_place(world, CITY, "archive", name="Eski Arşiv")
+        local_places.create_local_place(world, CITY, "archive", name="Yeni Arşiv")["rumoured"] = True
+        before = len(self.session().messages)
+        reply = await self.turn("Arşive gidiyorum.")
+        text = self.narration(reply)
+        tail = [m.get("content") for m in self.session().messages[before:]]
+        self.assertTrue(any("Arşive gidiyorum." in str(c) for c in tail), tail)
+        self.assertEqual(sum("Hangisine gidiyorsun?" in str(c) for c in tail), 1, (tail, text))
+        self.assertEqual(world["location"], CITY)
 
     async def test_a_generic_word_walks_when_the_town_holds_one_such_place(self):
         world = self.session().world_state
