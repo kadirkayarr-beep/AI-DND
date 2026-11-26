@@ -34,7 +34,7 @@ class FixedClock:
         return datetime(2026, 11, 26, 12, 0, tzinfo=timezone.utc)
 
 
-class HaikuUnknownUsage(unittest.TestCase):
+class TestHaikuUnknownUsage(unittest.TestCase):
     """D-150: a Haiku call whose usage never came back counts at the highest possible cost."""
 
     def counter(self, plan):
@@ -81,7 +81,7 @@ class HaikuUnknownUsage(unittest.TestCase):
                                                            haiku_reply()["usage"]["output_tokens"]))
 
 
-class TheCallCeiling(unittest.TestCase):
+class TestTheCallCeiling(unittest.TestCase):
     def ask(self, adapter):
         return adapter.chat(model=ollama_adapter.MODEL_NAME, messages=[{"role": "user", "content": "x"}])
 
@@ -158,7 +158,7 @@ class TheCallCeiling(unittest.TestCase):
             self.assertEqual(len(calls), 3)
 
 
-class TheLiveSmokes(unittest.TestCase):
+class TestTheLiveSmokes(unittest.TestCase):
     """D-417: the live smoke scripts read the adapter's ceiling; none keeps its own copy of two."""
 
     OWN = ("live_phase7_lore_smoke.py", "live_neverwinter_canon_smoke.py", "playable_living_world_v1_review.py")
@@ -204,7 +204,7 @@ class TheLiveSmokes(unittest.TestCase):
         self.assertIn("canon.MAX_MODEL_CALLS_PER_TURN", text)
 
 
-class TheLocalLock(unittest.TestCase):
+class TestTheLocalLock(unittest.TestCase):
     def test_a_busy_local_model_falls_back_after_a_bounded_wait(self):
         """D-494: a held local lock ends the second call with a timeout, never a wait without end."""
         client = base.FreeReplyClient()
@@ -222,9 +222,9 @@ class TheLocalLock(unittest.TestCase):
         self.assertTrue(held.wait(5))
         try:
             with patch.object(ollama_adapter, "LOCAL_LOCK_WAIT_SECONDS", 0.2), \
-                    adapter.capture_model_failures() as failures:
-                with self.assertRaisesRegex(RuntimeError, "Ollama request failed"):
-                    adapter.chat(model=ollama_adapter.MODEL_NAME, messages=[{"role": "user", "content": "x"}])
+                    adapter.capture_model_failures() as failures, \
+                    self.assertRaisesRegex(RuntimeError, "Ollama request failed"):
+                adapter.chat(model=ollama_adapter.MODEL_NAME, messages=[{"role": "user", "content": "x"}])
             self.assertEqual(client.calls, 0, "the busy model was never called")
             self.assertEqual(list(failures), ["TimeoutError"])
         finally:
@@ -242,7 +242,7 @@ class TheLocalLock(unittest.TestCase):
         ollama_adapter._LOCAL_CALL_LOCK.release()
 
 
-class TheHealthWarning(unittest.TestCase):
+class TestTheHealthWarning(unittest.TestCase):
     def test_two_health_reads_in_a_row_read_the_ledger_file_once(self):
         """D-496: the spend warning is kept for a few seconds."""
         folder = tempfile.TemporaryDirectory()
@@ -263,7 +263,7 @@ class TheHealthWarning(unittest.TestCase):
             self.assertEqual(read.call_count, 2)
 
 
-class ThreeCallTelemetry(unittest.IsolatedAsyncioTestCase):
+class TestThreeCallTelemetry(unittest.IsolatedAsyncioTestCase):
     """D-418: a turn of a front reading, a narration and an initiative says three calls in its telemetry."""
 
     asyncSetUp = base.DialogueRuntimeTests.asyncSetUp
@@ -294,7 +294,7 @@ class ThreeCallTelemetry(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(seen[-1][0], 3, seen)
 
 
-class TheRefusedTurn(unittest.IsolatedAsyncioTestCase):
+class TestTheRefusedTurn(unittest.IsolatedAsyncioTestCase):
     """D-405 and D-408: a lost provider in the turn's own reading refuses the line and changes nothing; every refused
     line still leaves a row in the play measurement files."""
 
@@ -323,7 +323,7 @@ class TheRefusedTurn(unittest.IsolatedAsyncioTestCase):
     async def test_a_lost_provider_in_the_turns_own_reading_refuses_the_line_and_changes_nothing(self):
         await self.begin()
         ahead = []
-        self.session.front_read_ahead = lambda *args, **kwargs: ahead.append(1)  # nothing is read ahead
+        self.session.front_read_ahead = lambda *_args, **_kwargs: ahead.append(1)  # nothing is read ahead
         before = self.everything()
         self.client.fails = ConnectionError("gone")
         failed = await self.http.post(self.turn_url, json={"message": self.LINE, "action_id": str(uuid.uuid4())})

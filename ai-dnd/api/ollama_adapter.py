@@ -90,6 +90,7 @@ _LOCAL_CALL_LOCK = threading.Lock()
 # D-494: a local call waits this long for the lock. One hung call ends at PROVIDER_TIMEOUT_SECONDS, so a wait of a
 # little more than that frees the queue behind it; a longer one would hold the turn lock past the turn's own limit.
 LOCAL_LOCK_WAIT_SECONDS = 100
+_LOCAL_BUSY_MESSAGE = "The local model stayed busy."
 # D-496: /api/health reads the whole usage file for its spend warning; the warning is kept this many seconds.
 SPEND_WARNING_CACHE_SECONDS = 5
 # Rough Turkish estimate for the prompt-size warning: one token per three characters. Not a tokenizer count.
@@ -397,6 +398,17 @@ def model_calls_left(*, third: bool = False) -> int | None:
     return max(0, MAX_MODEL_CALLS_PER_TURN + spare - len(calls))
 
 
+@contextmanager
+def _local_turn() -> Iterator[None]:
+    """The local model's turn in the queue. The wait ends (D-494): a busy model answers with a timeout, never a wait without end."""
+    if not _LOCAL_CALL_LOCK.acquire(timeout=LOCAL_LOCK_WAIT_SECONDS):
+        raise TimeoutError(_LOCAL_BUSY_MESSAGE)
+    try:
+        yield
+    finally:
+        _LOCAL_CALL_LOCK.release()
+
+
 def _provider_outage(error: Exception) -> bool:
     """No reading came back: no connection, a timeout, a dropped reply, or the provider's own 5xx (runner crashed,
     out of memory, busy). A 4xx or any other exception is a failed reading, not an outage."""
@@ -657,14 +669,10 @@ class AuthenticatedOllamaAdapter:
             style = not (in_classifier_call() or in_front_call())
 
             def ask_local() -> Any:
-                if not _LOCAL_CALL_LOCK.acquire(timeout=LOCAL_LOCK_WAIT_SECONDS):  # D-494: never a wait without end
-                    raise TimeoutError("The local model stayed busy.")
-                try:  # the clock starts after the queue: only the model's own time is measured
+                with _local_turn():  # the clock starts after the queue: only the model's own time is measured
                     started = time.monotonic()
                     local_response = self._ask_local_model(args, prepared, options, style=style)
                     local_seconds.append(time.monotonic() - started)
-                finally:
-                    _LOCAL_CALL_LOCK.release()
                 return local_response
 
             if self._chain is None:

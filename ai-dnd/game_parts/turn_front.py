@@ -924,6 +924,12 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
         kept.update(turn_index=turn, action_id=f"turn:{turn}")
     return result
 
+def _stock_hearer_asked(result, player_input, target_id):
+    """Whoever a stock line is asked of again: no one when the reading named someone nobody here is (D-419 keeps that line in Python's hands)."""
+    if getattr(game._session(), "_named_word", None):
+        return None
+    return game._stock_hearer(result, player_input, target_id)
+
 def _person_answers_stock(result, player_input, messages, target_id, interaction_mode, action_id, session_id, snapshot):
     """The one door every owner's text leaves by: a stock line never answers a person, and no person says one.
 
@@ -935,8 +941,8 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     if (not isinstance(text, str) or not game._only_stock(text)
             or session.world_state.get("combat", {}).get("active")):
         return result
-    hearer = game._stock_hearer(result, player_input, target_id)
-    if hearer is None or getattr(session, "_named_word", None):  # the reading named someone nobody here is: no one here is asked
+    hearer = _stock_hearer_asked(result, player_input, target_id)
+    if hearer is None:
         return result
     action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
     from api import ollama_adapter

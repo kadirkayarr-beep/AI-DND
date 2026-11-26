@@ -532,6 +532,12 @@ class ModelChain:
             provider.spend.add(reply if reply.usage_known else self._most_it_could_cost(provider, call))
         return replace(reply, text=_for_the_game(reply, call))
 
+    def _count_unknown_usage(self, provider: Provider, call: Mapping[str, Any], billed: Reply | None, usage_known: bool) -> None:
+        """A request that may have been billed whose usage never came back (a read that ran out of time, a body that
+        cannot be read) counts at the highest cost it could have had (D-150). A refused one was not billed."""
+        if billed is None and not usage_known and provider.spend is not None:
+            provider.spend.add(self._most_it_could_cost(provider, call))
+
     @staticmethod
     def _most_it_could_cost(provider: Provider, call: Mapping[str, Any]) -> Reply:
         """The tokens a request of unknown outcome is counted at: the whole request body (a token is never shorter than
@@ -568,8 +574,7 @@ class ModelChain:
                 # Anything else (a read that ran out of time, a body that cannot be read) may have been billed.
                 usage_known = billed.usage_known if billed else isinstance(
                     error, (_Skipped, httpx.ConnectError, httpx.ConnectTimeout))
-                if billed is None and not usage_known and provider.spend is not None:
-                    provider.spend.add(self._most_it_could_cost(provider, call))  # D-150: counted at the highest cost
+                self._count_unknown_usage(provider, call, billed, usage_known)
                 self._notify(ChainAttempt(
                     provider.name, "skipped", reason, seconds,
                     *((billed.input_tokens, billed.output_tokens, billed.thought_tokens) if billed else (0, 0, 0)),
