@@ -7,6 +7,7 @@ and in which order. No model, no campaign: a bare `GameSession`.
 from __future__ import annotations
 
 import unittest
+from typing import Any
 from unittest.mock import patch
 
 import adventure.play as adventure_play
@@ -157,7 +158,8 @@ class TestOutOfCombatCommandsKeepTheirOrder(unittest.TestCase):
         self.assertNotIn("everyday", self.run_line(front={"kind": "go_to"})[1])
 
     def test_a_combat_action_a_say_line_and_a_fight_in_progress_are_not_this_owner(self):
-        for kwargs in ({"combat_action": {"x": 1}}, {"mode": "say"}, {"mode": "ask_dm"}, {"active": True}):
+        cases: list[dict[str, Any]] = [{"combat_action": {"x": 1}}, {"mode": "say"}, {"mode": "ask_dm"}, {"active": True}]
+        for kwargs in cases:
             with self.subTest(**kwargs):
                 self.assertEqual(self.run_line(**kwargs), (FALL, []))
 

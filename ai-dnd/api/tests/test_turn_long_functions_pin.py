@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from typing import Any, cast
 from unittest.mock import patch
 
 import game
@@ -78,8 +79,7 @@ def run_turn(flag, text, mode):
         s.world_state["location"] = "forest"
         s.world_state["locations"]["t11_kuyu"] = {"id": "t11_kuyu", "name": "Kuyu Başı", "type": "city",
                                                   "description": ""}
-        with patch.object(game, "_session", return_value=s):
-            out = game.run_player_turn(text, interaction_mode=mode)
+        out = cast(Any, game.run_player_turn)(text, interaction_mode=mode, session=s)
     result = out.get("action_result") or {}
     return (result.get("action"), result.get("status"), out.get("narration"), out.get("model_calls"),
             s.world_state["location"], s.character.get("current_hp"), len(out.get("messages") or []))

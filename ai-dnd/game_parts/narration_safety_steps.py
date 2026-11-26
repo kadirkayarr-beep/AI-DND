@@ -21,8 +21,8 @@ def _nsd_door_open_claim(*, door, reject, text):
     if door:
         # (what the narration says, whether the door's real state contradicts it); the first contradiction rejects
         claims = (
-            (r"(?:kapı|kapısı|giriş)\b.{0,35}\b"
-             r"(?:açıldı|açılır|açık|aralandı|aralanır|kırıldı|parçalandı)\b", lambda: not door["open"]),
+            ((r"(?:kapı|kapısı|giriş)\b.{0,35}\b"
+              r"(?:açıldı|açılır|açık|aralandı|aralanır|kırıldı|parçalandı)\b"), lambda: not door["open"]),
             (r"(?:kapı|kapısı|giriş)\b.{0,35}\b(?:kapalı|kilitli)\b", lambda: door["open"]),
             (r"(?:kapı|kapısı)\b.{0,35}\b(?:kırıldı|parçalandı|yıkıldı)", lambda: not door.get("broken", False)),
             (r"(?:kilit|kapı|kapısı)\b.{0,35}\b(?:açıldı|kilitsiz|çözüldü)", lambda: door["locked"]),
