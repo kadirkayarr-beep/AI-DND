@@ -23,7 +23,7 @@ class OneFrontAfterAnother(front_tests.FrontClient):
     def chat(self, *args, **kwargs):
         schema = kwargs.get("format") or {}
         if "front" in (schema.get("properties") or {}):
-            self.front = self.fronts.pop(0) if len(self.fronts) > 1 else self.fronts[0]
+            self.front = {"timing": "now", **(self.fronts.pop(0) if len(self.fronts) > 1 else self.fronts[0])}  # G1.3: a reading without a when is not now
         return super().chat(*args, **kwargs)
 
 

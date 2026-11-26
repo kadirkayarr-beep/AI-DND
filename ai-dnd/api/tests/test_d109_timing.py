@@ -69,6 +69,18 @@ class TheReadingCarriesWhen(unittest.TestCase):
         self.assertEqual(front_proposal.threat_in(now, _LISTED), "npc-1")
         self.assertEqual(front_proposal.deed_in(now), "steal")
 
+    def test_a_later_blow_on_a_line_read_as_no_lasting_act_is_words_to_that_person(self):
+        """G1.3 review: no old word reader takes the line up again, whatever kind the line was read as."""
+        for kind in ("unclear", "attempt", "look", "sit", "bag"):
+            for timing in ("later", "hypothetical", "negated", "observe"):
+                for line_timing in ("now", "later"):
+                    reply = {"front": {"kind": kind, "strike_to": "npc-1", "strike_timing": timing, "timing": line_timing}}
+                    self.assertEqual(front_proposal.validate(reply, _LISTED), {"kind": "speak_to", "id": "npc-1"},
+                                     (kind, timing, line_timing))
+        keep = {"front": {"kind": "consume", "item_id": "beer1", "timing": "now",
+                          "strike_to": "npc-1", "strike_timing": "later"}}
+        self.assertEqual(front_proposal.validate(keep, _LISTED), {"kind": "consume", "item": "beer1"})
+
     def test_a_reply_with_no_timing_is_not_now(self):
         """D-262 (G1.3, tighter than before): the schema requires the field, so a reply without it is an old record or
         a gone-wrong reading; it is never now (it used to read as now)."""
@@ -473,6 +485,20 @@ class EachActInALineHasItsOwnWhen(FrontTable):
         await self.line("hayır")
         self.assertIsNone(self.session._heavy_asked)
         self.assertNotEqual(self.routes()[-1]["owner"], "skill_check")
+
+    async def test_unclear_persuasion_yes_replays_the_reading_and_rolls_the_check(self):
+        await self.table()
+        self.client.front = {"kind": "unclear", "check": "Persuasion", "timing": "now", "check_timing": "now"}
+        await self.line("Selam Kavşim, hava çok güzel")
+        self.assertEqual(self.session._heavy_asked["what"], "check")
+        reads = len(self.front_calls())
+        self.client.front = {"kind": "speak_to", "timing": "later"}  # a second reading would not roll
+        with patch.object(game, "_heavy_allowed", wraps=game._heavy_allowed) as allowed:
+            await self.line("evet")
+        self.assertEqual(len(self.front_calls()), reads, "the yes spent a second reading")
+        self.assertTrue(any(call.args[:1] == ("check",) and call.kwargs.get("deed") == "Persuasion"
+                            for call in allowed.call_args_list), allowed.call_args_list)
+        self.assertIsNone(self.session._heavy_asked)
 
     def test_front_reply_called_set_once(self):
         """D-420: begin() and end() both clear the flag, so a later turn never reads the last turn's True."""

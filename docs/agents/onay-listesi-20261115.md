@@ -604,3 +604,5 @@ Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_rec
 | `test_threats_come_due.py` `test_the_reading_of_the_line_finds_the_player_threat_with_no_extra_call` | "evet" turunda model cagrisi 2 -> 1 (D-263: ilk okuma yeniden oynatilir, ikinci okuma yok) | davranis degisikligi, siklasti |
 | yeni testler | `test_d109_timing.EachActInALineHasItsOwnWhen` (8 test), `test_an_act_takes_its_own_timing_or_the_lines`, `test_front_proposal.test_dash_command_logged_as_command_not_empty` | ekleme |
 | `ai-dnd/scripts/quality_gate/size_lock.json` | degismedi (`_front_step` 235 satirda kaldi) | - |
+| `test_arrival_wiring.py` go_to sahte okuma, `test_compound_line.py` `OneFrontAfterAnother` | sahte okumalara `"timing": "now"` eklendi (incelemeden sonra; zamansiz okuma artik "now" degil, bu yuzden test yolu degismisti). Sikilik ayni | gevsetme degil |
+| yeni testler (inceleme duzeltmesi) | `test_a_later_blow_on_a_line_read_as_no_lasting_act_is_words_to_that_person`, `test_unclear_persuasion_yes_replays_the_reading_and_rolls_the_check` | ekleme |

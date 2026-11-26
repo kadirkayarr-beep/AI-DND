@@ -649,6 +649,10 @@ def validate(reply: Any, listed: Mapping[str, Any]) -> dict[str, Any] | None:
     D-109: an act the reading says is not done now (later, asked, refused, only looked at) changes nothing for good:
     it is words, said to the person it names or to nobody, and no old word reader takes it up again."""
     route = _route(reply, listed)
+    front = reply.get("front") if isinstance(reply, dict) else None
+    blow = front.get("strike_to") if isinstance(front, dict) else None
+    if (route is None or route["kind"] != "strike") and blow in [row["id"] for row in listed["people"]]             and not acts_now(reply, "strike") and (route is None or route["kind"] not in _LASTING or not acts_now(reply)):
+        return {"kind": "speak_to", "id": blow}  # a blow not struck now, on a line with no lasting act of its own: words to that person
     if route is None or route["kind"] not in _LASTING or acts_now(reply, "strike" if route["kind"] == "strike" else None):
         return route
     person = route.get("person_id") or (route.get("id") if route["kind"] == "strike" else None)
