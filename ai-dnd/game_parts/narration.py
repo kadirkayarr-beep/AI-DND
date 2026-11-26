@@ -1,5 +1,7 @@
 import game
+import logging
 import living_world
+import model_phase
 import re
 import tr_case
 import campaign_time
@@ -1176,7 +1178,8 @@ def ask_dungeon_master(
                 and not any(value.casefold() in narration.casefold() for value in hidden)
                 and not re.search(r"buldu|kazandı|ödül|altın|kilit|tuzak|yeni bir|geçtin|ulaştın", extra.casefold())
             )
-        except Exception:
+        except Exception as error:
+            model_phase.log_fallback(logging.getLogger("game_parts.narration"), error, "Exploration narration")
             valid, narration = False, resolved
         details = {"narration": narration if valid else resolved,
                    "world_updates": {}, "lore_claims": [], "valid_response": valid,
@@ -1217,7 +1220,8 @@ def ask_dungeon_master(
                      and interaction_adventure.outcome_consistent(action_result, packet.get("narration"))
                      and not packet.get("lore_claims")
                      and not any((packet.get("world_updates") or {}).values()))
-        except Exception:
+        except Exception as error:
+            model_phase.log_fallback(logging.getLogger("game_parts.narration"), error, "Interaction narration")
             packet, valid = {}, False
         details = {
             "narration": (packet.get("narration") if valid
@@ -1293,15 +1297,7 @@ def ask_dungeon_master(
     last_opening = " ".join(str(recent_narrations[-1]).split()[:5]) if recent_narrations else ""
     if last_opening:
         recent_narration_context += f"\nSon anlatım “{last_opening}” diye başladı; aynı sözlerle ya da aynı kalıpla başlama."
-    lore_claim_guidance = (
-        "Bu narration-only turunda lore_claims boş kalır; citation ekleme. "
-        "PYTHON ACTION RESULT, NARRATION FACTS ve görünür mevcut sahne bilgisini "
-        "mekanik sonucu değiştirmeden doğal biçimde anlat; cümleyi aynen kopyalamak zorunda değilsin. "
-        "Bu görevin dışına çıkarak yeni setting/campaign canon iddiası ekleme. "
-        if narration_only else
-        "Söylediğin her setting/campaign canon iddiası için lore_claims alanında "
-        "ilgili fact_id veya override_id değerini listele; destek yoksa iddia etme. "
-    )
+    lore_claim_guidance = game._adm_lore_claim_guidance(narration_only=narration_only)
     import pocket
     user_prompt = game._dm_user_prompt(action_result=action_result, context=context, living_scene_context=living_scene_context, lore_claim_guidance=lore_claim_guidance, lore_context_json=lore_context_json, npc_dialogue_guidance=npc_dialogue_guidance, npc_target=npc_target, outcome_guidance=outcome_guidance, player_input=player_input, pocket=pocket, recent_narration_context=recent_narration_context, scene_guidance=scene_guidance, shop_creation_guidance=shop_creation_guidance, travel_guidance=travel_guidance, travel_status=travel_status, truth_card=truth_card, update_permissions=update_permissions, walking_away=walking_away, world_state=world_state)
     try:
@@ -1369,23 +1365,12 @@ def ask_dungeon_master(
     _exit = game._dm_return_details(claims_supported=claims_supported, data=data, lore_claims=lore_claims, narration=narration, player_line=player_line, refs_supported=refs_supported, return_details=return_details, updates=updates)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
-    if not refs_supported:
-        return game.finalize_narration(
-            game._fallback_for_action_result(player_input, action_result),
-            player_input,
-            npc_target,
-            action_result,
-            fallback_reason_code="INVALID_MODEL_RESPONSE",
-        )
-    if not claims_supported:
-        fallback = game._fallback_for_action_result(player_input, action_result)
-        return game.finalize_narration(
-            fallback,
-            player_input,
-            npc_target,
-            action_result,
-            fallback_reason_code="UNVERIFIED_LORE_CLAIM",
-        )
+    _exit = game._adm_refs_unsupported_gate(action_result=action_result, npc_target=npc_target, player_input=player_input, refs_supported=refs_supported)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
+    _exit = game._adm_claims_unsupported_gate(action_result=action_result, claims_supported=claims_supported, npc_target=npc_target, player_input=player_input)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     is_assertion = game.is_player_world_assertion(player_input)
     validated = game.validate_world_updates(
         updates,

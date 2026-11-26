@@ -1,6 +1,5 @@
 import game
 import action_economy
-import adventure.play as adventure_play
 from core_resolution import (
     resolution_action_scope,
 )
@@ -8,8 +7,6 @@ import combat_lifecycle
 import contextlib
 import copy
 from dataclasses import dataclass
-import equipment_economy
-import initiative
 import interaction_adventure
 import living_world
 import local_dialogue
@@ -301,11 +298,9 @@ def _dispatch_player_turn(
         game._session()._thread_turn = None
     if game.ensure_death_state()["dead"]:
         raise game.PlayerCannotAct("Ölü karakter eylem gerçekleştiremez.")
-    if game._session().character.get("current_hp", 0) <= 0:
-        # A body on the ground has no moves left: whatever is typed or clicked is this turn's save.
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            return game._run_player_turn_internal(player_input, messages, target_id, {"direct_result": None},
-                                             "do", action_id)
+    _exit = game._dpt_fallen_turn(action_id=action_id, messages=messages, player_input=player_input, session_id=session_id, target_id=target_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     game._reopen_public_doors()
     player_input = combat_lifecycle.answered_attack_question(game._session(), player_input)
     player_input = game._answered_heavy_question(player_input)  # D-109
@@ -319,24 +314,16 @@ def _dispatch_player_turn(
     if getattr(game._session(), "_which_move", None):
         return game._ask_which_move(game._session()._which_move)
     owner_reply = game._owner_module_reply(player_input, interaction_mode)
-    if owner_reply is not None:
-        return {
-            "messages": game._session().messages,
-            "narration": owner_reply.get("direct_response") or "",
-            "model_calls": 0,
-            "action_result": owner_reply,
-        }
+    _exit = game._dpt_owner_reply(owner_reply=owner_reply)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     interaction_mode, target_id = game._td_combat_mode(combat_action=combat_action, interaction_mode=interaction_mode, player_input=player_input, target_id=target_id)
     _exit = game._td_end_conversation(combat_action=combat_action, interaction_mode=interaction_mode, player_input=player_input)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
     read = getattr(game._session(), "_front_read", None) if getattr(game._session(), "_front_ahead", False) else None
     import front_proposal
-    if (front_proposal.enabled() and not getattr(game._session(), "_front_ahead", False)
-            and not getattr(game._session(), "_front_strike", None)):
-        read = game._front_step(player_input, target_id, interaction_mode, combat_action, check_feature)
-        game._session()._front_read = read
-        game._session()._front_ahead = True
+    read = game._dpt_front_step_read(check_feature=check_feature, combat_action=combat_action, front_proposal=front_proposal, interaction_mode=interaction_mode, player_input=player_input, read=read, target_id=target_id)
     if read is not None and read.get("kind") == "heavy_asked":
         return game._ask_before_the_heavy(read)  # D-109: asked, nothing moved
     if getattr(game._session(), "_front_strike", None):
@@ -349,12 +336,9 @@ def _dispatch_player_turn(
             # line to them; it takes the same route as without the button, so the dice and the narrator answer.
             interaction_mode, target_id = "do", None
     import spell_effects
-    if (combat_action is None and interaction_mode not in {"say", "ask_dm"}
-            and not getattr(game._session(), "_front_strike", None) and spell_effects.named(player_input) is not None):
-        # 4C.5: a narrative spell (or one not in the engine yet) is the spell owner's, never a walk, a knock or an item
-        # move; the engine answers it inside the turn and the narrator tells the fact.
-        return game._dispatch_turn_body(player_input, messages, target_id, scene_plan, interaction_mode, action_id,
-                                   session_id, check_feature, check_evidence)
+    _exit = game._dpt_narrative_spell(action_id=action_id, check_evidence=check_evidence, check_feature=check_feature, combat_action=combat_action, interaction_mode=interaction_mode, messages=messages, player_input=player_input, scene_plan=scene_plan, session_id=session_id, spell_effects=spell_effects, target_id=target_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     _exit = game._td_fallen_address(combat_action=combat_action, player_input=player_input, read=read)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
@@ -397,13 +381,9 @@ def _dispatch_player_turn(
     _exit = game._td_strike_fallen(combat_action=combat_action, interaction_mode=interaction_mode, player_input=player_input, target_id=target_id)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
-    # D-095: "muhafızın kesesi var mı diye inceliyorum" is about someone else's purse; never answer with the player's
-    if read is not None and read["kind"] == "bag" and not game._SOMEONE_ELSES_PURSE.search(
-            game._normalize_turkish_typos(living_world._text_outside_quotes(player_input))):
-        listed = equipment_economy.execute(game._session(), "çantamda ne var")
-        if listed is not None:
-
-            return listed
+    _exit = game._dpt_bag_read(player_input=player_input, read=read)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     _exit = game._td_parcel_board(combat_action=combat_action, interaction_mode=interaction_mode, player_input=player_input, read=read)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
@@ -426,22 +406,12 @@ def _dispatch_player_turn(
         import bold_acts
         if target_id is not None or not bold_acts.is_act_not_talk(game._session(), player_input):  # D-098, D-099: an act
             interaction_mode, target_id = "say", front["id"]
-    if (combat_action is None and interaction_mode not in {"say", "ask_dm"} and target_id is None and front is None
-            and game._ENDS_IN_SPEECH.search(game._normalize_turkish_typos(player_input))):
-        hearer = game._active_interlocutor()  # "dedim sana" is said to the one already being talked to
-        if hearer is not None:
-            interaction_mode, target_id = "say", hearer["id"]
+    interaction_mode, target_id = game._dpt_ends_in_speech(combat_action=combat_action, front=front, interaction_mode=interaction_mode, player_input=player_input, target_id=target_id)
     gate = None
     if (combat_action is None and not getattr(game._session(), "_thread_gate_done", False)
             and not getattr(game._session(), "_front_strike", None)):  # a blow stood behind is no answer to an offer
         with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            gate = (None if front is not None and (front.get("dropped") or front["kind"] == "wield"
-                                                   or game._take_names_a_job(front))
-                    else game._front_offer_gate(front, player_input) if front is not None and front["kind"] == "offer_answer"
-                    else game._front_consume(front, player_input) if front is not None and front["kind"] == "consume"
-                    else game._front_hand_over(front, player_input) if front is not None and front["kind"] == "hand_over"
-                    else game._front_work(front, player_input) if front is not None and front["kind"] == "work"
-                    else game._thread_gate(player_input, target_id, interaction_mode, front=front))
+            gate = game._dpt_front_gate(front=front, interaction_mode=interaction_mode, player_input=player_input, target_id=target_id)
         if front is not None and front.get("recovered_from") and front["kind"] == "offer_answer" and not (
                 gate is not None and gate.get("decision") == "accepted"):
             import front_proposal
@@ -476,92 +446,27 @@ def _dispatch_player_turn(
     routed = game._front_route_turn(front, gate, player_input, interaction_mode, action_id, session_id)
     if routed is not None:
         return routed
-    if combat_action is None:
-        import dialogue_runtime
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            free_dialogue = dialogue_runtime.resolve_turn(
-                game._session(), player_input, interaction_mode=interaction_mode,
-                target_id=target_id, action_id=action_id,
-            )
-        if free_dialogue is not None:
-            return free_dialogue
+    _exit = game._dpt_free_dialogue(action_id=action_id, combat_action=combat_action, interaction_mode=interaction_mode, player_input=player_input, session_id=session_id, target_id=target_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     if combat_action is None and interaction_mode in {"say", "ask_dm"}:
-        if (
-            interaction_mode == "ask_dm"
-            and equipment_economy._natural_inventory_query(player_input)
-        ):
-            equipment_result = equipment_economy.execute(game._session(), player_input)
-            if equipment_result is not None:
-                return equipment_result
-        if action_id is None:
-            try:
-                return game._run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode, action_id,
-                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
-                )
-            except game.TurnResolved as e:
-                return game._narrate_resolved_turn(
-                    e.resolved_turn, player_input, messages, target_id
-                )
-        with resolution_action_scope(action_id, session_id):
-            try:
-                return game._run_player_turn_internal(
-                    player_input, messages, target_id, scene_plan, interaction_mode, action_id,
-                    **({"check_feature": check_feature, "check_evidence": check_evidence} if check_feature is not None else {})
-                )
-            except game.TurnResolved as e:
-                return game._narrate_resolved_turn(
-                    e.resolved_turn, player_input, messages, target_id
-                )
+        _exit = game._dpt_natural_inventory_query(interaction_mode=interaction_mode, player_input=player_input)
+        if _exit is not game._TURN_FALL_THROUGH:
+            return _exit
+        _exit = game._dpt_run_without_action_id(action_id=action_id, check_evidence=check_evidence, check_feature=check_feature, interaction_mode=interaction_mode, messages=messages, player_input=player_input, scene_plan=scene_plan, target_id=target_id)
+        if _exit is not game._TURN_FALL_THROUGH:
+            return _exit
+        _exit = game._dpt_run_in_action_scope(action_id=action_id, check_evidence=check_evidence, check_feature=check_feature, interaction_mode=interaction_mode, messages=messages, player_input=player_input, scene_plan=scene_plan, session_id=session_id, target_id=target_id)
+        if _exit is not game._TURN_FALL_THROUGH:
+            return _exit
 
-    if (
-        combat_action is None
-        and interaction_mode not in {"say", "ask_dm"}
-        and not game._session().world_state.get("combat", {}).get("active")
-    ):
-        hideout = adventure_play.resolve_dungeon_turn(game._session(), player_input, game._hideout_check)
-        if hideout is not None:
-            return hideout
-        # Read as talk, a look or sitting down: the words of a line walk nowhere. The route log shows these lost all traffic.
-        talk = front is not None and front["kind"] in {"talk_around", "look", "sit"}
-        # D-123: the quest shortcut's rolls (a check, the road's Survival) belong to this turn like any journey's.
-        with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-            scene = None if talk else game._adventure_scene_turn(player_input)
-        if scene is not None:
-            return scene
-        # LR00 fix: read a local physical action once, bind it to a real target
-        # and let its owner resolve it (grounded_action). None = older owners.
-        import grounded_action
-        if not talk and not game._scene_observation_proposal_turn(
-            player_input, game._session().world_state, interaction_mode
-        ) and not (
-            living_world.is_anchored_structure_inquiry(player_input)
-            and living_world.affirmative_structure_inspection(
-                player_input, interaction_mode
-            )
-        ):
-            with (resolution_action_scope(action_id, session_id) if action_id else contextlib.nullcontext()):
-                grounded = grounded_action.resolve_turn(
-                    game._session(), player_input, interaction_mode=interaction_mode, target_id=target_id,
-                )
-            if grounded is not None:
-                return game._spoken_rest_of_turn(grounded, player_input, messages, action_id, session_id)
-        local_place = None if talk else game._local_place_turn(player_input)
-        if local_place is not None:
-            return local_place
-        # BM Task 8: a reading that named something (a place, a person, a thing) belongs to that owner; the everyday
-        # words run only when there was no reading, or it said unclear / attempt.
-        everyday = (game._everyday_action_turn(player_input)
-                    if front is None or front["kind"] in {"unclear", "attempt"} else None)
-        if everyday is not None:
-            return everyday
+    _exit = game._dpt_out_of_combat_commands(action_id=action_id, combat_action=combat_action, front=front, interaction_mode=interaction_mode, messages=messages, player_input=player_input, session_id=session_id, target_id=target_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     import exploration
-    if (combat_action is None and game._session().character.get("current_hp", 0) > 0
-            and exploration.native_request(player_input, game._session())):
-        with resolution_action_scope(action_id, session_id):
-            exploration_result = exploration.resolve_command(game._session(), player_input)
-        if exploration_result is not None:
-            return exploration_result
+    _exit = game._dpt_native_exploration_command(action_id=action_id, combat_action=combat_action, exploration=exploration, player_input=player_input, session_id=session_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     import authored_dungeon
     if combat_action is None:
         dungeon_result = authored_dungeon.resolve_command(game._session(), player_input)
@@ -571,20 +476,15 @@ def _dispatch_player_turn(
                 and not game._session().world_state.get("combat", {}).get("active")
                 and not getattr(game._session(), "_front_strike", None)
                 and interaction_adventure.compound_plan(player_input) is not None)
-    if (combat_action is None and not planning
-            and not combat_lifecycle.is_attack_decision(game._session(), player_input)):
-        equipment_result = equipment_economy.execute(game._session(), player_input)
-        if equipment_result is not None:
-            return equipment_result
+    _exit = game._dpt_equipment_economy(combat_action=combat_action, planning=planning, player_input=player_input)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     import spell_scope
     spell_command = (spell_scope.natural_command(player_input, target_id)
                      if combat_action is None and not planning else None)
-    if spell_command is not None:
-        surrender_question = combat_lifecycle.surrendered_strike_question(
-            game._session(), player_input, target_id, spell_command)  # a harmful spell is asked like a blow (D-036)
-        if surrender_question is not None:
-            return surrender_question
-        return action_economy.execute(game._session(), spell_command, action_id, session_id)
+    _exit = game._dpt_surrendered_spell_question(action_id=action_id, player_input=player_input, session_id=session_id, spell_command=spell_command, target_id=target_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     import bounded_encounter
     if not planning:
         bounded_encounter.refresh(game._session())
@@ -593,21 +493,15 @@ def _dispatch_player_turn(
     if native is not None:
         return native
     import monster_combat
-    if combat_action is None and game._session().world_state.get("combat", {}).get("active"):
-        with initiative.atomic(game._session()):
-            proposal_result = monster_combat.player_response(game._session(), player_input, target_id)
-            if proposal_result is not None:
-                return proposal_result
-    if combat_action is None and combat_lifecycle.is_standing_down(game._session(), player_input):
-        with resolution_action_scope(action_id, session_id):
-            settled = combat_lifecycle.stand_down(game._session(), action_id, session_id)
-        if settled is not None:
-            return settled
-    if combat_action is None and combat_lifecycle.is_flight(game._session(), player_input):
-        with resolution_action_scope(action_id, session_id):
-            fled = combat_lifecycle.flee(game._session(), action_id, session_id)
-        if fled is not None:
-            return fled
+    _exit = game._dpt_active_combat_response(combat_action=combat_action, monster_combat=monster_combat, player_input=player_input, target_id=target_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
+    _exit = game._dpt_stand_down(action_id=action_id, combat_action=combat_action, player_input=player_input, session_id=session_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
+    _exit = game._dpt_flight(action_id=action_id, combat_action=combat_action, player_input=player_input, session_id=session_id)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     command = combat_action or (None if planning else
                                action_economy.natural_command(game._session(), player_input, target_id))
     surrender_question = combat_lifecycle.surrendered_strike_question(game._session(), player_input, target_id, command)
@@ -621,14 +515,7 @@ def _dispatch_player_turn(
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
     game._session()._walk_off = None
-    try:
-        combat_lifecycle.validate_request(game._session(), player_input, target_id)
-    except combat_lifecycle.CombatRequestError as error:
-        if error.code != "combat_travel":
-            raise
-        # held for the turn's reading: a walk toward someone in the fight is combat movement (_approach_turn takes it);
-        # any other reading of the line is refused as walking off, as before
-        game._session()._walk_off = error
+    game._dpt_validate_combat_request(player_input=player_input, target_id=target_id)
     try:
         result = game._dispatch_turn_body(player_input, messages, target_id, scene_plan, interaction_mode, action_id,
                                      session_id, check_feature, check_evidence)
@@ -801,50 +688,17 @@ def _run_player_turn_internal(
         raise game.PlayerCannotAct("Ölü karakter eylem gerçekleştiremez.")
     if game._session().character.get("current_hp", 0) == 0 and not entry_combat["active"]:
         return game._down_outside_combat_turn(player_input)
-    if (
-        game._session().character.get("current_hp", 0) <= 0
-        or world_state.get("player_combat_status") == "unconscious"
-    ) and not (
-        entry_combat["active"]
-        and entry_combat["current_actor_id"] == "player"
-    ):
-        raise game.PlayerCannotAct("Bilinçsiz karakter eylem gerçekleştiremez.")
-    local_npc_place_request = (
-        interaction_mode != "ask_dm"
-        and local_dialogue.is_local_place_recommendation_request(player_input)
-        and game._has_active_local_npc_focus_for_place_request(
-            world_state, target_id=target_id
-        )
-    )
-    world_subject_question = (
-        True if interaction_mode == "ask_dm"
-        else False if interaction_mode == "say" or local_npc_place_request
-        else local_dialogue.is_world_subject_question(player_input)
-    )
+    game._rpt_character_current_hp(entry_combat=entry_combat, world_state=world_state)
+    local_npc_place_request = game._rpt_local_npc_place(interaction_mode=interaction_mode, player_input=player_input, target_id=target_id, world_state=world_state)
+    world_subject_question = game._rpt_world_subject_question(interaction_mode=interaction_mode, local_npc_place_request=local_npc_place_request, player_input=player_input)
     scene_exploration_question = living_world.is_exploratory_structure_question(
         player_input, interaction_mode
     )
     if messages is None:
         messages = game._session().messages
-    scene_plan = (
-        scene_plan
-        if isinstance(scene_plan, dict)
-        else game.plan_living_world_turn(
-            player_input,
-            target_id=target_id,
-            interaction_mode=interaction_mode,
-        )
-    )
+    scene_plan = game._rpt_scene_plan_scene(interaction_mode=interaction_mode, player_input=player_input, scene_plan=scene_plan, target_id=target_id)
     planned_direct = scene_plan.get("direct_result") if isinstance(scene_plan, dict) else None
-    if (
-        isinstance(planned_direct, dict)
-        and planned_direct.get("action") == "explore"
-        and planned_direct.get("status") == "observed"
-        and game._scene_observation_proposal_turn(
-            player_input, world_state, interaction_mode
-        )
-    ):
-        scene_plan = {**scene_plan, "direct_result": None}
+    scene_plan = game._rpt_planned_direct_planned(interaction_mode=interaction_mode, planned_direct=planned_direct, player_input=player_input, scene_plan=scene_plan, world_state=world_state)
     injected_lore_context = getattr(game._session(), "lore_authority_context", None)
     lore_context = game._prepare_lore_authority_context(injected_lore_context)
     quest_world_before = copy.deepcopy(world_state)
@@ -917,11 +771,9 @@ def _run_player_turn_internal(
     spell_reading = (spell_effects.named(player_input)
                      if interaction_mode not in {"say", "ask_dm"} and isinstance(player_input, str)
                      and game._session().character.get("current_hp", 0) > 0 else None)  # a body on the ground saves
-    if spell_reading is not None:
-        # 4C.5: the engine decides and commits (a fact, or a truthful line that nothing was cast); a resolved fact goes
-        # to the turn narrator (narration only, the line is its fallback), a refusal is told as it is.
-        cast = spell_effects.resolve(game._session(), spell_reading)
-        return finish_turn(cast["action_result"], cast["narration"])
+    _exit = game._rpt_spell_reading_engine(finish_turn=finish_turn, spell_effects=spell_effects, spell_reading=spell_reading)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     def finish_conversation_rejection(target):
         return game._finish_conversation_rejection(
@@ -936,14 +788,9 @@ def _run_player_turn_internal(
 
     walked_up = scene_plan.get("direct_result") if isinstance(scene_plan, dict) else None
     said_after = game._said_after_approach(player_input)
-    if (isinstance(walked_up, dict) and walked_up.get("action") == "approach"
-            and walked_up.get("status") == "completed" and said_after
-            and interaction_mode not in {"say", "ask_dm"}):
-        spoken = game._run_player_turn_internal(
-            said_after, messages, walked_up.get("target_id"), None, "say", action_id
-        )
-        spoken["narration"] = f"{walked_up['direct_response']} {spoken['narration']}"
-        return spoken
+    _exit = game._rpt_walked_up_walked(action_id=action_id, interaction_mode=interaction_mode, messages=messages, said_after=said_after, walked_up=walked_up)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
     sleeping = bool(timed_gameplay._SLEEPING.search(game._normalize_turkish_typos(player_input))
                     or timed_gameplay.is_timed_wait(player_input))
     # A blow the reading found lands now, however many clauses lead up to it: it is no plan to keep.
@@ -959,13 +806,9 @@ def _run_player_turn_internal(
         person = next(
             (npc for npc in game.active_npcs() if npc.get("id") == flags.get("active_npc_id")), None
         )
-        if person is not None:
-            living_world.set_player_position(
-                world_state, world_state.get("location"), "standing", person["id"]
-            )
-            return game._run_player_turn_internal(
-                request, messages, person["id"], None, "say", action_id
-            )
+        _exit = game._rpt_person_living_world(action_id=action_id, messages=messages, person=person, request=request, world_state=world_state)
+        if _exit is not game._TURN_FALL_THROUGH:
+            return _exit
     # Talking with someone here, the clauses may be said to them: the turn's reading decides below, before any plan.
     held_plan = None
     if (compound is not None and not entry_combat["active"] and interaction_mode not in {"say", "ask_dm"}
@@ -1002,13 +845,7 @@ def _run_player_turn_internal(
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
 
-    # Character-sheet questions do not require an unambiguous NPC. Keep the
-    # existing combat and explicit-target validation boundaries intact.
-    character_reply = (
-        game.known_character_answer(player_input)
-        if not combat["active"] and interaction_mode != "say"
-        else None
-    )
+    character_reply = game._rpt_character_reply_known(combat=combat, interaction_mode=interaction_mode, player_input=player_input)
     focused_npc_before_targeting = game._active_interlocutor()
     if target_id is not None:
         _exit = game._tx_attack_target_missing(finish_turn=finish_turn, target_id=target_id)
@@ -1124,18 +961,7 @@ def _run_player_turn_internal(
                 or game.should_generate_npcs(player_input)
             )
         ):
-            preparsed_scene_intent = game.parse_player_intent(
-                player_input,
-                interaction_context=interaction_adventure.context(
-                    world_state, None, player_input
-                ),
-                recent_scene_narration=game._recent_player_visible_narration(),
-                allow_scene_detail_proposals=game._scene_detail_proposals_allowed(
-                    player_input, world_state, interaction_mode
-                ),
-                allow_local_person_proposal=game.should_generate_npcs(player_input),
-                strict=check_feature is not None,
-            )
+            preparsed_scene_intent = game._rpt_preparsed_scene_intent_2(check_feature=check_feature, interaction_mode=interaction_mode, player_input=player_input, world_state=world_state)
             scene_preparse_model_calls = 1
             intent_model_calls = scene_preparse_model_calls
             intent_source = "model"
@@ -1145,19 +971,7 @@ def _run_player_turn_internal(
             )
             if selected_npc is None and game._named_word_of(preparsed_scene_intent):
                 game._session()._named_word = game._named_word_of(preparsed_scene_intent)
-            if selected_npc is not None:
-                canonical_npc = next(
-                    (
-                        npc for npc in game.active_npcs()
-                        if npc.get("id") == selected_npc["id"]
-                    ),
-                    None,
-                )
-                if canonical_npc is not None:
-                    npc_resolution = {"status": "found", "npc": canonical_npc}
-                    selected_npc = canonical_npc
-                if canonical_npc is None:
-                    selected_npc = None
+            npc_resolution, selected_npc = game._rpt_selected_npc_canonical(npc_resolution=npc_resolution, selected_npc=selected_npc)
             if selected_npc is not None:
                 talk_mode.open(world_state, selected_npc["id"], turn=flags.get("turn_index", 0))
         deferred_referent_id = (
@@ -1172,17 +986,7 @@ def _run_player_turn_internal(
             # The planner matched the happening's person but left the pick to the
             # model; it named nobody here, so that person is the one greeted.
             current_location = world_state.get("location")
-            deferred_referent = next(
-                (
-                    ref for ref in (
-                        world_state.get("scene_state", {}).get("scenes", {})
-                        .get(current_location, {}).get("referents", [])
-                    )
-                    if isinstance(ref, dict) and ref.get("id") == deferred_referent_id
-                    and ref.get("lifecycle") == "presented"
-                ),
-                None,
-            )
+            deferred_referent = game._rpt_deferred_referent_next(current_location=current_location, deferred_referent_id=deferred_referent_id, world_state=world_state)
             promoted_npc = (
                 game._promote_scene_referent(deferred_referent, current_location)
                 if deferred_referent is not None else None
@@ -1210,20 +1014,9 @@ def _run_player_turn_internal(
         if npc_resolution.get("nobody_here"):
             game._nobody_here(npc_resolution["nobody_here"])
         if npc_resolution["status"] == "ambiguous" and not character_reply:
-            if (
-                interaction_mode not in {"say", "ask_dm"}
-                and held_plan is None  # a blow inside clauses held for the reading is still part of the plan
-                and game._has_explicit_attack_verb(player_input)
-            ):
-                action_result = resolve_intent(
-                    {"intent": "attack"},
-                    player_input,
-                )
-                return finish_turn(
-                    action_result,
-                    action_result.get("direct_response")
-                    or "Hangi hedefe saldırmak istiyorsun?",
-                )
+            _exit = game._rpt_interaction_mode_say_2(finish_turn=finish_turn, held_plan=held_plan, interaction_mode=interaction_mode, player_input=player_input, resolve_intent=resolve_intent)
+            if _exit is not game._TURN_FALL_THROUGH:
+                return _exit
             npc_resolution = game._settle_address(npc_resolution, player_input)
         if npc_resolution.get("absent") and interaction_mode != "ask_dm" and not combat["active"]:
             return finish_turn(
@@ -1252,20 +1045,7 @@ def _run_player_turn_internal(
             player_input, force_dialogue=False, allow_active_fallback=False
         ).get("npc")
     ):
-        # A sole-NPC fallback is useful for "Merhaba", but must not override a
-        # player-specified description of someone absent from the current scene.
-        preparsed_scene_intent = game.parse_player_intent(
-            player_input,
-            interaction_context=interaction_adventure.context(
-                world_state, None, player_input
-            ),
-            recent_scene_narration=game._recent_player_visible_narration(),
-            allow_scene_detail_proposals=game._scene_detail_proposals_allowed(
-                player_input, world_state, interaction_mode
-            ),
-                allow_local_person_proposal=game.should_generate_npcs(player_input),
-                strict=check_feature is not None,
-        )
+        preparsed_scene_intent = game._rpt_preparsed_scene_intent(check_feature=check_feature, interaction_mode=interaction_mode, player_input=player_input, world_state=world_state)
         scene_preparse_model_calls = 1
         intent_model_calls = scene_preparse_model_calls
         intent_source = "model"
@@ -1300,42 +1080,11 @@ def _run_player_turn_internal(
             }
             accepted_npc = None
             if not game.is_player_world_assertion(player_input):
-                accepted_npc = game.create_npc_from_ai(
-                    {
-                        "name": local_proposal["name"],
-                        "role": local_proposal["role"],
-                        "appearance": local_proposal["appearance"],
-                        "location": world_state.get("location"),
-                        "relationship": "neutral",
-                    },
-                    request_key=request_key,
-                )
-            if accepted_npc is not None:
-                created_now = accepted_npc.get("id") not in existing_ids
-                talk_mode.open(world_state, accepted_npc["id"], turn=flags.get("turn_index", 0))
-                status = "created_local_person" if created_now else "reused_local_person"
-                text = (
-                    f"{local_proposal['appearance']} {local_proposal['role']} "
-                    f"{'görünür hale geliyor' if created_now else 'yeniden dikkatini çekiyor'}."
-                )
-                return finish_turn(
-                    {
-                        "action": "dialogue",
-                        "status": status,
-                        "success": True,
-                        "npc_id": accepted_npc["id"],
-                        "state_changes": ["world.npcs"] if created_now else [],
-                    },
-                    text,
-                    safety_handling="python_scene_response",
-                    is_final=True,
-                )
-            result = {
-                "action": "dialogue",
-                "status": "proposal_rejected",
-                "success": False,
-                "state_changes": [],
-            }
+                accepted_npc = game._rpt_accepted_npc_create_2(local_proposal=local_proposal, request_key=request_key, world_state=world_state)
+            _exit = game._rpt_accepted_npc_created(accepted_npc=accepted_npc, existing_ids=existing_ids, finish_turn=finish_turn, flags=flags, local_proposal=local_proposal, world_state=world_state)
+            if _exit is not game._TURN_FALL_THROUGH:
+                return _exit
+            result = game._rpt_result_action_dialogue()
             text = "Öyle birini göremiyorsun."
             return finish_turn(
                 result, text, safety_handling="python_fallback", is_final=True
@@ -1368,39 +1117,13 @@ def _run_player_turn_internal(
         result = {"action": "dialogue", "status": "invalid_target", "success": False, "state_changes": []}
         return finish_turn(result, elsewhere, is_final=True)
 
-    if interaction_mode == "say" and npc_target is None:
-        result = {
-            "action": "dialogue", "status": "clarification", "success": False,
-            "state_changes": [],
-        }
-        nobody = "Burada konuşabileceğin kimse yok." if not game.active_npcs() else None
-        return finish_turn(result, nobody or "Kiminle konuşmak istiyorsun?", is_final=True)
+    _exit = game._rpt_interaction_mode_say(finish_turn=finish_turn, interaction_mode=interaction_mode, npc_target=npc_target)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
-    if not local_dialogue.is_local_dialogue_input(player_input):
-        live_focus = interaction_adventure.current_conversation_focus(world_state)
-        if live_focus:
-            normalized_input = living_world.normalize_text(player_input)
-            for location_id, location in world_state.get("locations", {}).items():
-                name = location.get("name") if isinstance(location, dict) else None
-                normalized_name = living_world.normalize_text(name or "")
-                if (
-                    location_id != live_focus.get("scene_id")
-                    and normalized_name
-                    and re.search(
-                        rf"(?<!\w){re.escape(normalized_name)}(?!\w)",
-                        normalized_input,
-                    )
-                ):
-                    interaction_adventure.retire_conversation_focus(world_state)
-                    break
+    game._rpt_local_dialogue_local(player_input=player_input, world_state=world_state)
 
-    topic_name = (
-        game._topic_place_name(world_state)
-        if (local_dialogue.asks_the_name_of_a_topic(player_input) and interaction_mode != "ask_dm"
-            # BM Task 2: a plain-talk reading means the person answers by speech; the name line is the fallback
-            and talk_front.old_owner_allowed(talk_front.current(game._session()), "place_name"))
-        else None
-    )
+    topic_name = game._rpt_topic_name_topic(interaction_mode=interaction_mode, player_input=player_input, world_state=world_state)
     _exit = game._tx_name_topic(finish_turn=finish_turn, npc_target=npc_target, player_input=player_input, topic_name=topic_name)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
@@ -1409,18 +1132,9 @@ def _run_player_turn_internal(
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
 
-    # Character-sheet facts are Python-owned even during an NPC conversation.
-    # Keep combat on its existing path and leave real disclosures/memory
-    # questions to the dialogue owner when no supported self-query matches.
-    if character_reply:
-        action_result = {
-            "action": "character_query",
-            "status": "answered_from_campaign_state",
-            "success": True,
-            "state_changes": [],
-            "direct_response": character_reply,
-        }
-        return finish_turn(action_result, character_reply)
+    _exit = game._rpt_character_reply_action(character_reply=character_reply, finish_turn=finish_turn)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     _exit = game._tx_attack_decision(finish_turn=finish_turn, held_plan=held_plan, interaction_mode=interaction_mode, npc_target=npc_target, player_input=player_input, quest_world_before=quest_world_before, resolve_intent=resolve_intent, target_id=target_id)
     if _exit is not game._TURN_FALL_THROUGH:
@@ -1431,28 +1145,11 @@ def _run_player_turn_internal(
         return _exit
 
     thread_talk = game._job_talk_with(npc_target)
-    interaction_hint = (
-        None if interaction_mode == "ask_dm" or thread_talk
-        or combat_lifecycle.quoted_report(game._session(), player_input)
-        else interaction_adventure.hint(player_input, npc_target)
-    )
+    interaction_hint = game._rpt_interaction_hint_interaction(interaction_mode=interaction_mode, npc_target=npc_target, player_input=player_input, thread_talk=thread_talk)
     if interaction_hint == "plan" and (getattr(game._session(), "_front_read", None) or {}).get("kind") == "speak_to":
         interaction_hint = None  # two clauses said to a person are no plan to keep: they answer them
-    if target_id is None and not combat["active"] and game._turns_to_someone_else(player_input):
-        others = [npc for npc in game._conversation_npcs()
-                  if not isinstance(npc_target, dict) or npc.get("id") != npc_target.get("id")]
-        if others:
-            npc_target = game.most_plausible_addressee(others, player_input)
-            game._session()._set_scene_active_npc(npc_target, world_state.get("flags", {}).get("turn_index", 0))
-    if (
-        interaction_hint in {"information", "generate"} and target_id is None
-        and (interaction_hint == "generate" or local_dialogue.personal_question_kind(player_input) == "local_work")
-        and game._town_in_play(world_state)
-    ):
-        # Whoever is here answers from what they know; no proposal is needed to find a town's work.
-        interaction_hint = None
-        if npc_target is None:
-            npc_target = game.most_plausible_addressee(game._conversation_npcs(), player_input)
+    npc_target = game._rpt_target_id_combat(combat=combat, npc_target=npc_target, player_input=player_input, target_id=target_id, world_state=world_state)
+    interaction_hint, npc_target = game._rpt_interaction_hint_information(interaction_hint=interaction_hint, npc_target=npc_target, player_input=player_input, target_id=target_id, world_state=world_state)
     raw = None
     answer_in_person = False
     classifier_unusable, intent_model_calls, intent_source, raw = game._tg_hint_intent(check_feature=check_feature, classifier_unusable=classifier_unusable, combat=combat, intent_model_calls=intent_model_calls, intent_source=intent_source, interaction_hint=interaction_hint, npc_target=npc_target, player_input=player_input, raw=raw, scene_preparse_model_calls=scene_preparse_model_calls, world_state=world_state)
@@ -1468,17 +1165,7 @@ def _run_player_turn_internal(
         # Said to that person: they answer it, and the answer's `asks_for` is read as for any line said to them.
         npc_target, raw, interaction_hint, answer_in_person = hearer, None, None, True
     if raw is not None:
-        conversation_resolution, conversation_rejected = (
-            game._validate_interaction_conversation(
-                player_input,
-                world_state,
-                raw,
-                npc_target,
-                required=(
-                    interaction_hint == "information" and npc_target is not None
-                ),
-            )
-        )
+        conversation_rejected, conversation_resolution = game._rpt_conversation_resolution_conversation(interaction_hint=interaction_hint, npc_target=npc_target, player_input=player_input, raw=raw, world_state=world_state)
         # A reading the classifier got wrong is no reason for a person to stop being one: they answer the line.
         # A promise or a condition must never be recorded on a reading that failed; the turn's one reading was
         # not built for this proposal alone, so with it the person still answers and nothing is recorded.
@@ -1488,12 +1175,7 @@ def _run_player_turn_internal(
                                      and game._people_speak_for_themselves(world_state))))
         if conversation_rejected and not answer_in_person:
             return finish_conversation_rejection(npc_target)
-        action_result = (
-            {"status": "proposal_rejected"} if answer_in_person else interaction_adventure.resolve(
-                game._session(), player_input, raw.get("interaction"), npc_target,
-                fallback_operation=interaction_hint,
-            )
-        )
+        action_result = game._rpt_action_result_status_3(answer_in_person=answer_in_person, interaction_hint=interaction_hint, npc_target=npc_target, player_input=player_input, raw=raw)
         if action_result.get("status") == "proposal_rejected" and game._has_spoken_to_player(npc_target):
             # Someone mid-conversation answers for themselves; a stock "I know nothing" disowns their own words.
             answer_in_person = True
@@ -1507,13 +1189,9 @@ def _run_player_turn_internal(
             and interaction_hint in {"promise", "goal"}
             and action_result.get("status") == "recorded"
         )
-        if not answer_in_person:
-            return finish_turn(
-                action_result, action_result["direct_response"],
-                is_final=narrated_without_model or action_result["status"] in {
-                    "proposal_rejected", "no_effect", "answered", "blocked",
-                },
-            )
+        _exit = game._rpt_answer_person_return(action_result=action_result, answer_in_person=answer_in_person, finish_turn=finish_turn, narrated_without_model=narrated_without_model)
+        if _exit is not game._TURN_FALL_THROUGH:
+            return _exit
 
     shop_request = (interaction_mode not in {"say", "ask_dm"}
                     and target_id is None and game._explicit_campaign_shop_request(player_input))
@@ -1525,14 +1203,9 @@ def _run_player_turn_internal(
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
 
-    if shop_request:
-        import shop_creation
-
-        action_result = shop_creation.resolve_explicit_request(game._session())
-        return finish_turn(
-            action_result, action_result["direct_response"],
-            is_final=not action_result["success"],
-        )
+    _exit = game._rpt_shop_request_import(finish_turn=finish_turn, shop_request=shop_request)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     _exit = game._tg_shop_exit_a(finish_turn=finish_turn, interaction_mode=interaction_mode, player_input=player_input, world_state=world_state)
     if _exit is not game._TURN_FALL_THROUGH:
@@ -1562,14 +1235,7 @@ def _run_player_turn_internal(
             r"[^A-Za-zÇĞİÖŞÜçğıöşü'’-]", "", disclosed_name
         ).strip("'’-")
         if safe_name:
-            # Hearing the same name again is no moment for the greeting a second time.
-            compound_speech = not talk_front.old_owner_allowed(  # BM Task 2: the name is stored below, speech voices it
-                talk_front.current(game._session()), "name_disclosure") or game._known_player_name(npc_target) == safe_name or (
-                local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
-                # E9: a question Python cannot answer goes to speech; "who are you" Python answers itself.
-                and (game._npc_speech_enabled() or (interaction_adventure._asks(player_input)
-                                               and game._detect_query_type(player_input, npc_target) != "npc_identity"))
-            )
+            compound_speech = game._rpt_compound_speech_talk(npc_target=npc_target, player_input=player_input, safe_name=safe_name)
             if compound_speech and game._known_player_name(npc_target) != safe_name and not talk_front.old_owner_allowed(
                     talk_front.current(game._session()), "name_disclosure"):
                 intro_fallback_name = safe_name
@@ -1579,35 +1245,9 @@ def _run_player_turn_internal(
                 # The player requested this identity. Python decides disclosure;
                 # the model receives the now-public name, not hidden identity.
                 game._handle_query(player_input, "npc_identity", npc_target)
-            if not compound_speech:
-                npc_name = living_world.public_npc_name(npc_target)
-                reply = local_dialogue.introduction_reply(world_state, npc_target, safe_name)
-                narration = f'{npc_name}: “{reply}”'
-                # A single utterance may introduce the player AND ask who the
-                # addressee is. Both answers come from verified Python state.
-                if game._detect_query_type(player_input, npc_target) == "npc_identity":
-                    identity_reply = game._handle_query(player_input, "npc_identity", npc_target)
-                    if identity_reply:
-                        narration += " " + identity_reply
-                action_result = {
-                    "action": "dialogue",
-                    "status": "player_name_disclosed",
-                    "success": True,
-                    "npc_id": npc_target["id"],
-                    "state_changes": ["npcs.memory"],
-                }
-                game.record_npc_interaction(
-                    npc_target, narration, player_input, npc_target
-                )
-                if local_dialogue.explicit_player_name_disclosure(player_input) != safe_name:
-                    # The words said were not the name as written; keep it spelled right.
-                    local_dialogue.remember_explicit_player_name(npc_target, safe_name)
-                return finish_turn(
-                    action_result,
-                    narration,
-                    safety_reason_code="NPC_MEMORY_EXPLICIT_PLAYER_NAME",
-                    safety_handling="python_memory_response",
-                )
+            _exit = game._rpt_compound_speech_npc(compound_speech=compound_speech, finish_turn=finish_turn, npc_target=npc_target, player_input=player_input, safe_name=safe_name, world_state=world_state)
+            if _exit is not game._TURN_FALL_THROUGH:
+                return _exit
 
     _exit = game._tx_npc_query(finish_turn=finish_turn, npc_target=npc_target, player_input=player_input)
     if _exit is not game._TURN_FALL_THROUGH:
@@ -1617,12 +1257,7 @@ def _run_player_turn_internal(
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
 
-    # A requested shop with an 'işleten' shopkeeper is not a job inquiry.
-    work_answer = (
-        None
-        if shop_request or interaction_mode == "say"
-        else local_dialogue.unaddressed_work_answer(player_input)
-    )
+    work_answer = game._rpt_work_answer_shop(interaction_mode=interaction_mode, player_input=player_input, shop_request=shop_request)
     _exit = game._tx_work_answer(finish_turn=finish_turn, npc_target=npc_target, work_answer=work_answer, world_state=world_state)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
@@ -1653,12 +1288,7 @@ def _run_player_turn_internal(
         # that shares a word with the claim is not support.
         import npc_statements
         ledger = npc_statements.claim_support(world_state, claimed_npc, player_input) if claimed_npc else {"status": "absent"}
-        if ledger["status"] == "supported":
-            supported_entry = f"“{ledger['quote']}”"
-        elif ledger["status"] == "unsupported" or (
-            supported_entry and not npc_statements.entry_supports_claim(supported_entry, player_input)
-        ):
-            supported_entry = None
+        supported_entry = game._rpt_ledger_status_supported(ledger=ledger, npc_statements=npc_statements, player_input=player_input, supported_entry=supported_entry)
         import npc_told
         about = npc_statements.claim_about(player_input)
         if about != "npc_words":
@@ -1666,16 +1296,7 @@ def _run_player_turn_internal(
             if (isinstance(npc_target, dict) and claimed_npc is npc_target
                     and npc_target.get("location") == world_state.get("location")):
                 told_support = npc_told.supports(world_state, npc_target["id"], player_input, about=about)
-        # A previous conversation alone cannot support a new quoted claim.
-        # Only recorded speech support may
-        # bypass the unsupported-history check.
-        spoken_reference = bool(
-            isinstance(npc_target, dict) and claimed_npc is npc_target
-            and npc_target.get("location") == world_state.get("location")
-            and ledger["status"] == "supported" and ledger.get("claim_kind") in (None, "said")
-            and (about == "memory"  # "beni hatırlıyor musun?" to someone whose own words are recorded (Task 28)
-                 or about == "npc_words" and game._SECOND_PERSON_SAID.search(game._normalize_turkish_typos(player_input)))
-        )
+        spoken_reference = game._rpt_spoken_reference_bool(about=about, claimed_npc=claimed_npc, ledger=ledger, npc_target=npc_target, player_input=player_input, world_state=world_state)
         recognised = spoken_reference and about == "memory"
         # Unattributed NPC knowledge cannot independently verify past dialogue.
         # Only the speaker-aware memory path may support this response.
@@ -1701,14 +1322,7 @@ def _run_player_turn_internal(
                 response = f'{living_world.public_npc_name(claimed_npc)}, "Evet, bunu söylemiştim: {quote.group(1)}" diye yanıt verir.'
             else:
                 response = f'{living_world.public_npc_name(claimed_npc)}, "Evet, bunu daha önce konuştuğumuzu hatırlıyorum," diye yanıt verir.'
-            action_result = {
-                "action": "dialogue",
-                "status": "answered_from_npc_memory",
-                "success": True,
-                "npc_id": claimed_npc["id"],
-                "state_changes": [],
-                "direct_response": response,
-            }
+            action_result = game._rpt_action_result_action(claimed_npc=claimed_npc, response=response)
             game.record_npc_interaction(claimed_npc, response, player_input, claimed_npc)
             return finish_turn(
                 action_result,
@@ -1740,34 +1354,16 @@ def _run_player_turn_internal(
                 safety_handling="python_memory_response",
             )
 
-    supported_lore_response = game._supported_lore_question_response(
-        player_input,
-        lore_context,
-        world_state,
-    )
+    supported_lore_response = game._rpt_supported_lore_response(lore_context=lore_context, player_input=player_input, world_state=world_state)
     _exit = game._tx_supported_lore_response(finish_turn=finish_turn, lore_context=lore_context, supported_lore_response=supported_lore_response)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
 
-    npc_place_recommendation = (
-        isinstance(npc_target, dict)
-        and interaction_mode != "ask_dm"
-        and local_dialogue.is_local_place_recommendation_request(player_input)
-    )
+    npc_place_recommendation = game._rpt_npc_place_recommendation(interaction_mode=interaction_mode, npc_target=npc_target, player_input=player_input)
     npc_dialogue_route = game._tx_npc_dialogue_route(answer_in_person=answer_in_person, experimental_unverified_claim=experimental_unverified_claim, interaction_mode=interaction_mode, npc_place_recommendation=npc_place_recommendation, npc_target=npc_target, player_input=player_input, spoken_reference=spoken_reference)
     profile_focus = interaction_adventure.current_conversation_focus(world_state, npc_target)
-    canonical_profile_question = (
-        local_dialogue.personal_question_kind(player_input)
-        in interaction_adventure.PROFILE_FIELD_BY_MEANING.values()
-        or (game._is_short_followup(player_input) and profile_focus
-            and profile_focus.get("predicate") in interaction_adventure.PROFILE_FIELD_BY_MEANING.values())
-    ) and not local_dialogue.has_multiple_dialogue_clauses(player_input, npc_target)
-    experimental_dialogue_session = npc_dialogue_route and (
-        # BM Task 3: the model read a plain talk line to this person: they answer by speech, even asked of the DM
-        (isinstance(npc_target, dict) and not talk_front.old_owner_allowed(front_talk, "personal"))
-        or (interaction_mode != "ask_dm"
-            and (game._npc_speech_enabled() or experimental_unverified_claim or not canonical_profile_question))
-    )
+    canonical_profile_question = game._rpt_canonical_profile_question(npc_target=npc_target, player_input=player_input, profile_focus=profile_focus)
+    experimental_dialogue_session = game._rpt_experimental_dialogue_npc(canonical_profile_question=canonical_profile_question, experimental_unverified_claim=experimental_unverified_claim, front_talk=front_talk, interaction_mode=interaction_mode, npc_dialogue_route=npc_dialogue_route, npc_target=npc_target)
     lore_safety_input = player_input
     lore_safety_input = game._tx_place_recommendation_safety_input(lore_safety_input=lore_safety_input, npc_place_recommendation=npc_place_recommendation, npc_target=npc_target, player_input=player_input)
     # A multi-part message may carry one plainly answerable personal question
@@ -1784,24 +1380,8 @@ def _run_player_turn_internal(
         local_dialogue.personal_question_kind(player_input)
         if isinstance(npc_target, dict) else None
     )
-    lore_gate = answerable_personal_kind is None and not experimental_dialogue_session and (
-        (
-            not npc_place_recommendation
-            and (world_subject_question or local_dialogue.is_world_subject_question(player_input))
-        )
-        or game._player_question_has_unverified_lore_claim(
-            lore_safety_input, lore_context, world_state
-        )
-    )
-    if (lore_gate and interaction_mode != "ask_dm" and not combat["active"]
-            and game._people_speak_for_themselves(world_state)
-            and not game._ASKS_DISTANCE.search(local_dialogue.normalize_text(player_input))):
-        # Asked aloud with someone standing there, the town's talk is theirs to answer, not the street's.
-        here = game._conversation_npcs()
-        npc_target = game._explicit_addressee(player_input, here) or npc_target or game.most_plausible_addressee(here, player_input)
-        if isinstance(npc_target, dict):
-            lore_gate = False
-            npc_dialogue_route = experimental_dialogue_session = True
+    lore_gate = game._rpt_lore_gate_answerable(answerable_personal_kind=answerable_personal_kind, experimental_dialogue_session=experimental_dialogue_session, lore_context=lore_context, lore_safety_input=lore_safety_input, npc_place_recommendation=npc_place_recommendation, player_input=player_input, world_state=world_state, world_subject_question=world_subject_question)
+    experimental_dialogue_session, lore_gate, npc_dialogue_route, npc_target = game._rpt_lore_gate_interaction(combat=combat, experimental_dialogue_session=experimental_dialogue_session, interaction_mode=interaction_mode, lore_gate=lore_gate, npc_dialogue_route=npc_dialogue_route, npc_target=npc_target, player_input=player_input, world_state=world_state)
     _exit = game._tx_lore_gate(finish_turn=finish_turn, lore_gate=lore_gate, npc_target=npc_target, player_input=player_input)
     if _exit is not game._TURN_FALL_THROUGH:
         return _exit
@@ -1966,12 +1546,7 @@ def _run_player_turn_internal(
 
             text_before_finalize = text
             text = game._ts_finalize_text(action_result=action_result, attributed_speech=attributed_speech, invalid_spoken_stage_direction=invalid_spoken_stage_direction, npc_target=npc_target, player_input=player_input, python_town_response=python_town_response, text=text, unverified_history_echo=unverified_history_echo)
-            after = game._speech_after_check(
-                text, world_state=world_state, npc_target=npc_target, player_input=player_input,
-                action_result=action_result, experimental_npc_dialogue=experimental_npc_dialogue,
-                experimental_unverified_claim=experimental_unverified_claim, narration_source=narration_source,
-                python_town_response=python_town_response, attributed_speech=attributed_speech,
-            )
+            after = game._rpt_after_speech_after(action_result=action_result, attributed_speech=attributed_speech, experimental_npc_dialogue=experimental_npc_dialogue, experimental_unverified_claim=experimental_unverified_claim, narration_source=narration_source, npc_target=npc_target, player_input=player_input, python_town_response=python_town_response, text=text, world_state=world_state)
             text, python_town_response, narration_source = after["text"], after["python_town_response"], after["narration_source"]
             final_safety_reason_code, final_safety_handling, stock_swapped = after["reason_code"], after["handling"], after["stock_swapped"]
             speech_checks = None
@@ -1979,61 +1554,16 @@ def _run_player_turn_internal(
                 # D-252: the names of the checks that changed or replaced this reply, for the route log. Never words.
                 kept = attributed_speech["spoken_text"].strip() if attributed_speech else ""
                 said = raw_spoken.strip() if isinstance(raw_spoken, str) else ""
-                speech_checks = [name for name, fired in (
-                    ("invalid_or_empty", invalid_or_empty),
-                    ("spoken_trimmed", attributed_speech is not None and kept != said),
-                    ("history_echo", unverified_history_echo),
-                    ("world_updates", bool(raw_intent.get("world_updates"))),
-                    ("lore_claims", bool(raw_intent.get("lore_claims"))),
-                    ("unsafe", not invalid_or_empty and not interaction_adventure.safe_narration(text_before_finalize)),
-                    ("python_town_lead", python_town_response is not None),
-                    ("finalize_changed", text != text_before_finalize and not stock_swapped),
-                    ("stock_swapped", stock_swapped),
-                ) if fired]
+                speech_checks = game._rpt_speech_checks_name(attributed_speech=attributed_speech, invalid_or_empty=invalid_or_empty, kept=kept, python_town_response=python_town_response, raw_intent=raw_intent, said=said, stock_swapped=stock_swapped, text=text, text_before_finalize=text_before_finalize, unverified_history_echo=unverified_history_echo)
                 if final_safety_reason_code:
                     speech_checks.append(f"safety:{str(final_safety_reason_code)[:40]}")
-                game._speech_debug_trail({
-                    "player": player_input,
-                    "npc_id": npc_target.get("id"),
-                    "npc_name": living_world.public_npc_name(npc_target),
-                    "model_raw": model_raw_narration,
-                    "cleaned": raw_narration,
-                    "invalid_or_empty": invalid_or_empty,
-                    "unverified_claim_in_prompt": experimental_unverified_claim,
-                    "history_echo": unverified_history_echo,
-                    "model_world_updates": bool(raw_intent.get("world_updates")),
-                    "model_lore_claims": bool(raw_intent.get("lore_claims")),
-                    "safe_narration": (
-                        None if invalid_or_empty
-                        else interaction_adventure.safe_narration(text_before_finalize)
-                    ),
-                    "before_finalize": text_before_finalize,
-                    "finalize_changed_text": text != text_before_finalize,
-                    "safety": getattr(game._session(), "last_narration_safety", None),
-                    "shown": (
-                        text if text.casefold().startswith(
-                            living_world.public_npc_name(npc_target).casefold())
-                        else f"{living_world.public_npc_name(npc_target)}, “{text}”"
-                    ),
-                })
-            accepted_model_speech = (
-                experimental_npc_dialogue
-                and not invalid_or_empty
-                and not unverified_history_echo
-                and attributed_speech is not None
-                and text == game._compose_experimental_npc_speech(attributed_speech)
-            )
+                game._rpt_speech_debug_trail(experimental_unverified_claim=experimental_unverified_claim, invalid_or_empty=invalid_or_empty, model_raw_narration=model_raw_narration, npc_target=npc_target, player_input=player_input, raw_intent=raw_intent, raw_narration=raw_narration, text=text, text_before_finalize=text_before_finalize, unverified_history_echo=unverified_history_echo)
+            accepted_model_speech = game._rpt_accepted_model_speech(attributed_speech=attributed_speech, experimental_npc_dialogue=experimental_npc_dialogue, invalid_or_empty=invalid_or_empty, text=text, unverified_history_echo=unverified_history_echo)
             turned_down_what_was_paid = (
                 accepted_model_speech and settled_money.get("moved")
                 and game._npc_speech_rejects_claim(attributed_speech["spoken_text"])
             )
-            if turned_down_what_was_paid or (
-                accepted_model_speech and not game._with_only_backed_money(attributed_speech, settled_money)
-            ):
-                accepted_model_speech = False
-                text = (game._job_fallback(world_state) or game._town_fallback(world_state, npc_target, player_input)
-                        or interaction_adventure.immersive_unknown(npc_target, player_input))
-                speech_checks.append("unbacked_money")
+            accepted_model_speech, text = game._rpt_turned_down_what(accepted_model_speech=accepted_model_speech, attributed_speech=attributed_speech, npc_target=npc_target, player_input=player_input, settled_money=settled_money, speech_checks=speech_checks, text=text, turned_down_what_was_paid=turned_down_what_was_paid, world_state=world_state)
             if speech_checks is not None:
                 game._session()._speech_checks = speech_checks
             if experimental_unverified_claim:
@@ -2183,12 +1713,9 @@ def _run_player_turn_internal(
             action_result = interaction_adventure.resolve(
                 game._session(), player_input, raw_intent["interaction"], npc_target,
             )
-            if action_result["status"] != "proposal_rejected" and not (
-                    action_result["status"] == "unbacked" and isinstance(npc_target, dict)):
-                return finish_turn(
-                    action_result, action_result["direct_response"],
-                    is_final=action_result["status"] in {"no_effect", "answered", "blocked"},
-                )
+            _exit = game._rpt_action_result_status_2(action_result=action_result, finish_turn=finish_turn, npc_target=npc_target)
+            if _exit is not game._TURN_FALL_THROUGH:
+                return _exit
             # A proposal Python cannot use is dropped; the line itself still gets a person's answer.
             raw_intent = {**raw_intent, "interaction": None}
         if npc_target is not None:
@@ -2213,13 +1740,9 @@ def _run_player_turn_internal(
         print("[RULE ENGINE]")
         print(json.dumps({key: value for key, value in action_result.items() if key != "direct_response"}, ensure_ascii=False, indent=2))
 
-    if action_result.get("status") == "unresolved":
-        return finish_turn(
-            action_result,
-            action_result.get("direct_response") or game._natural_unresolved_action_response(player_input, action_result),
-            is_final=True,
-            safety_handling="python_scene_response",
-        )
+    _exit = game._rpt_action_result_status(action_result=action_result, finish_turn=finish_turn, player_input=player_input)
+    if _exit is not game._TURN_FALL_THROUGH:
+        return _exit
 
     if action_result.get("action") == "combat_move":
         return finish_turn(action_result, action_result["direct_response"], is_final=True)  # the engine tells it
@@ -2244,13 +1767,7 @@ def _run_player_turn_internal(
         early_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
         early_changed = early_entry or world_state.get("location") != previous_location
         action_result["scene_detail_proposal_submitted"] = True
-        action_result["verified_world_updates"] = game.validate_world_updates(
-            {"create_features": early_bound},
-            allow_new_features=(not shop_request
-                                and game.should_generate_features(player_input, early_changed)
-                                and not game.is_player_world_assertion(player_input)),
-            allowed_feature_kinds=game.SCENE_DETAIL_KIND_ALLOWLIST,
-        )
+        game._rpt_action_result_verified(action_result=action_result, early_bound=early_bound, early_changed=early_changed, player_input=player_input, shop_request=shop_request)
         if action_result["verified_world_updates"].get("create_features"):
             findings = None
     _exit = game._tg_findings_text_exit(action_result=action_result, findings=findings, finish_turn=finish_turn, quest_world_before=quest_world_before)
@@ -2260,43 +1777,15 @@ def _run_player_turn_internal(
     proposed_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
     allow_new_locations = bool(action_result.get("proposal_required"))
     expected_location_change = proposed_entry or world_state.get("location") != previous_location
-    allow_new_npcs = (
-        not shop_request
-        and game.should_generate_npcs(player_input, expected_location_change)
-        and not game.is_player_world_assertion(player_input)
-    )
-    allow_new_features = (
-        not shop_request
-        and game.should_generate_features(player_input, expected_location_change)
-        and not game.is_player_world_assertion(player_input)
-    )
+    allow_new_npcs = game._rpt_allow_new_npcs(expected_location_change=expected_location_change, player_input=player_input, shop_request=shop_request)
+    allow_new_features = game._rpt_allow_new_features(expected_location_change=expected_location_change, player_input=player_input, shop_request=shop_request)
     scene_parent = game._scene_detail_parent(
         world_state.get("location"), player_input
     )
-    if (
-        scene_parent is None
-        and living_world.is_anchored_structure_inquiry(player_input)
-    ):
-        action_result["direct_response"] = (
-            "Yakında inceleyebileceğin belirgin bir bina görünmüyor."
-        )
+    game._rpt_scene_parent_living(action_result=action_result, player_input=player_input, scene_parent=scene_parent)
     if isinstance(raw_intent, dict):
         scene_detail_proposals = raw_intent.get("scene_detail_proposals")
-        if isinstance(scene_detail_proposals, list) and scene_detail_proposals:
-            parent_id = scene_parent.get("id") if isinstance(scene_parent, dict) else None
-            bound_proposals = [
-                proposal for proposal in scene_detail_proposals[:1]
-                if isinstance(proposal, dict)
-                and proposal.get("parent_id") == parent_id
-            ]
-            action_result["scene_detail_proposal_submitted"] = bool(
-                scene_detail_proposals
-            )
-            action_result["verified_world_updates"] = game.validate_world_updates(
-                {"create_features": bound_proposals},
-                allow_new_features=allow_new_features,
-                allowed_feature_kinds=game.SCENE_DETAIL_KIND_ALLOWLIST,
-            )
+        game._rpt_scene_detail_proposals(action_result=action_result, allow_new_features=allow_new_features, scene_detail_proposals=scene_detail_proposals, scene_parent=scene_parent)
     allow_new_shops = bool(shop_request)
 
     quest_transitions = game._session().evaluate_quest_events(

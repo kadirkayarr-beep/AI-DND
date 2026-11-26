@@ -1,8 +1,8 @@
 {
   "files": {
-    "game.py": 1164,
-    "game_parts/narration_safety.py": 1505,
-    "game_parts/turn.py": 2318
+    "game.py": 1148,
+    "game_parts/narration_safety.py": 1197,
+    "game_parts/turn.py": 1804
   },
   "part_max": 2500,
   "slack": 50,
@@ -12,14 +12,14 @@
     "game_parts/living_world_turn.py::plan_living_world_turn": 308,
     "game_parts/lore.py::_player_question_has_unverified_lore_claim": 196,
     "game_parts/lore.py::_supported_lore_question_response": 479,
-    "game_parts/narration.py::ask_dungeon_master": 299,
+    "game_parts/narration.py::ask_dungeon_master": 282,
     "game_parts/narration.py::validate_world_updates": 155,
-    "game_parts/narration_safety.py::_narration_safety_decision": 1054,
+    "game_parts/narration_safety.py::_narration_safety_decision": 748,
     "game_parts/new_game.py::initialize_game": 197,
     "game_parts/savefile.py::load_game": 186,
     "game_parts/terminal.py::run": 184,
-    "game_parts/turn.py::_dispatch_player_turn": 348,
-    "game_parts/turn.py::_run_player_turn_internal": 1553,
+    "game_parts/turn.py::_dispatch_player_turn": 238,
+    "game_parts/turn.py::_run_player_turn_internal": 1154,
     "game_parts/turn_front.py::_execute_intent_internal": 308,
     "game_parts/turn_front.py::_front_step": 235
   }
