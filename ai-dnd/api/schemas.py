@@ -5,9 +5,18 @@ from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StrictBool, StrictStr, field_validator, model_validator
 
+from api.dnd_2024_rules import ABILITY_KEYS
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
 
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
+
+
+def require_non_blank(value: str | None, message: str) -> str:
+    """Refuse a missing, empty or blank value with one message; return it stripped."""
+    cleaned = value.strip() if isinstance(value, str) else ""
+    if not cleaned:
+        raise ValueError(message)
+    return cleaned
 
 
 class HealthResponse(BaseModel):
@@ -307,8 +316,7 @@ class TurnRequest(BaseModel):
     @field_validator("message")
     @classmethod
     def message_must_not_be_blank(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("Message must not be empty.")
+        require_non_blank(value, "Message must not be empty.")
         return value
 
     @field_validator("action_id")
@@ -323,10 +331,7 @@ class TurnRequest(BaseModel):
     def target_id_must_not_be_blank(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Target ID must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Target ID must not be blank.")
 
 
 class CombatParticipantState(BaseModel):
@@ -1221,6 +1226,29 @@ class SorcererLevelChoices(BaseModel):
     level_5: LevelUpFiveChoices = Field(default_factory=lambda: None, alias="5")
 
 
+_MAX_LIST_ITEMS = 40
+_MAX_LIST_ENTRY_CHARS = 100
+
+
+def _small_list(value: list[str]) -> list[str]:
+    """Refuse a list with too many entries or an over-long entry."""
+    too_long = any(len(item) > _MAX_LIST_ENTRY_CHARS for item in value)
+    if len(value) > _MAX_LIST_ITEMS or too_long:
+        raise ValueError("A list holds too many entries or an entry is too long.")
+    return value
+
+
+def _ability_names_only(value: dict[str, int]) -> dict[str, int]:
+    """Refuse a dictionary that has a key other than the six ability names."""
+    if not set(value) <= set(ABILITY_KEYS):
+        raise ValueError("Only the six ability names are accepted.")
+    return value
+
+
+SmallStrings = Annotated[list[str], AfterValidator(_small_list)]
+AbilityMap = Annotated[dict[str, int], AfterValidator(_ability_names_only)]
+
+
 class CharacterCreateInput(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -1235,20 +1263,20 @@ class CharacterCreateInput(BaseModel):
     background: str | None = None
     alignment: str | None = None
     ability_score_method: str | None = None
-    ability_scores: dict[str, int] | None = None
-    background_ability_bonuses: dict[str, int] | None = None
-    proficient_skills: list[str] | None = None
-    expertise_skills: list[str] | None = None
-    proficient_tools: list[str] | None = None
+    ability_scores: AbilityMap | None = None
+    background_ability_bonuses: AbilityMap | None = None
+    proficient_skills: SmallStrings | None = None
+    expertise_skills: SmallStrings | None = None
+    proficient_tools: SmallStrings | None = None
     origin_feat: str | None = None
     species_bonus_feat: str | None = None
-    species_bonus_skills: list[str] | None = None
+    species_bonus_skills: SmallStrings | None = None
     fighting_style: str | None = None
     equipment_package: str | None = None
-    equipment_choices: list[str] | None = None
-    cantrips: list[str] | None = None
-    spells: list[str] | None = None
-    languages: list[str] | None = None
+    equipment_choices: SmallStrings | None = None
+    cantrips: SmallStrings | None = None
+    spells: SmallStrings | None = None
+    languages: SmallStrings | None = None
     background_equipment_option: Literal["A", "B"] | None = None
     origin: str | None = Field(default=None, max_length=240)
     appearance: str | None = Field(default=None, max_length=1000)
@@ -1260,10 +1288,7 @@ class CharacterCreateInput(BaseModel):
     def character_name_must_not_be_blank(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Character name must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Character name must not be blank.")
 
     @model_validator(mode="after")
     def fields_must_match_creation_mode(self) -> "CharacterCreateInput":
@@ -1616,10 +1641,7 @@ class CampaignStartSelection(BaseModel):
     )
     @classmethod
     def selection_ids_must_not_be_blank(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Campaign start selections must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Campaign start selections must not be blank.")
 
 
 class CampaignStartLocationOption(BaseModel):
@@ -1667,10 +1689,7 @@ class CampaignCreateRequest(BaseModel):
     def campaign_name_must_not_be_blank(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Campaign name must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Campaign name must not be blank.")
 
 
 class CampaignSummary(BaseModel):

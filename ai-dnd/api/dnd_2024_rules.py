@@ -1253,6 +1253,18 @@ def validate_ability_scores(
         raise CharacterCreationError(f"Unsupported ability score generation method: {method}")
 
 
+_BONUS_SHAPE = (
+    "Background bonuses must name only the six abilities, each with 0, 1 or 2."
+)
+
+
+def _check_bonus_shape(bonuses: dict[str, int]) -> None:
+    """Refuse an unknown ability name, or a bonus that is not a whole 0, 1 or 2."""
+    for ability, val in bonuses.items():
+        if ability not in ABILITY_KEYS or type(val) is not int or val not in (0, 1, 2):
+            raise CharacterCreationError(_BONUS_SHAPE)
+
+
 def validate_background_bonuses(
     background_key: str,
     bonuses: dict[str, int],
@@ -1263,6 +1275,7 @@ def validate_background_bonuses(
         raise CharacterCreationError(f"Unsupported background: {background_key}")
 
     permitted_abilities = set(bg["abilities"])
+    _check_bonus_shape(bonuses)
     for ability, val in bonuses.items():
         if val > 0 and ability not in permitted_abilities:
             raise CharacterCreationError(
