@@ -10,6 +10,8 @@ import living_world
 import town_knowledge
 import world_threads
 from api.tests import test_experimental_npc_dialogue as speech
+from api.tests import test_front_proposal as front_tests
+from api.tests.front_reading import RouteWatch, call_kinds, with_reading
 from api.tests.town_seed import fixed_town
 
 SEEDS = [f"branch-{number}" for number in range(20)]
@@ -18,15 +20,18 @@ FIRST_TOWN = 1  # each campaign a test makes takes the next town: 1, 2, 3 ... (C
 
 
 class Branches(unittest.IsolatedAsyncioTestCase):
-    asyncSetUp = speech.ExperimentalNpcDialogueTests.asyncSetUp
     asyncTearDown = speech.ExperimentalNpcDialogueTests.asyncTearDown
     campaign_with_npc = speech.ExperimentalNpcDialogueTests.campaign_with_npc
     first_town = FIRST_TOWN
 
+    async def asyncSetUp(self):
+        await speech.ExperimentalNpcDialogueTests.asyncSetUp(self)
+        self.watch = RouteWatch(self)
+
     async def town(self, seed):
         with fixed_town(self, self.first_town):
             self.city, self.session_id, self.session, self.turn_url, self.owner = await self.campaign_with_npc()
-        self.client = speech.ScriptedNpcSpeechClient("Hmm.")
+        self.client = front_tests.FrontClient("Hmm.")  # D-423: the reading comes back usable (see reading())
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", self.client))
         self.world = self.session.world_state
         living_world.ensure_scene_state(self.world)["campaign_seed"] = seed
@@ -49,15 +54,33 @@ class Branches(unittest.IsolatedAsyncioTestCase):
                                   "deadline_text": "bir gün içinde"})
         # the town may have drawn a night watch for this record; a day job is not kept to the night (D-374)
         self.drawn_night = self.thread.pop("night_only", False)
+        # and so is nothing else the drawn job carried into this day job (D-389)
+        for key in ("fires_at", "status_lines", "item_noun"):
+            self.thread.pop(key, None)
         state["threads"] = [self.thread]
         self.world["campaign_time"]["start_second"] = 7 * 3600
         # someone sizing a stranger up is its own path; here everyone gets as far as the offer
         self.world["npc_speech_log"] = {self.owner["id"]: [{"player": "selam", "npc": "Selam."}]}
         self.tid = self.thread["thread_id"]
+        self.watch.reset()  # the set-up above read nothing; every line of the test itself is read
+
+    def reading(self, message):
+        """What a working model reads each line of these tests as (flag on; flag off no reading is asked)."""
+        answers = {"selam": {"kind": "speak_to", "person_id": self.owner["id"]},
+                   "iş var mı?": {"kind": "speak_to", "person_id": self.owner["id"], "asks": "work"},
+                   "hâlâ iş var mı?": {"kind": "speak_to", "person_id": self.owner["id"], "asks": "work"},
+                   "olur": {"kind": "offer_answer", "offer_id": self.tid, "answer": "accept"},
+                   "o işi yaparım": {"kind": "speak_to", "person_id": self.owner["id"]},  # the offer is declined: none listed
+                   "yok ya": {"kind": "offer_answer", "offer_id": self.tid, "answer": "decline"},
+                   "başlayalım": {"kind": "work", "job_id": self.tid},
+                   "bir gün bekliyorum": {"kind": "wait"},
+                   "iki saat bekliyorum": {"kind": "wait"}}
+        return answers[message]
 
     async def line(self, message, reply=None, *, mode=None):
         if reply is not None:
             self.client.narration = reply
+        self.client.front = self.reading(message)
         body = {"message": message, "action_id": str(uuid.uuid4())}
         if mode:
             body["interaction_mode"] = mode
@@ -66,8 +89,10 @@ class Branches(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post(self.turn_url, json=body)
         self.assertEqual(response.status_code, 200, response.text)
         # At most one call of the line's own, its speech; with the flag on the front reading comes first (G1).
-        kinds = speech.call_kinds(self.client.schemas[before:])
-        self.assertIn(kinds, (speech.with_reading(), speech.with_reading("speech")), message)
+        kinds = call_kinds(self.client.schemas[before:])
+        self.assertIn(kinds, (with_reading(), with_reading("speech")), message)
+        self.assertEqual(self.watch.unusable(), [], message)  # D-423: the reading came back usable, no fallback
+        self.client.front = {"kind": "unclear"}  # the next campaign this client sees (a town's own set-up) reads as before
         self.world = self.session.world_state
         return response.json()
 
@@ -128,6 +153,15 @@ class Branches(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(refused["who"])
         self.assertGreaterEqual(filled, 14)
 
+    async def test_the_rebuilt_day_job_keeps_nothing_of_the_job_the_town_drew(self):
+        # D-389: besides night_only, a trouble's fires_at, a status text and an item noun would ride into the day job
+        for town in (1, 14, 22, 40):
+            with self.subTest(town=town):
+                self.first_town = town
+                self._town_creations = 0  # fixed_town counts a test's campaigns; each town starts from its own seed
+                await self.town("rebuilt")
+                self.assertEqual({"fires_at", "status_lines", "item_noun"} & set(self.thread), set())
+
     async def test_the_wage_is_the_only_money_that_moved(self):
         self.first_town = 14  # D-374: this town draws a night watch as its first job
         await self.start("wage", None)
@@ -137,10 +171,12 @@ class Branches(unittest.IsolatedAsyncioTestCase):
         await self.line("başlayalım")
         self.assertEqual(self.world.get("currency", {}).get("player", 0) - start, 12)
 
-    async def test_a_night_watch_the_town_drew_is_not_worked_by_day_and_pays_at_night(self):
-        self.first_town = 22  # D-374: this town draws a night watch as its first job; here it stays one
+    async def test_a_day_job_put_back_as_night_only_is_not_worked_by_day_and_pays_at_night(self):
+        self.first_town = 22  # D-374: this town draws a night watch as its first job
         await self.start("wage", None)
         self.assertTrue(self.drawn_night)
+        # town() rebuilt the record as a day job; the night flag is put back on it here. This is not the town's own
+        # night_watch record, only the flag the work rule reads (D-390).
         world_threads.by_id(self.world, self.tid)["night_only"] = True
         start = self.world.get("currency", {}).get("player", 0)
         await self.line("olur", "Güzel.")
@@ -148,10 +184,19 @@ class Branches(unittest.IsolatedAsyncioTestCase):
         await self.line("başlayalım", "Akşam gel.")
         self.assertEqual(self.world.get("currency", {}).get("player", 0), start)
         self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock["elapsed_seconds"])
-        self.assertEqual(world_threads.by_id(self.world, self.tid)["status"], "accepted")
+        thread = world_threads.by_id(self.world, self.tid)
+        self.assertEqual(thread["status"], "accepted")
+        # the wage ledger is untouched by the day attempt (_credit_day writes these and a "paid" event)
+        self.assertEqual((thread.get("days_worked", 0), thread.get("paid_cp", 0), thread.get("last_paid_day_index")),
+                         (0, 0, None))
+        # Night comes by moving the start of the clock: the day index and the shift hour read start_second plus
+        # elapsed_seconds as one sum (campaign_time.public_time, equipment_economy, timed_gameplay), so moving the
+        # start moves "now" and nothing else.
         self.world["campaign_time"]["start_second"] = 21 * 3600
         await self.line("başlayalım")
         self.assertEqual(self.world.get("currency", {}).get("player", 0) - start, 12)
+        thread = world_threads.by_id(self.world, self.tid)
+        self.assertEqual((thread.get("days_worked"), thread.get("paid_cp")), (1, 12))
 
     async def test_a_refused_owner_is_not_offered_again_and_says_so_when_asked(self):
         await self.start("again", None)

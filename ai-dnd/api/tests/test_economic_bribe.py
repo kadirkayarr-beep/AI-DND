@@ -289,9 +289,10 @@ class AFailedReadingStillDecidesTheCoin(Arrest):
         self.assertEqual(self.w["currency"]["player"], 500)
 
     def test_a_failed_reading_puts_coin_held_out_to_nobody_to_the_arresting_guard(self):
-        self.held()
+        self.held(since=world_reactions.ARREST_PATIENCE + 3)
         made, spy = self.deciding()
-        with spy:
+        forced, forcing = self.counting("_force")
+        with spy, forcing:
             result = self.s.run_player_turn("100 bakır uzatıyorum")
         self.assertEqual(self.s._front_route, "fallback:failed")
         self.assertEqual([(d.kind, d.npc_id, d.amount_cp, d.source) for d in made],
@@ -300,6 +301,10 @@ class AFailedReadingStillDecidesTheCoin(Arrest):
         self.assertEqual((card["status"], card["proposal"]["recipient_id"], card["proposal"]["amount_cp"]),
                          ("prepared", "guard", 100), result["narration"])
         self.assertEqual(self.w["currency"]["player"], 500)  # the card moves nothing until it is confirmed
+        # D-411: the first card of a hold pauses that turn's escalation, as when the coin was planted (TheBribeCard)
+        self.assertEqual(forced, [])
+        self.assertFalse(self.fighting())
+        self.assertIs(self.deed()["hold"]["bribe_card_opened"], True)
 
     def test_a_failed_reading_with_coin_for_nobody_found_keeps_it_in_hand_and_asks_who(self):
         # No arrest: the structural decision names nobody, so it is not kept; the coin waits in hand with no decision
@@ -346,7 +351,8 @@ class BribeConfirmations(EconomicHttpFixture):
     async def open_bribe(self, amount=100):
         self.hold_by_guard()
         session = self.record.game_session
-        with planted(session, _bribe_held_out=amount),                 patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        with planted(session, _bribe_held_out=amount), \
+                patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
             session.run_player_turn("/item list")
         self.save()
         [card] = bribe_cards(self.world)

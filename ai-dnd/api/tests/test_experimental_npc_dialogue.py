@@ -8,7 +8,6 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-import front_proposal
 import game
 import interaction_adventure
 import local_dialogue
@@ -16,6 +15,7 @@ import npc_statements
 from api.persistence.campaign_models import CampaignStorageError
 from api.tests import test_campaign_api
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.front_reading import RouteWatch, call_kinds, with_reading
 from api.tests.test_campaign_api import create_city_with_locked_tavern
 from api.tests.town_seed import fixed_town
 
@@ -36,18 +36,6 @@ def without_seeded_town(session, physical_before):
         if key in physical_before["locations"] or (value.get("provenance") or {}).get("source") != "world_thread"
     }
     return now
-
-
-def call_kinds(schemas):
-    """Which call each request was, by its response schema: the front reading, the NPC's speech, an arrival, narration."""
-    names = (("front", "front"), ("arrival", "arrival"), ("spoken_text", "speech"), ("narration", "narration"))
-    return [next((name for key, name in names if key in ((schema or {}).get("properties") or {})), "other")
-            for schema in schemas]
-
-
-def with_reading(*kinds):
-    """The calls a line makes: with the flag on (AI_DND_FRONT_PROPOSAL) the front reading comes first, then its own."""
-    return (["front"] if front_proposal.enabled() else []) + list(kinds)
 
 
 def speech_call(client):
@@ -1468,7 +1456,7 @@ class ExperimentalNpcDialogueTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(self.sensitive_state(session), before)
 
 
-def plain_talk_client(narration="Dün sana on altın vadetmiştim.", **_):
+def plain_talk_client(narration="Dün sana on altın vadetmiştim."):
     """A client whose front reading comes back usable: plain talk to Marek, as a working local model reads a say line."""
     from api.tests.test_front_proposal import FrontClient  # imported here: that module imports this one
     client = FrontClient(narration)
@@ -1479,9 +1467,13 @@ def plain_talk_client(narration="Dün sana on altın vadetmiştim.", **_):
 class UsableReadingTwins(unittest.IsolatedAsyncioTestCase):
     """The speech, save and replay contracts above, flag on, when the front reading comes back usable (plain talk),
     not unusable: the path local play takes with a working model."""
-    campaign_with_npc = ExperimentalNpcDialogueTests.campaign_with_npc
     request = staticmethod(ExperimentalNpcDialogueTests.request)
     sensitive_state = staticmethod(ExperimentalNpcDialogueTests.sensitive_state)
+
+    async def campaign_with_npc(self, **kwargs):
+        made = await ExperimentalNpcDialogueTests.campaign_with_npc(self, **kwargs)
+        self.watch.reset()  # the town's set-up turns read nothing usable; every line of the test itself must
+        return made
 
     async def asyncSetUp(self):
         import os
@@ -1489,19 +1481,14 @@ class UsableReadingTwins(unittest.IsolatedAsyncioTestCase):
         from api.tests import test_front_proposal  # noqa: F401 -- loaded before the patch below: its FrontClient subclasses the real client
         self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
         self.enterContext(patch.object(sys.modules[__name__], "ScriptedNpcSpeechClient", plain_talk_client))
-        self.front_routes = []
-        note = front_proposal.note
-        self.enterContext(patch.object(front_proposal, "note", side_effect=lambda session, route, **kw: (
-            self.front_routes.append(route), note(session, route, **kw))[1]))
+        self.watch = RouteWatch(self)
         await ExperimentalNpcDialogueTests.asyncSetUp(self)
 
     async def asyncTearDown(self):
         await ExperimentalNpcDialogueTests.asyncTearDown(self)
-        # the town's set-up turns read nothing usable; every line of the test itself did
-        self.assertNotIn("fallback:no_front", self.front_routes)
-        self.assertNotIn("fallback:unusable", self.front_routes)
-        self.assertTrue(any(not route.startswith(("fallback", "skipped")) for route in self.front_routes),
-                        self.front_routes)
+        # D-421 (7): every reading from here on came back usable; failed, invalid and unusable ones count too
+        self.assertEqual(self.watch.unusable(), [])
+        self.assertTrue(self.watch.routes)
 
     test_free_speech = ExperimentalNpcDialogueTests.test_opt_in_free_speech_is_attributed_noncanonical_and_replayable
     test_player_action_rejected = ExperimentalNpcDialogueTests.test_opt_in_speech_rejects_physical_action_assigned_to_player

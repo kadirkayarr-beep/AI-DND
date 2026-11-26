@@ -10,7 +10,7 @@ import grounded_action as grounded
 import interaction_adventure
 import timed_gameplay
 import test_open_shop_search as open_shop_fixture
-from api.tests.test_ai_freedom_resolution_boundary import _reading_only as reading_only
+from api.tests.front_reading import reading_only
 
 
 class CompanionWaitTests(unittest.TestCase):

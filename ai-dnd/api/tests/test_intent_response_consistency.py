@@ -9,7 +9,6 @@ import copy
 import json
 import uuid
 from unittest.mock import patch
-import front_proposal
 import game
 import grounded_action
 import local_dialogue
@@ -17,17 +16,11 @@ import living_world
 import resolved_presentation
 import world_threads
 from api.tests import test_campaign_api
-from api.tests.journeys.runner import call_kind
+from api.tests.front_reading import call_kind, with_reading as read_first
 from api.tests.town_seed import fixed_town
 
 # A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
 TOWN_SEED = 100
-
-
-def read_first(*kinds):
-    """What one line spends, by kind: flag on, the front reading is asked first (owner rule G1, 2026-11-19: a line
-    Python owns now spends exactly this one call)."""
-    return (["front"] if front_proposal.enabled() else []) + list(kinds)
 
 
 def kinds(client):
