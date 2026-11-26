@@ -57,6 +57,6 @@
   "weapon_attack.py::prepare": 355
  },
  "ts_files": {
-  "artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx": 2514
+  "artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx": 2110
  }
 }

@@ -376,7 +376,7 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       features: ['Büyü Kitabı', 'Ritüel Büyücülük'],
       is_spellcaster: true,
       cantrips_count: 3,
-      spells_count: 4,
+      spells_count: 6,
       equipment_packages: [
         { id: 'A', label: 'Büyü Kitabı & Asa & Bilgin Çantası Paketi', items: ['Büyü Kitabı', 'Asa (Quarterstaff)', 'Büyü Odağı', 'Bilgin Çantası', '5 Altın'] },
       ],

@@ -1,7 +1,9 @@
-import type { CharacterCreateInput, RogueLevelChoices, RogueStartingCreationOptions } from '@workspace/api-client-react';
+import type { CharacterCreateInput, FighterLevelChoices, FighterStartingCreationOptions, MonkLevelChoices, MonkStartingCreationOptions, RogueLevelChoices, RogueStartingCreationOptions } from '@workspace/api-client-react';
 import type { StartingDraft } from './sorcerer-starting-creation';
 import { readAsiChoices, sourceAsiChoice } from './asi-choices.ts';
 
+// Fighter, Monk and Rogue start 1-5 share one flow: level 2 needs no pick, level 3 one subclass, level 4 a confirmed ASI, level 5 nothing.
+// Only the class name and its single subclass differ, so they live in this table instead of three copies.
 const LEVEL_TWO = 2;
 const LEVEL_THREE = 3;
 const LEVEL_FOUR = 4;
@@ -9,11 +11,18 @@ const LEVEL_FIVE = 5;
 const LEVEL_THREE_KEYS = ['subclass_options', 'effects_supported', 'effects_pending'];
 const LEVEL_FOUR_KEYS = ['supported_asi_choices', 'effects_supported', 'effects_pending'];
 const LEVEL_FIVE_KEYS = ['effects_supported', 'effects_pending'];
-const ASSASSIN = 'assassin';
 
-type Level3 = NonNullable<RogueStartingCreationOptions['level_3']>;
-type Level4 = NonNullable<RogueStartingCreationOptions['level_4']>;
-type Level5 = NonNullable<RogueStartingCreationOptions['level_5']>;
+const SIMPLE_START_CLASSES = {
+  fighter: { name: 'Fighter', subclassId: 'champion' },
+  rogue: { name: 'Rogue', subclassId: 'assassin' },
+  monk: { name: 'Monk', subclassId: 'open_hand' },
+} as const;
+type SimpleStartClass = keyof typeof SIMPLE_START_CLASSES;
+type SimpleOptions = FighterStartingCreationOptions | RogueStartingCreationOptions | MonkStartingCreationOptions;
+type Level3 = NonNullable<SimpleOptions['level_3']>;
+type Level4 = NonNullable<SimpleOptions['level_4']>;
+type Level5 = NonNullable<SimpleOptions['level_5']>;
+type SimpleChoices = FighterLevelChoices | RogueLevelChoices | MonkLevelChoices;
 
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -25,12 +34,12 @@ function hasExactKeys(value: Record<string, unknown>, keys: string[]): boolean {
   return Object.keys(value).length === keys.length && keys.every(key => key in value);
 }
 
-function readLevelThree(raw: unknown): Level3 | undefined {
+function readLevelThree(raw: unknown, subclassId: string): Level3 | undefined {
   if (!record(raw) || !hasExactKeys(raw, LEVEL_THREE_KEYS) || !Array.isArray(raw.subclass_options) || raw.subclass_options.length !== 1) return undefined;
   const [subclass] = raw.subclass_options;
-  if (!record(subclass) || !hasExactKeys(subclass, ['id', 'name']) || subclass.id !== ASSASSIN || typeof subclass.name !== 'string' || !subclass.name.trim()
+  if (!record(subclass) || !hasExactKeys(subclass, ['id', 'name']) || subclass.id !== subclassId || typeof subclass.name !== 'string' || !subclass.name.trim()
     || !effects(raw.effects_supported) || !effects(raw.effects_pending)) return undefined;
-  return { subclass_options: [{ id: ASSASSIN, name: subclass.name }], effects_supported: [...raw.effects_supported], effects_pending: [...raw.effects_pending] };
+  return { subclass_options: [{ id: subclassId, name: subclass.name }], effects_supported: [...raw.effects_supported], effects_pending: [...raw.effects_pending] } as Level3;
 }
 
 function readLevelFour(raw: unknown): Level4 | undefined {
@@ -46,7 +55,7 @@ function readLevelFive(raw: unknown): Level5 | undefined {
 }
 
 /** A class name alone never grants a higher start. Each level needs its own validated block; a bad block hides it and everything above. */
-export function readRogueStartingCreationOptions(raw: unknown): RogueStartingCreationOptions | undefined {
+function readSimpleStartingOptions(cls: SimpleStartClass, raw: unknown): SimpleOptions | undefined {
   if (!record(raw) || !Array.isArray(raw.supported_starting_levels)) return undefined;
   const levels = raw.supported_starting_levels;
   if (levels.length < LEVEL_TWO || levels.length > LEVEL_FIVE || !levels.every((level, index) => level === index + 1)) return undefined;
@@ -54,33 +63,35 @@ export function readRogueStartingCreationOptions(raw: unknown): RogueStartingCre
     || !effects(raw.level_2.effects_supported) || !effects(raw.level_2.effects_pending)) return undefined;
   const claimed = levels.length;
   const base = { level_2: { choices: {}, effects_supported: [...raw.level_2.effects_supported], effects_pending: [...raw.level_2.effects_pending] } };
-  const three = claimed >= LEVEL_THREE ? readLevelThree(raw.level_3) : undefined;
+  const three = claimed >= LEVEL_THREE ? readLevelThree(raw.level_3, SIMPLE_START_CLASSES[cls].subclassId) : undefined;
   if (!three) return { supported_starting_levels: [1, LEVEL_TWO], ...base };
   const four = claimed >= LEVEL_FOUR ? readLevelFour(raw.level_4) : undefined;
-  if (!four) return { supported_starting_levels: [1, LEVEL_TWO, LEVEL_THREE], ...base, level_3: three };
+  if (!four) return { supported_starting_levels: [1, LEVEL_TWO, LEVEL_THREE], ...base, level_3: three } as SimpleOptions;
   const five = claimed >= LEVEL_FIVE ? readLevelFive(raw.level_5) : undefined;
-  if (!five) return { supported_starting_levels: [1, LEVEL_TWO, LEVEL_THREE, LEVEL_FOUR], ...base, level_3: three, level_4: four };
-  return { supported_starting_levels: [1, LEVEL_TWO, LEVEL_THREE, LEVEL_FOUR, LEVEL_FIVE], ...base, level_3: three, level_4: four, level_5: five };
+  if (!five) return { supported_starting_levels: [1, LEVEL_TWO, LEVEL_THREE, LEVEL_FOUR], ...base, level_3: three, level_4: four } as SimpleOptions;
+  return { supported_starting_levels: [1, LEVEL_TWO, LEVEL_THREE, LEVEL_FOUR, LEVEL_FIVE], ...base, level_3: three, level_4: four, level_5: five } as SimpleOptions;
 }
 
+type Fields = { ok: true; fields: Pick<CharacterCreateInput, 'starting_level' | 'level_choices'> } | { ok: false; message: string };
+
 /** Uses the shared class-switch-cleared draft, but never inherits a caster or Barbarian bundle. */
-export function rogueStartingCreationFields(draft: StartingDraft, metadata: RogueStartingCreationOptions | undefined):
-  { ok: true; fields: Pick<CharacterCreateInput, 'starting_level' | 'level_choices'> } | { ok: false; message: string } {
+function simpleStartingFields(cls: SimpleStartClass, draft: StartingDraft, metadata: SimpleOptions | undefined): Fields {
+  const name = SIMPLE_START_CLASSES[cls].name;
   const level = draft.startingLevel;
   if (draft.level2Prepared.length || draft.metamagic.length || draft.level3Prepared.length || draft.primalSkill
     || draft.level4Prepared?.length || draft.level4Cantrips?.length || draft.level5Prepared?.length
     || (draft.subclassId && level < LEVEL_THREE) || ((draft.level4Asi || draft.level4ConConfirmed) && level < LEVEL_FOUR))
-    return { ok: false, message: 'Rogue başlangıcı için önce diğer sınıfın veya üst seviyenin seçimlerini temizleyin.' };
+    return { ok: false, message: `${name} başlangıcı için önce diğer sınıfın veya üst seviyenin seçimlerini temizleyin.` };
   if (level === 1) return { ok: true, fields: {} };
-  const source = readRogueStartingCreationOptions(metadata);
-  if (!source) return { ok: false, message: 'Rogue seviye seçenekleri alınamadı. Yeniden deneyin veya açıkça seviye 1 seçin.' };
-  if (!source.supported_starting_levels.includes(level)) return { ok: false, message: `Rogue seviye ${level} kaynağı doğrulanamadı. Yeniden deneyin veya daha düşük bir seviye seçin.` };
+  const source = readSimpleStartingOptions(cls, metadata);
+  if (!source) return { ok: false, message: `${name} seviye seçenekleri alınamadı. Yeniden deneyin veya açıkça seviye 1 seçin.` };
+  if (!source.supported_starting_levels.includes(level)) return { ok: false, message: `${name} seviye ${level} kaynağı doğrulanamadı. Yeniden deneyin veya daha düşük bir seviye seçin.` };
   if (level === LEVEL_TWO) return { ok: true, fields: { starting_level: LEVEL_TWO, level_choices: { '2': {} } } };
   const subclass = source.level_3?.subclass_options.find(option => option.id === draft.subclassId);
-  if (!subclass) return { ok: false, message: 'Bir Rogue alt sınıfı seçin.' };
-  const choices: RogueLevelChoices = { '2': {}, '3': { subclass_id: subclass.id } };
+  if (!subclass) return { ok: false, message: `Bir ${name} alt sınıfı seçin.` };
+  const choices = { '2': {}, '3': { subclass_id: subclass.id } } as SimpleChoices;
   if (level >= LEVEL_FOUR) {
-    // Only an explicit pick from the server's family, explicitly confirmed; nothing is defaulted for the player.
+    // Only an explicit pick from the server family, explicitly confirmed; nothing is defaulted for the player.
     const asi = draft.level4Asi ? sourceAsiChoice(source.level_4?.supported_asi_choices, draft.level4Asi) : undefined;
     if (!asi) return { ok: false, message: 'Seviye 4 için sunucunun sunduğu bir Ability Score Improvement seçin.' };
     if (draft.level4ConConfirmed !== true) return { ok: false, message: 'Ability Score Improvement seçimini onaylayın.' };
@@ -91,9 +102,9 @@ export function rogueStartingCreationFields(draft: StartingDraft, metadata: Rogu
 }
 
 /** Clears a pick the source no longer allows while the catalog is known; a catalog gap keeps the pick and blocks submission instead. */
-export function pruneRogueDraft(draft: StartingDraft, metadata: RogueStartingCreationOptions | undefined): StartingDraft {
+function pruneSimpleDraft(cls: SimpleStartClass, draft: StartingDraft, metadata: SimpleOptions | undefined): StartingDraft {
   if (draft.startingLevel < LEVEL_THREE) return draft;
-  const source = readRogueStartingCreationOptions(metadata);
+  const source = readSimpleStartingOptions(cls, metadata);
   if (!source) return draft;
   const subclassId = source.level_3?.subclass_options.some(option => option.id === draft.subclassId) ? draft.subclassId : '';
   const four = draft.startingLevel >= LEVEL_FOUR ? source.level_4 : undefined;
@@ -103,3 +114,13 @@ export function pruneRogueDraft(draft: StartingDraft, metadata: RogueStartingCre
   const { level4Asi: _asi, ...rest } = draft;
   return { ...rest, subclassId, ...(level4Asi ? { level4Asi } : {}), level4ConConfirmed };
 }
+
+export const readFighterStartingCreationOptions = (raw: unknown) => readSimpleStartingOptions('fighter', raw) as FighterStartingCreationOptions | undefined;
+export const readRogueStartingCreationOptions = (raw: unknown) => readSimpleStartingOptions('rogue', raw) as RogueStartingCreationOptions | undefined;
+export const readMonkStartingCreationOptions = (raw: unknown) => readSimpleStartingOptions('monk', raw) as MonkStartingCreationOptions | undefined;
+export const fighterStartingCreationFields = (draft: StartingDraft, metadata: FighterStartingCreationOptions | undefined) => simpleStartingFields('fighter', draft, metadata);
+export const rogueStartingCreationFields = (draft: StartingDraft, metadata: RogueStartingCreationOptions | undefined) => simpleStartingFields('rogue', draft, metadata);
+export const monkStartingCreationFields = (draft: StartingDraft, metadata: MonkStartingCreationOptions | undefined) => simpleStartingFields('monk', draft, metadata);
+export const pruneFighterDraft = (draft: StartingDraft, metadata: FighterStartingCreationOptions | undefined) => pruneSimpleDraft('fighter', draft, metadata);
+export const pruneRogueDraft = (draft: StartingDraft, metadata: RogueStartingCreationOptions | undefined) => pruneSimpleDraft('rogue', draft, metadata);
+export const pruneMonkDraft = (draft: StartingDraft, metadata: MonkStartingCreationOptions | undefined) => pruneSimpleDraft('monk', draft, metadata);

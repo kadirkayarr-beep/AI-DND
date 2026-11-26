@@ -3,6 +3,7 @@ import {before,after,test} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {emptyStartingDraft,changeStartingLevel} from '../src/lib/sorcerer-starting-creation.ts';
+import {startingCreationPayload} from '../src/lib/starting-creation-payload.ts';
 
 // Barbarian creation at selected starting levels 4 and 5. Source values: PHB PDF 51 (rows 4/5) via the server catalog.
 // Behavioural tests only: real functions, real components called as functions, real screen code extracted by AST and run in vm.
@@ -217,7 +218,7 @@ test('real screen: wizard submit sends the start-4 and start-5 bundles, never an
   const submit=declaration('handleSubmit');
   const sent=[];
   const make=(level,extra={},skills=[])=>({isFormValid:true,selectedSetting:{setting_id:'setting'},selectedRegion:{region_pack_id:'pack',region_id:'region'},selectedLocation:{entity_id:'place'},creating:false,characterClass:'Barbarian',
-    startingDraft:draftN(level,extra),barbarianStartingMetadata:read(raw5()),barbarianStartingCreationFields:helper.barbarianStartingCreationFields,
+    startingDraft:draftN(level,extra),startingSources:{barbarian:read(raw5())},startingCreationPayload,
     name:'Barb',species:'Human',background:'Soldier',alignment:'Neutral',abilityMethod:'standard_array',baseScores:{constitution:14},calculatedBackgroundBonuses:{},derivedStats:{allSkills:skills},
     selectedExpertiseSkills:[],selectedSpeciesSkills:[],backgroundData:{tool:'Gaming Set',origin_feat:'Savage Attacker'},speciesBonusFeat:'',equipmentPackage:'A',
     classData:{equipment_packages:[{id:'A',items:['Greataxe']}]},backgroundEquipmentOption:'A',selectedLanguages:['Dwarvish','Elvish'],selectedCantrips:[],selectedSpells:[],
