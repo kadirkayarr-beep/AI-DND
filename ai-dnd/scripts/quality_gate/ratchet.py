@@ -225,6 +225,7 @@ def parse_fallow(text: str) -> list[str]:
 
 
 RADON_MIN_CC = 31  # radon rank E starts at 31; E and F functions are the ratchet's findings
+# Baseline command (radon 6.0.1, run from ai-dnd/): radon cc -j -e "api/tests/*" .   (tests are excluded; a plain `radon cc -j .` adds api/tests keys)
 
 
 def _radon_blocks(blocks, prefix: str):
