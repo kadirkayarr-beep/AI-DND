@@ -1,8 +1,8 @@
 """D-094 general fix: the front reading may name the check a risky try needs; the engine validates it, sets the DC and
 rolls (Q17 "the engine referees, the model writes", ZAR_KURALLARI 2.2: roll only for a real, present try).
 
-Only the skills whose outcome needs no world precondition and moves no coin are open to the reading: Intimidation,
-Deception, Persuasion, Insight. A pickpocket is the reading's deed=steal, never a check (R-7, after three reviews found
+Only the skills that move no coin are open to the reading: Intimidation, Deception, Persuasion, Insight and (G1.1)
+the world checks Stealth, Athletics, Perception, which the engine still validates (a hide needs cover or the dark). A pickpocket is the reading's deed=steal, never a check (R-7, after three reviews found
 coin moved by a Sleight of Hand reading on hiding, palming, putting and giving back). A question, a
 reading of another kind and a fight give no check. The turn route is pinned by journeys 51 and 51b.
 """
@@ -29,7 +29,8 @@ class TheReadingNamesTheCheck(unittest.TestCase):
         schema = front_proposal.schema(LISTED)
         self.assertEqual(schema["properties"]["check"]["enum"], [*front_proposal.CHECKS, front_proposal.NONE])
         self.assertIn("check", schema["required"])
-        self.assertEqual(front_proposal.CHECKS, ("Intimidation", "Deception", "Persuasion", "Insight"))
+        self.assertEqual(front_proposal.CHECKS[:4], ("Intimidation", "Deception", "Persuasion", "Insight"))
+        self.assertEqual(front_proposal.CHECKS[4:], ("Stealth", "Athletics", "Perception"))  # G1.1: world checks
         for skill in front_proposal.CHECKS:
             self.assertIn(skill, game.SKILLS)
         self.assertIn("check:", front_proposal.guidance(LISTED))
@@ -47,8 +48,8 @@ class TheReadingNamesTheCheck(unittest.TestCase):
             (reading("look"), "muhafıza bakıyorum"),
             (reading("go_to"), "kapıya gidiyorum"),
             (reading("offer_answer"), "tamam"),
-            (reading("attempt", "Stealth"), "fark edilmeden geçmeye çalışıyorum"),
-            (reading("attempt", "Athletics"), "duvara tırmanmaya çalışıyorum"),
+            (reading("attempt", "Sleight of Hand"), "cebindeki anahtarı almaya çalışıyorum"),
+            (reading("attempt", "Acrobatics"), "dengede yürümeye çalışıyorum"),
             (reading("attempt", "none"), "muhafızı kandırıyorum"),
             (reading("attempt", None), "muhafızı kandırıyorum"),
             ({"front": "x"}, "muhafızı kandırıyorum"),

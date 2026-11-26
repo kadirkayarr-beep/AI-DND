@@ -34,7 +34,7 @@ _STEAL = re.compile(
 # that goes on ("... ama vazgeçiyorum") and every "çalmak" that is no theft (a whistle, a bell, a heart) never match.
 _STEAL_TRY = re.compile(
     r"\b(?:kese\w*|cebi\w*|cep(?:te|ten|teki)?|cuzdan\w*|yuzu[kg]\w*|kolye\w*|bica[kg]\w*|hancer\w*|anahtar\w*|parasi\w*)\s+(?:\w+\s+){0,3}?"
-    r"cal(?:maya\s+calisiyorum|may[ii]\s+deniyorum|mak\s+icin\s+(?:(?:\w+\s+){0,3}?zar\w*\s+atiyorum|deniyorum"
+    r"cal(?:maya\s+calisiyorum|may[ii]\s+deniyorum|mak\s+icin\s+(?:(?:\w+\s+){0,3}?zar\w*\s+ati(?:yorum|yorm)(?:\s+kimse\s+(?:gormesin|gormeden|fark\s+etmesin|duymasin|bakmasin))?|deniyorum"
     r"|yaklasiyorum|elimi\s+uzatiyorum))$"
 )
 # A wish or plan, a time or a condition, speech, a refusal, somebody else's purse or friend, an attack: not a try now.
@@ -1467,9 +1467,9 @@ def is_act_not_talk(session, text: Any) -> bool:
     import game
     if not isinstance(text, str) or "?" in text:
         return False
-    if (getattr(session, "_front_check", "") in {"Intimidation", "Deception", "Persuasion", "Insight"}
+    if (getattr(session, "_front_check", "") in game._READING_CHECKS
             and getattr(session, "_front_kind", None) in {"attempt", "unclear", "grab"}):
-        return True  # D-094: the reading named a social try it did not hear as speech; the dice answer, not a stock line
+        return True  # D-094: the reading named a try (social or world) it did not hear as speech; the dice answer, not a stock line
     return game.open_scare_try(text) or looks_person_over(session, text)
 
 
