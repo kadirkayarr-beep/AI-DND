@@ -12,8 +12,11 @@ A base is two equal runs (`--base`, `--base2`); the two counts of a name are its
         floor (only the lines that run when the module loads) cannot show DOWN.
   UP:   names that ran more lines than the higher base (new tests may explain them; each is listed in the ledger with
         its test).
-Refusals (exit 2): a run without its lines file or its proof; shards on different trees; a lines file naming a path the
-engine root does not hold; a run that counts no function; two bases on different trees.
+Refusals (exit 2): a run without its lines file or its proof; a lines file naming a path the engine root does not hold;
+a run that counts no function; two bases on different trees.
+Shards of one run on different trees print `MIXED TREE` and exit 1 (D-436).
+After COLLECTED, `UNCOUNTED_BLOCKS` names the top-level if/try blocks that hold
+a def or class: their functions are not counted (D-363).
 Usage (from ai-dnd/):
     python scripts/engine_split/coverage_by_function.py --collect "<runs glob>" --engine-root <dir> --out <file.json>
     python scripts/engine_split/coverage_by_function.py --diff --base A.json --base2 B.json --new C.json
@@ -21,6 +24,7 @@ Usage (from ai-dnd/):
 from __future__ import annotations
 
 import argparse
+import ast
 import glob
 import json
 import sys
@@ -35,6 +39,7 @@ from engine_split.inventory import top_level_index  # noqa: E402
 
 
 COUNTED_KINDS = {"function", "class", "assign"}
+BLOCK_STATEMENTS = (ast.If, ast.Try, ast.With, ast.For, ast.While)
 
 
 def function_hits(lines: dict[str, list[int]], index: dict[str, list[dict]]) -> dict[str, int]:
@@ -49,6 +54,25 @@ def function_hits(lines: dict[str, list[int]], index: dict[str, list[dict]]) -> 
             if count:
                 hits[entry["name"]] = hits.get(entry["name"], 0) + count
     return hits
+
+
+def uncounted_lines(engine_root: Path) -> list[str]:
+    """Name the top-level blocks that hold a def or class (D-363).
+
+    Lines are `UNCOUNTED_BLOCKS n` and one per if/try/with/for/while block;
+    none when there is no such block. Such a block is named by its line
+    number (`<If@12>`, kind other), so a move into or out of it is not
+    counted; the list makes the gap visible.
+    """
+    holders = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+    found = []
+    for path in engine_source_files(engine_root):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        rel = path.relative_to(engine_root).as_posix()
+        found += [f"  {rel}:<{type(node).__name__}@{node.lineno}>"
+                  for node in tree.body if isinstance(node, BLOCK_STATEMENTS)
+                  and any(isinstance(inner, holders) for inner in ast.walk(node))]
+    return [f"UNCOUNTED_BLOCKS {len(found)}", *found] if found else []
 
 
 def unequal(base: dict[str, int], new: dict[str, int], noise_names: set[str]) -> list[str]:
@@ -68,8 +92,8 @@ def _collect(pattern: str, engine_root: Path, out: Path) -> int:
     proofs = [json.loads((d / "proof.json").read_text(encoding="utf-8")) for d in runs]
     trees = {p["source_identity"]["total_digest_sha256"] for p in proofs}
     if len(trees) != 1:         # shards of one run share one synced tree
-        print("TREES_DIFFER", *sorted(trees), sep="\n")
-        return 2
+        print("MIXED TREE", *sorted(trees), sep="\n")  # D-436: as ledger_diff
+        return 1
     lines: dict[str, set[int]] = {}
     for run in runs:
         for path in sorted((run / "engine-probe").glob("lines-*.json")):
@@ -86,7 +110,8 @@ def _collect(pattern: str, engine_root: Path, out: Path) -> int:
         print("NO_FUNCTIONS")
         return 2
     Path(out).write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"COLLECTED runs={len(runs)} files={len(lines)} functions={len(data['functions'])} seconds={data['seconds']}")
+    print(f"COLLECTED runs={len(runs)} files={len(lines)} functions={len(data['functions'])} "
+          f"seconds={data['seconds']}", *uncounted_lines(engine_root), sep="\n")
     return 0
 
 

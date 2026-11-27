@@ -218,9 +218,10 @@ def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], exemp
         every = [(j + 1, new_lines[j]) for j in shown[head + j1:head + j2] if new_lines[j].strip()]
         group = [(number, line) for number, line in every if number not in exempt_new]
         if len(group) < len(every) and _import_group_problem([line for _, line in every], moved):
-            # D-360: the exemptions count as used only when they alone made the group pass
-            if not group or not _import_group_problem([line for _, line in group], moved):
-                used.update(("game.py:new", number) for number, _ in every if number in exempt_new)
+            # D-360, D-431: an exemption is used only when its own line is a bad line
+            used.update(("game.py:new", number) for number, line in every
+                        if number in exempt_new
+                        and _import_group_problem([line], moved))
         if group:  # inserted or replaced lines must parse as import statements of moved names only
             problem = _import_group_problem([line for _, line in group], moved)
             if problem:
@@ -295,7 +296,8 @@ def _wrong_root(base_game: Path, new_game: Path, moved: dict[str, str], deleted:
         return None
     names = {e["name"] for e in later if any(e["start"] <= n <= e["end"] for n in deleted)}
     return (f"WRONG ROOT? {len(deleted)} base lines belong to {len(names)} names moved by later batches; "
-            f"use the parent of this batch's move commit")
+            f"use the parent of this batch's move commit, "
+            f"or add the missing names to --moved")
 
 
 def _other_parts_differing(base_root: Path, new_root: Path, part_names: list[str]) -> list[str]:
@@ -305,6 +307,25 @@ def _other_parts_differing(base_root: Path, new_root: Path, part_names: list[str
         path = root / "game_parts" / name
         return _text(path) if path.exists() else None  # universal newlines: LF and CRLF copies compare equal
     return sorted(n for n in names if raw(base_root, n) != raw(new_root, n))
+
+
+def _changed_lines(base_part: Path, new_part: Path) -> set[int]:
+    """D-432: the new part's line numbers that are inserted or replaced against the base.
+
+    A deletion names the line that follows it; a new file changes every line, a gone file none.
+    """
+    if not new_part.exists():
+        return set()
+    base_lines = _text(base_part).splitlines() if base_part.exists() else []
+    new_lines = _text(new_part).splitlines()
+    out: set[int] = set()
+    matcher = difflib.SequenceMatcher(None, base_lines, new_lines, autojunk=False)
+    for tag, _, _, j1, j2 in matcher.get_opcodes():
+        if tag == "delete":
+            out.add(min(j1 + 1, len(new_lines)))
+        elif tag != "equal":
+            out.update(range(j1 + 1, j2 + 1))
+    return out
 
 
 def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive: dict, tier: str,
@@ -336,8 +357,11 @@ def check_move(base_root: Path, new_root: Path, moved: dict[str, str], sensitive
                                  exempt["game.py:new"], moved, used, deleted_out)
     wrong_root = _wrong_root(base_root / "game.py", new_root / "game.py", moved, deleted_out)
     for name in differing:  # D-360: a hand edit in a part this batch does not move
-        if exempt[f"game_parts/{name}"]:
-            used.update((f"game_parts/{name}", number) for number in exempt[f"game_parts/{name}"])
+        key = f"game_parts/{name}"
+        named = exempt[key] & _changed_lines(base_root / "game_parts" / name,
+                                             new_root / "game_parts" / name)
+        if named:  # D-432: an entry counts only for a line that differs from the base
+            used.update((key, number) for number in named)
         else:
             changed.append(f"CHANGED other part {name} differs from base")
     for part_name, spans in spans_by_part.items():

@@ -255,7 +255,8 @@ class MoveCheckTests(unittest.TestCase):
         code, out, _ = self.main("--moved", "a=dice.py")
         self.assertEqual(code, 2)
         self.assertEqual(out, "WRONG ROOT? 2 base lines belong to 1 names moved by later batches; "
-                              "use the parent of this batch's move commit\n")
+                              "use the parent of this batch's move commit, "
+                              "or add the missing names to --moved\n")
 
     def test_a_deleted_line_outside_a_later_moved_name_is_not_wrong_root(self):  # D-376: the warning needs every line covered
         base = "K = 1\n\ndef a():\n    return 1\n\ndef b():\n    return 2\n"
@@ -285,6 +286,35 @@ class MoveCheckTests(unittest.TestCase):
         self.assertEqual(len(changed), 2, changed)
         self.assertIn("STRAY", changed[0])
         self.assertEqual(changed[1], "manual entry exempts nothing: game.py:new:3:valid import")
+
+    def test_an_exemption_counts_per_line_not_per_group(self) -> None:
+        """D-431: an exemption is used when its own line is bad, not the group."""
+        stray = GOOD_GAME.replace(
+            "import roll\n", "import roll\nSTRAY = 1\nOTHER = 2\n")
+        self.build(game=stray)
+        # (a) a needed exemption stays used while another bad line has none
+        changed = self.check(manual=["game.py:new:4:needed"])["changed"]
+        self.assertEqual(len(changed), 1, changed)
+        self.assertIn("OTHER", changed[0])
+        # (b) an exemption on a valid import line is stale, all bad lines exempt
+        manual = ["game.py:new:3:valid import", "game.py:new:4:needed",
+                  "game.py:new:5:needed"]
+        self.assertEqual(
+            self.check(manual=manual)["changed"],
+            ["manual entry exempts nothing: game.py:new:3:valid import"])
+
+    def test_a_manual_entry_for_another_part_needs_a_changed_line(self) -> None:
+        """D-432: an entry for a part outside the check names a line that differs."""
+        self.build()
+        self.other_part("X = 1\nY = 1\n", "X = 2\nY = 1\n")
+        edit, same = "game_parts/other.py:1:owner edit", "game_parts/other.py:2:same"
+        self.assertEqual(self.check(manual=[edit])["changed"], [])
+        self.assertEqual(self.check(manual=[edit, same])["changed"],
+                         [f"manual entry exempts nothing: {same}"])
+        missing = "game_parts/other.py:99:no such line"
+        self.assertEqual(self.check(manual=[missing])["changed"],
+                         ["CHANGED other part other.py differs from base",
+                          f"manual entry exempts nothing: {missing}"])
 
     def main(self, *argv: str) -> tuple[int, str, str]:
         import contextlib

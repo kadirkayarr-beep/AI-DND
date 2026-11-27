@@ -6,6 +6,24 @@ Read-only: parses with ast and symtable and never rewrites a source file. audit(
 Run: python scripts/engine_split/routing_audit.py                                  (findings; exit 1 when any)
      python scripts/engine_split/routing_audit.py --write-allowed-imports <path>   (Task 17 only: freeze the R1 lock)
 The lock equals engine_imports() (game.py + parts); a test asserts equality, so no module can be appended quietly.
+Known blind spots (D-349). The owner accepted them (S25 a): the run-time test
+`test_every_re_export_is_the_parts_own_object` covers the real risk, and
+test_engine_routing pins the first two as unseen.
+  builtins.eval / builtins.exec: R7 sees the bare names, R11 census targets only.
+  getattr on a module with a string name, getattr(<module>, "uuid4"): R12 watches
+  `game` only.
+  A function of another module that reads `game.X` while that module is imported.
+  `__builtins__.open` and two-step chains (`os.path.<target>`, `pkg.mod.uuid4()`):
+  R11 records `ast.Name` roots only.
+  R9 treats `f = lambda: 1` as a constant, so a bare `f()` in the same part skips
+  the session wrapper.
+  R8 stays silent when game.py re-exports X from p, then re-binds X from q by
+  import only.
+  R13 runs only while game_parts/__init__.py exists.
+  M5 (two functions share one allow-list row; `sys.modules` derived before
+  `import sys`), M7 (an import computed in game.py), M8 (PEP 695 type syntax
+  gives a misleading R7).
+  A part path held in a variable and given to patch().
 """
 from __future__ import annotations
 
@@ -742,6 +760,12 @@ def part_files(root: Path) -> list[Path]:
     return sorted((Path(root) / "game_parts").glob("*.py"))
 
 
+def identity_row_ok(row: object) -> bool:
+    """Tell whether a row has exactly file, function, name and reason, all non-empty strings."""
+    return (isinstance(row, dict) and set(row) == {"file", "function", "name", "reason"}
+            and all(isinstance(v, str) and v.strip() for v in row.values()))
+
+
 def audit(root: Path, surface_targets: dict[str, str], allowed_imports: set[str], identity_allowlist: list[dict],
           character_names: set[str]) -> list[str]:
     """Every N3 finding under root (ai-dnd); empty = clean. Each finding starts with `R<n> <file>:<line>`.
@@ -753,8 +777,7 @@ def audit(root: Path, surface_targets: dict[str, str], allowed_imports: set[str]
     game_bound, reexports, game_defined, imported = _game_facts(root, findings)
     allow, rows = set(), []
     for index, row in enumerate(identity_allowlist, 1):
-        if not (isinstance(row, dict) and set(row) == {"file", "function", "name", "reason"}
-                and all(isinstance(v, str) and v.strip() for v in row.values())):
+        if not identity_row_ok(row):
             findings.append(f"R6 identity_allowlist.json:{index}: a row needs non-empty file, function, name and reason")
             continue
         key = (row["file"], row["function"], row["name"])

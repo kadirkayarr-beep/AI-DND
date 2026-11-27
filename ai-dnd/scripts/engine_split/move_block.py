@@ -6,6 +6,8 @@ Run: python scripts/engine_split/move_block.py --game game.py --part game_parts/
      --census api/tests/engine_split_locks/patch_census.json [--report out.json]
      [--identity-allowlist api/tests/engine_split_locks/identity_allowlist.json]
 A refusal prints `REFUSED <reason>` on stderr, exits 2 and writes no file.
+A caller that keeps it in order with its own output (a wsl.exe call) sends stderr
+to a file and prints that file afterwards (D-475 (c)).
 """
 from __future__ import annotations
 
@@ -23,6 +25,7 @@ if __name__ == "__main__":
     sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
 
 from engine_split.inventory import top_level_index  # noqa: E402
+from engine_split.routing_audit import identity_row_ok
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
@@ -139,13 +142,31 @@ class _Scan:
         else:
             if isinstance(node, ast.Global):
                 raise MoveRefused(f"`global` statement at line {node.lineno}")
-            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in DYNAMIC_CALLS
-                    and not self.allowed(node.func.id, in_def)):
+            identity_call = (isinstance(node, ast.Call)
+                             and isinstance(node.func, ast.Name)
+                             and node.func.id in DYNAMIC_CALLS)
+            if identity_call and not self.allowed(node.func.id, in_def):
                 raise MoveRefused(f"`{node.func.id}(` at line {node.lineno} (N3 rule 6)")
             if (isinstance(node, ast.Attribute) and node.attr == "modules"
-                    and isinstance(node.value, ast.Name) and node.value.id == "sys" and not self.allowed("sys.modules", in_def)):
+                    and self.is_sys(node.value) and not self.allowed("sys.modules", in_def)):
                 raise MoveRefused(f"`sys.modules` at line {node.lineno} (N3 rule 6)")
-            self.visit_all(ast.iter_child_nodes(node), table, in_def, where)
+            # an allowed `locals(` call: its name is the call, not a bare use
+            children = ([*node.args, *node.keywords] if identity_call
+                        else ast.iter_child_nodes(node))
+            self.visit_all(children, table, in_def, where)
+
+    @staticmethod
+    def is_sys(value: ast.AST) -> bool:
+        """`sys` or any `<x>.sys` (`game.sys.modules`)."""
+        return (isinstance(value, ast.Name) and value.id == "sys") or (
+            isinstance(value, ast.Attribute) and value.attr == "sys")
+
+    @staticmethod
+    def refuse_bare_identity(node: ast.Name, *, is_global: bool) -> None:
+        """Refuse a bare `locals`, `globals` or `vars` (`g = locals`); visit() sees calls."""
+        if node.id in DYNAMIC_CALLS and is_global:
+            reason = f"bare `{node.id}` at line {node.lineno} (N3 rule 6)"
+            raise MoveRefused(reason)
 
     def name(self, node: ast.Name, table, in_def: bool, where) -> None:
         if node.id in DYNAMIC_NAMES:
@@ -161,6 +182,7 @@ class _Scan:
             is_global = not (symbol.is_assigned() or symbol.is_imported() or symbol.is_namespace())
         else:
             is_global = symbol.is_global()
+        self.refuse_bare_identity(node, is_global=is_global)
         if node.id == "open" and is_global:
             raise MoveRefused(f"bare `open` at line {node.lineno}: it must stay a patchable engine name")
         if node.id not in self.prefix or not (is_global or module_level):
@@ -181,6 +203,8 @@ def prefix_names(block: str, engine_names: set[str], keep_bare: set[str], identi
     def body, `global`, __file__, __name__, globals(), locals(), vars(), sys.modules).
     A `locals(` call or a `sys.modules` read is let through, unchanged, when identity_allow holds
     (part_rel, <function as R6 reports it>, "locals" | "sys.modules"); every other refusal stays.
+    A bare `locals`, `globals` or `vars` (not called) and `<x>.sys.modules` are
+    refused like the calls.
     """
     lines = block.split("\n")  # "\r" stays at the end of its line, so line endings survive
     hits = _Scan(block, set(engine_names) - set(keep_bare), identity_allow, part_rel).run()
@@ -200,6 +224,53 @@ def prefix_names(block: str, engine_names: set[str], keep_bare: set[str], identi
         text = lines[line - 1]
         lines[line - 1] = text[:col] + "game." + text[col:]
     return "\n".join(lines), insertions
+
+
+def _sys_import_names(nodes: list[ast.AST]) -> set[str]:
+    """Return the names `import sys as <name>` gives `sys`."""
+    imports = [n for n in nodes if isinstance(n, ast.Import)]
+    return {a.asname for n in imports for a in n.names
+            if a.name == "sys" and a.asname}
+
+
+def _sys_modules_names(nodes: list[ast.AST]) -> set[str]:
+    """Return the names `from sys import modules` gives `sys.modules`."""
+    froms = [n for n in nodes if isinstance(n, ast.ImportFrom)]
+    from_sys = [n for n in froms if n.module == "sys" and n.level == 0]
+    return {a.asname or a.name for n in from_sys for a in n.names
+            if a.name == "modules"}
+
+
+def _sys_aliases(tree: ast.AST) -> tuple[set[str], set[str]]:
+    """Return the other names game.py gives `sys` and `sys.modules`."""
+    nodes = list(ast.walk(tree))
+    return _sys_import_names(nodes), _sys_modules_names(nodes)
+
+
+def _checked_block(game_lines: list[str], key: tuple[int, int],
+                   sys_names: set[str], modules_names: set[str]) -> str:
+    """Return the text of one game.py block; refuse `sys.modules` under another name.
+
+    D-475 (b): that is an identity use too. Any block name equal to the alias
+    counts, even a local one: refusing is the safe side.
+    """
+    block = "\n".join(game_lines[key[0] - 1:key[1]]) + "\n"
+    for node in ast.walk(ast.parse(block)):
+        alias_attr = (isinstance(node, ast.Attribute) and node.attr == "modules"
+                      and isinstance(node.value, ast.Name)
+                      and node.value.id in sys_names)
+        if alias_attr or (isinstance(node, ast.Name) and node.id in modules_names):
+            reason = (f"`sys.modules` under another name at line "
+                      f"{node.lineno} (N3 rule 6)")
+            raise MoveRefused(reason)
+    return block
+
+
+def _blank_lines(by_name: dict[str, dict], blocks: list[dict], names: list[str]) -> int:
+    """Blank lines before the next block: two (E302) next to a def or class, else one."""
+    before = blocks[-1]["names"] if blocks else []
+    defs = any(by_name[n]["kind"] in ("function", "class") for n in [*before, *names])
+    return 2 if before and defs else 1
 
 
 def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[str], identity_allow=frozenset()) -> dict:
@@ -243,8 +314,10 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
     part_index = top_level_index(part_py) if part_py.exists() and part_py.read_bytes().strip() else []
     moved_names = [n for key in ordered for n in spans[key]]
     # names game.py re-exports from an earlier move (`from game_parts.<x> import ...`) are engine names too (F7 amended)
-    reexports = {a.asname or a.name for node in ast.parse(game_py.read_text(encoding="utf-8")).body
+    game_tree = ast.parse(game_py.read_text(encoding="utf-8"))
+    reexports = {a.asname or a.name for node in game_tree.body
                  if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("game_parts.") for a in node.names}
+    sys_names, modules_names = _sys_aliases(game_tree)
     engine_names = {e["name"] for e in index if e["kind"] in MOVABLE_KINDS} | reexports | set(surface_targets)
     in_part = {e["name"] for e in part_index if e["kind"] == "assign"} | {n for n in moved_names if by_name[n]["kind"] == "assign"}
     keep_bare = in_part - set(surface_targets)
@@ -254,10 +327,11 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
     blocks, insertions, appended = [], [], list(part_lines[:-1]) if part_lines[-1] == "" else list(part_lines)
     for key in ordered:
         start, end = key
-        text, ins = prefix_names("\n".join(game_lines[start - 1:end]) + "\n", engine_names, keep_bare, identity_allow,
+        block = _checked_block(game_lines, key, sys_names, modules_names)
+        text, ins = prefix_names(block, engine_names, keep_bare, identity_allow,
                                  part_rel)
         if appended:
-            appended.append("")  # one blank line between blocks
+            appended += [""] * _blank_lines(by_name, blocks, spans[key])
         first = len(appended) + 1
         appended.extend(text.split("\n")[:-1])
         insertions += [(first - 1 + line, col, name) for line, col, name in ins]
@@ -281,6 +355,22 @@ def read_names(path: Path) -> list[str]:
     return [line.strip() for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _identity_rows(path: Path | None) -> list[dict]:
+    """Rows of identity_allowlist.json; MoveRefused if unreadable or a row is malformed."""
+    if path is None:
+        return []
+    try:
+        rows = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:  # unreadable, not UTF-8 or not JSON
+        reason = f"identity allowlist {path}: {exc}"
+        raise MoveRefused(reason) from exc
+    if not (isinstance(rows, list) and all(identity_row_ok(r) for r in rows)):
+        reason = ("identity allowlist: a list of rows with exactly file, "  # D-475 (a)
+                  "function, name and reason, each a non-empty string")
+        raise MoveRefused(reason)
+    return rows
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--game", required=True, type=Path, help="game.py to cut the blocks from")
@@ -300,7 +390,11 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("no names given")
     targets = json.loads(args.census.read_text(encoding="utf-8"))["targets"]
     surface_targets = {name for name, kind in targets.items() if kind != "absent"}
-    rows = json.loads(args.identity_allowlist.read_text(encoding="utf-8")) if args.identity_allowlist else []
+    try:
+        rows = _identity_rows(args.identity_allowlist)
+    except MoveRefused as exc:
+        sys.stderr.write(f"REFUSED {exc}\n")
+        return 2
     identity_allow = frozenset((row["file"], row["function"], row["name"]) for row in rows)
     try:
         result = move(args.game, args.part, names, surface_targets, identity_allow)
