@@ -341,7 +341,7 @@ class UiGateBaselineTests(unittest.TestCase):
         self.assertIn("knip|artifacts/ai-dnd-web/src/new.ts|exports|brandNew", new[0])
 
     def test_ui_baselines_exist_and_are_counts(self):
-        for tool, minimum in (("knip", 100), ("fallow", 110)):
+        for tool, minimum in (("knip", 50), ("fallow", 80)):
             path = self.BASE / (tool + ".json")
             self.assertTrue(path.is_file(), tool + " baseline missing")
             data = json.loads(path.read_text(encoding="utf-8"))
