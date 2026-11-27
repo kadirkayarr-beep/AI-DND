@@ -116,7 +116,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     journey = world.get("journey")
     if journey and journey.get("status") != "ARRIVED":
         return None
-    saved = None
+    saved, session.thread_wrote = None, False
     try:
         person = game._thread_person(player_input, target_id)
         gate = game._job_gate(world, person, player_input)
@@ -134,11 +134,13 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
             return None
         session.require_player_can_act()
         saved = session._capture_runtime_snapshot()
+        session.thread_wrote = gate["decision"] is not None
         return game._carry_out_thread_turn(session, world, gate, person, player_input)
     except game.PlayerCannotAct:
         raise
     except Exception:
         town_knowledge.log_failure()
+        session.thread_wrote = False  # nothing survived: re-ask stands
         if saved is not None:  # D-011: a writer that broke half way leaves no coin, hour or item of it behind
             session._restore_runtime_snapshot(saved)  # in place: the turn above still holds these very dicts
         session._thread_turn = None
@@ -786,6 +788,7 @@ def _clear_turn_transients(session) -> None:
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
+    session.thread_wrote = False  # a thread decision's flag lives for its own turn only
     session._speech_repair_calls = 0  # D-332: the repair call counts into this turn's model calls only; a flag-off turn has no begin()
 
 def _tell_the_coin(result):
@@ -941,7 +944,8 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     if (snapshot is not None and interaction_mode != "say"
             # D-419 (S20 a): a name nobody here answers to never takes the third call
             and ollama_adapter.model_calls_left(third=not getattr(session, "_named_word", None))
-            and not action_result.get("state_changes")):
+            and not action_result.get("state_changes")
+            and not getattr(session, "thread_wrote", False)):
         person = hearer["id"]
         session._restore_runtime_snapshot(snapshot)
         session._thread_gate_done = True
