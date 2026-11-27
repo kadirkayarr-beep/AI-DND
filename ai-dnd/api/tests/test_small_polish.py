@@ -15,7 +15,7 @@ from api.tests.test_combat_lifecycle import ready
 
 class AGoodsDeclineIsToldInTurkish(unittest.TestCase):
     def test_a_counter_trade_of_goods_declined_today_says_why_in_turkish(self):
-        session = game.create_session()
+        session = game.create_session(seed=1)
         world = session.world_state
         world["npcs"] = [{"id": "barman", "name": "Marek", "role": "Barmen", "location": world["location"],
                           "current_hp": 10}]
@@ -80,7 +80,7 @@ class AnUnnamedRivalReadsRight(unittest.TestCase):
 
 class TheRumourOfABlowReadsRight(unittest.TestCase):
     def setUp(self):
-        self.session = game.create_session()
+        self.session = game.create_session(seed=1)
         self.world = self.session.world_state
         here = self.world["location"]
         self.victim = {"id": "victim", "name": "Doran", "role": "Kervancı", "location": here, "current_hp": 8,
@@ -112,7 +112,7 @@ class TheRumourOfABlowReadsRight(unittest.TestCase):
 
 class AFallenMessengerDoesNotWalkAway(unittest.TestCase):
     def caller(self, **state):
-        session = game.create_session()
+        session = game.create_session(seed=1)
         world = session.world_state
         npc = {"id": "ulak", "name": "Ulak", "role": "Ulak", "caller_of": "link_001", "location": world["location"],
                "came_from": "elsewhere", "leaves_turn": 0, "current_hp": 5, "max_hp": 5, **state}

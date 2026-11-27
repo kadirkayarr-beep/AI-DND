@@ -19,7 +19,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.engine_sources import engine_source_files
-from api.tests.journeys.runner import SCENARIO_DIR, JourneyCase, describe_problems
+from api.tests.journeys.runner import REPEAT_SEED_STRIDE, SCENARIO_DIR, JourneyCase, describe_problems
 from api.tests.journeys.schema import _load_step, load_scenario
 from api.tests.test_house_door import stub_feature, stub_npc
 from incidents import sublocations
@@ -76,10 +76,10 @@ class ExitsTests(JourneyCase):
             return combat_lifecycle.flee(session)
 
     async def test_each_scene_plays_the_next_pinned_town(self):
-        # The pin wins over each scenario's own seed: the first campaign of a test is TOWN_SEED, each after the next.
+        # The first campaign of a test is TOWN_SEED, each repeat in the same store the next repeat seed (D-384).
         worlds = (await self.inn_world(), await self.city_world(), await self.inn_world())
         self.assertEqual([world["campaign_id"][-12:] for world in worlds],
-                         [f"{TOWN_SEED + offset:012d}" for offset in range(3)])
+                         [f"{TOWN_SEED + offset * REPEAT_SEED_STRIDE:012d}" for offset in range(3)])
 
     async def test_a_building_keeps_todays_way_out(self):
         world = await self.inn_world()

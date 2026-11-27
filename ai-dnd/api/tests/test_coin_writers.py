@@ -101,7 +101,7 @@ def _writer_on_stack() -> str:
 
 class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
     def setUp(self):
-        self.s = game.create_session()
+        self.s = game.create_session(seed=1)
         self.w = self.s.world_state
         self.w["npcs"] = [
             {"id": "barman", "name": "Marek", "role": "Barmen", "location": self.w["location"], "current_hp": 10},

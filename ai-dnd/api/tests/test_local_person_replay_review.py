@@ -56,9 +56,17 @@ class CountingLocalPersonModel:
         self.name = "Neris"
         self.appearance = "Yosun lekeli pelerinli, gümüş sakallı biri"
         self.calls = 0
+        # npc_id -> appearance of the people in the scene: when set, a described person is picked by the description.
+        self.appearances: dict[str, str] | None = None
 
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
+
+    def _pick(self, npc_ids):
+        """The first listed person, or (once ``appearances`` is set) the one the description names."""
+        if self.appearances is None:
+            return next((item for item in npc_ids if item), None)
+        return next((item for item in npc_ids if item and "Yosun lekeli" in self.appearances.get(item, "")), None)
 
     def chat(self, *args, **kwargs):
         self.calls += 1
@@ -67,7 +75,7 @@ class CountingLocalPersonModel:
         npc_ids = properties.get("target", {}).get("properties", {}).get(
             "npc_id", {}
         ).get("enum", [])
-        npc_id = next((item for item in npc_ids if item), None)
+        npc_id = self._pick(npc_ids)
         target = {
             "type": "npc",
             "reference": ROLE,
@@ -476,6 +484,27 @@ class LocalPersonReplayReviewTests(unittest.IsolatedAsyncioTestCase):
         )
 
     # -- 5: later natural description keeps identity across a cold restart -----------
+
+    async def test_description_picks_the_described_person_when_two_people_are_in_the_scene(self):
+        """D-085: a passer-by (Yolcu) stands in the scene before the fisherman and holds the lower id; a model that
+        reads the description still sends the greeting to the fisherman."""
+        campaign = await self._create_campaign()
+        session = self.manager.get(campaign["session_id"], principal=PLAYER_A).game_session
+        traveller = session.create_npc_from_ai({
+            "name": "Yolcu", "role": "yolcu", "location": session.world_state["location"],
+            "relationship": "neutral", "appearance": "Kırmızı kuşaklı, sırtında torba taşıyan biri",
+            "personality": "Telaşlı."}, allow_other_location=True)
+        self.assertIsInstance(traveller, dict)
+        first = await self._turn(campaign["session_id"], str(uuid.uuid4()))
+        self.assertEqual(first.status_code, 200, first.text)
+        fisherman = self._live_people(self.manager, campaign["session_id"])
+        self.assertEqual(len(fisherman), 1, "setup: the controlled proposal must be accepted")
+        self.assertLess(traveller["id"], fisherman[0]["id"], "setup: the passer-by holds the lower id")
+        self.model.force_proposal = False
+        self.model.appearances = {npc["id"]: npc.get("appearance", "") for npc in session.world_state["npcs"]}
+        greet = await self._turn(campaign["session_id"], str(uuid.uuid4()), DESCRIPTION_MESSAGE, mode="do")
+        self.assertEqual(greet.status_code, 200, greet.text)
+        self.assertEqual(session.world_state["flags"].get("last_npc_id"), fisherman[0]["id"])
 
     async def test_later_description_finds_same_person_after_cold_restart(self):
         campaign, _action_id, _first, person = await self._accept_first_person()

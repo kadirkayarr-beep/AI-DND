@@ -10,7 +10,7 @@ from api.tests.town_seed import fixed_town
 class CountedBundleSaleTests(unittest.TestCase):
     def setUp(self):
         with fixed_town(self, 19901):
-            self.s = game.create_session()
+            self.s = game.create_session(seed=1)
         self.w = self.s.world_state
         self.w["npcs"] = [{"id": "vendor", "name": "Mira", "location": self.w["location"], "current_hp": 10,
                            "inventory": []}]
