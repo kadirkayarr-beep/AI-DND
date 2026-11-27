@@ -18,7 +18,7 @@ import game
 import spell_preparation
 import spell_scope
 from api.auth import FixedAuthenticator
-from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
+from dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
 from api.main import _capture_session, _restore_session, create_app
 from api.persistence.campaign_models import CampaignStaleError
 from api.persistence.campaign_store import CampaignStore

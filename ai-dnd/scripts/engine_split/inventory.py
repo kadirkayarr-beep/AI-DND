@@ -274,6 +274,45 @@ def _from_import_unit(stmt: ast.ImportFrom, alias: ast.alias, names: set[str],
             "refs": [(stmt.module, None if star else alias.name, None if star else attrs_read(alias.asname or alias.name))]}
 
 
+def _plain_import_unit(alias: ast.alias, attrs_read: Callable[[str | None], set[str] | None]) -> dict:
+    """The unit of one `import a.b`: it binds `a`, and the whole module counts."""
+    return {"binds": {alias.asname or alias.name.split(".")[0]}, "run": False, "direct": False,
+            "import": True, "reads": set(), "refs": [(alias.name, None, attrs_read(alias.asname)
+                                                      if alias.asname else None)]}
+
+
+def _import_from_refs(node: ast.ImportFrom, attrs_read: Callable[[str | None], set[str] | None]) -> list:
+    """The (module, name, attrs) of one absolute `from m import x, *`."""
+    return [(node.module, None if a.name == "*" else a.name,
+             None if a.name == "*" else attrs_read(a.asname or a.name)) for a in node.names]
+
+
+def _nested_import_refs(stmt: ast.stmt, attrs_read: Callable[[str | None], set[str] | None]) -> list:
+    """The (module, name, attrs) of every import anywhere inside one top-level statement."""
+    refs: list = []
+    for node in ast.walk(stmt):
+        if isinstance(node, ast.Import):
+            refs += [(a.name, None, None) for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            refs += _import_from_refs(node, attrs_read)
+    return refs
+
+
+def _statement_units(stmt: ast.stmt, aliases: set[str], names: set[str], sessions: set[str],
+                     attrs_read: Callable[[str | None], set[str] | None]) -> list[dict]:
+    """The units of one top-level def, class or other statement; a class body (not its methods) is a unit of its own."""
+    is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
+    units = [{"binds": {stmt.name} if is_def else set(bound_names(stmt)[1]), "run": not is_def,
+              "refs": _nested_import_refs(stmt, attrs_read),
+              "direct": any(_touches(node, aliases, names, sessions) for node in ast.walk(stmt)),
+              "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}}]
+    if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
+        body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
+        units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
+                      "direct": any(_touches(n, aliases, names, sessions) for s in body for n in ast.walk(s))})
+    return units
+
+
 def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
     """One unit per top-level def/class/statement and per imported alias: the names it binds, whether it runs on
     import ("run"), whether it touches a name itself, the bare names it reads and the (module, name, attrs) it
@@ -285,27 +324,11 @@ def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
         if isinstance(stmt, (ast.Import, ast.ImportFrom)) and not getattr(stmt, "level", 0):
             for a in stmt.names:
                 if isinstance(stmt, ast.Import):  # `import a.b` binds `a`: the whole module counts
-                    units.append({"binds": {a.asname or a.name.split(".")[0]}, "run": False, "direct": False,
-                                  "import": True, "reads": set(), "refs": [(a.name, None, _attrs_read(a.asname)
-                                                                            if a.asname else None)]})
+                    units.append(_plain_import_unit(a, _attrs_read))
                 else:
                     units.append(_from_import_unit(stmt, a, names, _attrs_read))
             continue
-        refs = []
-        for node in ast.walk(stmt):
-            if isinstance(node, ast.Import):
-                refs += [(a.name, None, None) for a in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
-                refs += [(node.module, None if a.name == "*" else a.name,
-                          None if a.name == "*" else _attrs_read(a.asname or a.name)) for a in node.names]
-        is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
-        units.append({"binds": {stmt.name} if is_def else set(bound_names(stmt)[1]), "run": not is_def, "refs": refs,
-                      "direct": any(_touches(node, aliases, names, sessions) for node in ast.walk(stmt)),
-                      "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}})
-        if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
-            body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
-            units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
-                          "direct": any(_touches(n, aliases, names, sessions) for s in body for n in ast.walk(s))})
+        units += _statement_units(stmt, aliases, names, sessions, _attrs_read)
     if _scans_engine_parts(tree):  # binds and runs nothing: the module itself touches, its importers do not
         units.append({"binds": set(), "run": False, "refs": [], "reads": set(), "direct": True})
     return units

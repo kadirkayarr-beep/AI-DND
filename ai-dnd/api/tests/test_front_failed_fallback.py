@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import unittest
 import uuid
+from typing import Any
 from unittest.mock import patch
 
 import front_proposal
@@ -53,6 +54,7 @@ class CutClient(front_tests.FrontClient):
 
 class FailedReading(unittest.IsolatedAsyncioTestCase):
     # The parent table's helpers only: its own tests are not run again here.
+    world: Any  # set by FrontTable.begin, called on this case
     asyncSetUp = front_tests.FrontTable.asyncSetUp
     asyncTearDown = front_tests.FrontTable.asyncTearDown
     campaign_with_npc = front_tests.FrontTable.campaign_with_npc

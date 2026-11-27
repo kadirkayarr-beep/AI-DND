@@ -1,4 +1,5 @@
 import copy,uuid,unittest
+from typing import Any
 from unittest.mock import patch
 import game,interaction_adventure,exploration
 from api.tests.test_route_focus_regressions import RouteFocusRegressionTests
@@ -10,6 +11,7 @@ from api.tests.front_reading import RouteWatch, forbid_unscripted
 from api.tests.test_intent_response_consistency import kinds, read_first
 
 class PublicDoorFocusTests(unittest.IsolatedAsyncioTestCase):
+ npc:Any  # set by RouteFocusRegressionTests.prepare, called on this case
  asyncSetUp=RouteFocusRegressionTests.asyncSetUp
  asyncTearDown=RouteFocusRegressionTests.asyncTearDown
  prepare=RouteFocusRegressionTests.prepare

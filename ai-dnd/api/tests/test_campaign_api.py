@@ -47,7 +47,7 @@ from api.auth import FixedAuthenticator
 from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
-from api.dnd_2024_rules import SPECIES_DEFINITIONS
+from dnd_2024_rules import SPECIES_DEFINITIONS
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignStaleError,

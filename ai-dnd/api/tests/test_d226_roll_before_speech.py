@@ -8,12 +8,20 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import game
 import town_knowledge
 from api.tests.journeys.runner import JourneyCase, describe_problems
 from api.tests.journeys.schema import load_scenario
+
+def activate(test: unittest.TestCase, session: game.GameSession) -> None:
+    """Make the session the engine's active one for this test; the cleanup puts the old one back."""
+    active: Any = game._ACTIVE_SESSION  # its default of None types it as a variable that holds nothing
+    token = active.set(session)
+    test.addCleanup(active.reset, token)
+
 
 PLAIN_SCARE = "Önümden çekil, yoksa başın belaya girer!"
 UNMOVED = "Kavşim kollarını kavuşturup sana yukarıdan bakıyor; geri adım atmıyor, sözlerin ona işlemiyor."
@@ -50,9 +58,8 @@ class TestAFluentWinAfterALostRollIsNotKept(unittest.TestCase):
     SAID = "Muhafızı korkutmaya çalışıyorum"
 
     def setUp(self):
-        session = game.create_session(seed=2411)
-        token = game._ACTIVE_SESSION.set(session)
-        self.addCleanup(game._ACTIVE_SESSION.reset, token)
+        self.session = game.create_session(seed=2411)
+        activate(self, self.session)
 
     def told(self, narration):
         return game._states_the_failed_check(narration, self.FAILED, self.SAID)
@@ -69,10 +76,11 @@ class TestAFluentWinAfterALostRollIsNotKept(unittest.TestCase):
     def test_the_safety_check_refuses_a_lost_try_told_as_won(self):
         for narration in ("Muhafız yutkunuyor ve kenara çekiliyor.", "Muhafız boyun eğip sana yol veriyor."):
             with self.subTest(narration=narration):
-                decision = game._session()._narration_safety_decision(narration, self.SAID, None, self.FAILED)
+                decision = cast("dict[str, Any]", self.session._narration_safety_decision(narration, self.SAID, None, self.FAILED))
                 self.assertEqual(decision["reason_code"], "SKILL_RESULT_CONTRADICTION", decision)
         kept = "Muhafız geri çekilmiyor; gözünü kırpmadan sana bakıyor."
-        self.assertFalse(game._session()._narration_safety_decision(kept, self.SAID, None, self.FAILED)["unsafe"])
+        kept_decision = cast("dict[str, Any]", self.session._narration_safety_decision(kept, self.SAID, None, self.FAILED))
+        self.assertFalse(kept_decision["unsafe"])
 
     def test_a_room_that_carries_on_keeps_its_text(self):
         out = self.told("Bu sırada arkada bir kâtip satırı yeniden okuyor.")
@@ -108,8 +116,7 @@ class TestATravelLineIsNotSaidTwice(unittest.TestCase):
 
     def setUp(self):
         session = game.create_session(seed=2511)
-        token = game._ACTIVE_SESSION.set(session)
-        self.addCleanup(game._ACTIVE_SESSION.reset, token)
+        activate(self, session)
 
     def draws(self, result):
         return [game._fallback_for_action_result("kuzeye gidiyorum", result) for _ in range(8)]
@@ -127,13 +134,12 @@ class TestTheRealAwardMayBeSaidInTheModelsWords(unittest.TestCase):
 
     def setUp(self):
         self.session = game.create_session(seed=1201)
-        token = game._ACTIVE_SESSION.set(self.session)
-        self.addCleanup(game._ACTIVE_SESSION.reset, token)
+        activate(self, self.session)
         self.session._remember_xp_award({"previous_level": 3, "new_level": 3, "xp_gained": 25, "hit_points_gained": 0})
 
     def decide(self, narration):
-        return self.session._narration_safety_decision(
-            narration, "bitirdim", None, {"action": "explore", "status": "resolved"})
+        return cast("dict[str, Any]", self.session._narration_safety_decision(
+            narration, "bitirdim", None, {"action": "explore", "status": "resolved"}))
 
     def test_the_real_amount_passes(self):
         for narration in ("Bu iş için 25 deneyim puanı kazandın.", "25 XP kazandın, güzel iş.",

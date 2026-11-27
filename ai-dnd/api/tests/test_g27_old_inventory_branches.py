@@ -13,6 +13,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import equipment_economy
@@ -51,13 +52,13 @@ class TestOneSwordMover(unittest.TestCase):
         session, sword = materialized_session(2701)
         world = session.world_state
         sequence = world["item_sequence"]
-        self.assertIn("yere taşındı", session.update_inventory_from_player(DROP))
+        self.assertIn("yere taşındı", cast("str", session.update_inventory_from_player(DROP)))
         ground = world["ground_items_by_location"][world["location"]]
         self.assertEqual(ground, [sword])
         self.assertNotIn(sword, world["inventory"])
         self.assertIsNone(world["equipment"]["main_hand"])
         self.assertEqual((world["currency"], world["item_sequence"]), ({"player": 137}, sequence))
-        self.assertIn("envantere alındı", session.update_inventory_from_player(TAKE))
+        self.assertIn("envantere alındı", cast("str", session.update_inventory_from_player(TAKE)))
         self.assertEqual([i for i in world["inventory"] if i["name"] == SWORD], [sword])
         self.assertEqual(world["ground_items_by_location"][world["location"]], [])
         self.assertEqual((world["currency"], world["item_sequence"]), ({"player": 137}, sequence))
@@ -70,7 +71,7 @@ class TestOneSwordMover(unittest.TestCase):
         before = copy.deepcopy(world)
         for line in (DROP, TAKE):
             with self.subTest(line=line):
-                self.assertIn("envanter değişmedi", session.update_inventory_from_player(line))
+                self.assertIn("envanter değişmedi", cast("str", session.update_inventory_from_player(line)))
                 self.assertEqual(world, before)
 
     def test_with_two_swords_the_held_one_is_dropped_by_its_id(self):
@@ -78,7 +79,7 @@ class TestOneSwordMover(unittest.TestCase):
         world = session.world_state
         spare = {**sword, "item_id": "item_990001"}
         world["inventory"].append(spare)
-        self.assertIn("yere taşındı", session.update_inventory_from_player(DROP))
+        self.assertIn("yere taşındı", cast("str", session.update_inventory_from_player(DROP)))
         self.assertEqual(world["ground_items_by_location"][world["location"]], [sword])
         self.assertEqual([i for i in world["inventory"] if i["name"] == SWORD], [spare])
 
@@ -128,7 +129,10 @@ class TestNoOldGroundItemsList(unittest.TestCase):
         session.update_inventory_from_player(DROP)
         world = session.world_state
         world["currency"] = {"player": 137}
-        owner, item = item_transfers.real_thing_here(world, "kili")
+        found = item_transfers.real_thing_here(world, "kili")
+        if found is None:
+            self.fail("the ground sword is a real thing here")
+        owner, item = found
         self.assertEqual((owner, item["name"], bool(item["item_id"])), (f"ground:{world['location']}", SWORD, True))
         self.assertEqual(world["currency"], {"player": 137})
         self.assertEqual(sword_count(world), 1)
@@ -159,9 +163,16 @@ class TestInitiativeHasNoLegacyShape(unittest.TestCase):
 
 
 class TestNewCampaignSwordRoundTrip(unittest.IsolatedAsyncioTestCase):
+    http: Any  # the five below are set by CommitBoundaryTests.asyncSetUp, run on this case
+    created: Any
+    session: Any
+    store: Any
+    cid: Any
+
     async def asyncSetUp(self):
+        parent: Any = r04.CommitBoundaryTests
         with fixed_town(self, 27101):
-            await r04.CommitBoundaryTests.asyncSetUp(self)
+            await parent.asyncSetUp(self)
 
         def turn(message, **_kwargs):
             text = self.session.update_inventory_from_player(message)
@@ -171,7 +182,8 @@ class TestNewCampaignSwordRoundTrip(unittest.IsolatedAsyncioTestCase):
         self.enterContext(patch.object(self.session, "run_player_turn", turn))
 
     async def asyncTearDown(self):
-        await r04.CommitBoundaryTests.asyncTearDown(self)
+        parent: Any = r04.CommitBoundaryTests
+        await parent.asyncTearDown(self)
 
     post = r04.CommitBoundaryTests.post
 

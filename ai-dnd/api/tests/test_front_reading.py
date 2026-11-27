@@ -3,6 +3,7 @@
 import contextlib
 import os
 import unittest
+from typing import Any
 from unittest.mock import patch
 
 import front_proposal
@@ -47,7 +48,8 @@ class LoudFakeTests(unittest.TestCase):
 
     def test_a_plain_talk_client_refuses_what_it_would_drop(self):
         # D-421 (8): operation, conversation and stage_direction were silently thrown away
-        for extra in ({"operation": "buy"}, {"conversation": {}}, {"stage_direction": "x"}):
+        extras: list[dict[str, Any]] = [{"operation": "buy"}, {"conversation": {}}, {"stage_direction": "x"}]
+        for extra in extras:
             with self.subTest(extra=extra), self.assertRaises(TypeError):
                 speech.plain_talk_client("Merhaba.", **extra)
 

@@ -70,7 +70,10 @@ class TrailCase(JourneyCase):
         return next(n for n in self.world["npcs"] if n.get("id") == npc_id)
 
     def delivered_thread(self):
-        return world_threads.by_id(self.world, self.thread_id)
+        thread = world_threads.by_id(self.world, self.thread_id)
+        if thread is None:
+            self.fail("the delivered thread is in the world")
+        return thread
 
     def follow_on_thread(self):
         [row] = self.rows("delivered")

@@ -42,15 +42,7 @@ def _loot(world, inventory, args):
     return f'{item["name"]} [{item["item_id"]}] mevcut kaynaktan alındı.'
 
 
-def _list(world, inventory, _args):
-    import equipment_native as native
-    lines = [f'{i["name"]} [{i["item_id"]}]' for i in inventory]
-    wallet = world.get("currency", {}).get("player")
-    lines.append(f"Bakiye: {wallet} CP değer birimi." if wallet is not None
-                 else "Kesende sayabileceğin bir para yok.")
-    ground = world.get("ground_items_by_location", {}).get(world["location"], [])
-    lines.extend(f'Yerde: {i["name"]} [{i["item_id"]}] — /item take {i["item_id"]}'
-                 for i in ground)
+def _list_surfaces(world, lines):
     for feature_id, shelf in (world.get("surface_items") or {}).items():
         try:
             surface = economy._surface_feature(world, feature_id)
@@ -58,6 +50,9 @@ def _list(world, inventory, _args):
             continue
         lines.extend(f'{surface["name"]}: {i["name"]} [{i["item_id"]}] — /item take {i["item_id"]}'
                      for i in shelf if isinstance(i, dict))
+
+
+def _list_shop_offers(world, lines):
     for shop in world.get("shops", []):
         if shop.get("location") != world["location"]:
             continue
@@ -71,6 +66,9 @@ def _list(world, inventory, _args):
                 cost = economy.price(item)
                 if offers[item["item_id"]] == cost:
                     lines.append(f'{item["name"]}: {cost} CP — /item buy {item["item_id"]} {shop["id"]}')
+
+
+def _list_npc_gifts(world, lines):
     for npc in world.get("npcs", []):
         if npc.get("location") != world["location"]:
             continue
@@ -83,6 +81,10 @@ def _list(world, inventory, _args):
                 "operation": "receive", "recipient": "player",
             }:
                 lines.append(f'{npc["name"]}: {item["name"]} — /item receive {item["item_id"]} {npc["id"]}')
+
+
+def _list_loot(world, lines):
+    import equipment_native as native
     for owner in [*world.get("npcs", []), *world.get("containers", [])]:
         try:
             items, _ = native.loot_source(world, owner.get("id"))
@@ -90,12 +92,31 @@ def _list(world, inventory, _args):
             continue
         lines.extend(f'Loot: {i["name"]} [{i["item_id"]}] — /item loot {owner["id"]} {i["item_id"]}'
                      for i in items)
+
+
+def _list_work_and_rewards(world, lines):
+    import equipment_native as native
     for shop in world.get("shops", []):
         if shop.get("economy_origin") == native.ORIGIN and shop.get("location") == world["location"]:
             lines.append(f'İş: /item work {shop["shopkeeper_id"]}; konuşma: /item talk {shop["shopkeeper_id"]} Merhaba')
     for identity, reward in world.get("item_rewards", {}).items():
         if identity not in world.get("claimed_item_rewards", []):
             lines.append(f'Ödül kaydı: /item reward {identity} ({reward.get("currency_cp", 0)} CP; tamamlanma gerekli)')
+
+
+def _list(world, inventory, _args):
+    lines = [f'{i["name"]} [{i["item_id"]}]' for i in inventory]
+    wallet = world.get("currency", {}).get("player")
+    lines.append(f"Bakiye: {wallet} CP değer birimi." if wallet is not None
+                 else "Kesende sayabileceğin bir para yok.")
+    ground = world.get("ground_items_by_location", {}).get(world["location"], [])
+    lines.extend(f'Yerde: {i["name"]} [{i["item_id"]}] — /item take {i["item_id"]}'
+                 for i in ground)
+    _list_surfaces(world, lines)
+    _list_shop_offers(world, lines)
+    _list_npc_gifts(world, lines)
+    _list_loot(world, lines)
+    _list_work_and_rewards(world, lines)
     return "\n".join(lines)
 
 
@@ -149,22 +170,33 @@ def _take(world, inventory, args):
     return DONE
 
 
-def _equip(world, inventory, args):
-    item, hand = economy.one(inventory, args[0]), args[1]
+def _two_handed_for(item, hand):
+    """Refuse a hand or an item that cannot be equipped; say whether the weapon takes both hands."""
     weapon = economy.lookup(item.get("weapon_id"))
     if hand not in {"main_hand", "off_hand"} or weapon is None:
         economy.fail("unsupported_equipment")
     two_handed = "two_handed" in weapon.get("properties", []) or "two-handed" in weapon.get("properties", [])
     if two_handed and hand != "main_hand":
         economy.fail("two_handed_owner_required")
+    return two_handed
+
+
+def _put_shield_down(world, hands, only_if_unheld):
+    """The shield stays in the bag; its Armor Class share is settled against the character by
+    `gear.settle_shield` (Dilim 3, Task 16)."""
+    shield = economy._shield_in_hand(world, hands)
+    if shield is not None and not (only_if_unheld and shield["item_id"] in hands.values()):
+        world["shield_down"] = {"item_id": shield["item_id"], "ac_bonus": None}
+
+
+def _equip(world, inventory, args):
+    item, hand = economy.one(inventory, args[0]), args[1]
+    two_handed = _two_handed_for(item, hand)
     hands = world.setdefault("equipment", {"main_hand": None, "off_hand": None})
     economy.canonical_hands(world, "player", world)
     if two_handed:
-        # The shield goes away with the off hand; it stays in the bag. Its Armor Class share is settled against
-        # the character by `gear.settle_shield` (Dilim 3, Task 16).
-        shield = economy._shield_in_hand(world, hands)
-        if shield is not None:
-            world["shield_down"] = {"item_id": shield["item_id"], "ac_bonus": None}
+        # The shield goes away with the off hand; it stays in the bag.
+        _put_shield_down(world, hands, only_if_unheld=False)
         hands["off_hand"] = None  # a two-handed weapon is held in both hands (Dilim 2, Task 14)
     if hands[hand] is not None or item["item_id"] in hands.values():
         economy.fail("hand_occupied")
@@ -172,9 +204,7 @@ def _equip(world, inventory, args):
     if None not in hands.values():
         # D-116/D-184: a creation shield has no hand entry but holds one; a weapon in each hand puts it down,
         # as a two-handed weapon does, and `gear.settle_shield` takes its Armor Class share off.
-        shield = economy._shield_in_hand(world, hands)
-        if shield is not None and shield["item_id"] not in hands.values():
-            world["shield_down"] = {"item_id": shield["item_id"], "ac_bonus": None}
+        _put_shield_down(world, hands, only_if_unheld=True)
     return DONE
 
 
@@ -258,14 +288,17 @@ def _shop_buy(world, _inventory, args):
     return shop_trade.commit_typed(world, args)
 
 
-def _reward(world, inventory, args):
-    identity = args[0]
+def _reward_completed(world, identity):
     quests = world.get("quests", [])
     completed = any(q.get("quest_id", q.get("id")) == identity and q.get("status") == "completed"
                     for q in quests)
-    completed = completed or any(t["thread_id"] == identity and t["status"] == "succeeded"
-                                for t in world.get("interaction_adventure_v1", {}).get("threads", []))
-    if not completed:
+    return completed or any(t["thread_id"] == identity and t["status"] == "succeeded"
+                            for t in world.get("interaction_adventure_v1", {}).get("threads", []))
+
+
+def _reward(world, inventory, args):
+    identity = args[0]
+    if not _reward_completed(world, identity):
         economy.fail("quest_not_completed")
     claimed = world.setdefault("claimed_item_rewards", [])
     if identity in claimed:

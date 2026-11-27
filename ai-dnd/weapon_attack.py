@@ -6,7 +6,7 @@ Spatial facts and feature grants are engine-only data, never narration-derived.
 import copy
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NoReturn
 from math import isfinite
 from contextlib import nullcontext
 from uuid import uuid4
@@ -66,7 +66,7 @@ def without_roll_note(text, action_result):
     return text
 
 
-def fail(code, message):
+def fail(code, message) -> NoReturn:
     raise CombatRequestError(code, message, 400)
 
 
