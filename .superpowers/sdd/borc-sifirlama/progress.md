@@ -58,3 +58,13 @@ Task G2.6: complete (branch task/borc-g26-20261126, head dd573ab7, merge 0d9beb8
 Task G2.7: complete (branch task/borc-g27-20261126, head 92c48f38, merge 6c0f905c)
 Task G2.12: complete (branch task/borc-g212-20261126, head d74d06b3, merge e00dc792)
 - Task G2.17: complete (branch task/borc-g217-20261126, head 83e19d92, merge 0216cf8d)
+
+## Wave 2 round 1 done (2026-11-27)
+All 12 tasks merged (wave head 9bf079b2). Weekly 69% -> 77%.
+- Ruling: D-410 and D-226 go back to "kısmen" (G2.1/G2.4 reports say partial; merge marked closed) — reports are the evidence — cost if wrong: a closed row shows partial until rechecked.
+- Ruling: REDFIX task first in round 2 lane A: trace test_thread_errand ErrandTable (2) and test_narrative_rebalance fallback test reds to their commit and fix — CLAUDE.md "bilinen kırıklar" — cost if wrong: one Sonnet task.
+- Ruling: implementers write reports by bash heredoc when Write refuses (5 round-1 reports missing) — reviewers need the file — cost: none.
+- Ruling: G2.16 and DK2 wait for the 2026-11-29 reset; round 2 alone is expected to reach ~86% (stop line 88%) — cost if wrong: a day later.
+- Agent rule slips to report: G2.2, G2.7 ran rm -f on their own scratch files; G2.10 left C:/Users/Kadir/Desktop/fix_main_new.py; G2.6 replaced slot 9 web copy (/root/aidnd-env-9/web, old at web.old-g26).
+Task G2.18: complete (branch task/borc-g218-20261126, head 42ff0958, merge 38848704)
+Task REDFIX: complete (branch task/borc-redfix-20261126, head f5afdd7e, merge 15d15998)
