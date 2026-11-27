@@ -828,3 +828,13 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/scripts/quality_gate/size_lock.json`, `baselines/radon.json`, `api/tests/engine_split_locks/size_budget.json` | `equipment_economy.py` 1159 -> 933 ve `::_apply` 230 girdisi silindi; radon `_apply` 119 girdisi silindi, `_front_step` 155 -> 154; `_front_step` uzun islev siniri 235 -> 229. Yalniz kuculdu | sikilastirma |
 | `ai-dnd/api/tests/engine_split_locks/surface.json`, `sensitive.json` | Yeni `game._no_list_fallback` (D-403: liste kurulamayan okuma da paranin kararini verir) kayit altina alindi | ekleme |
 | yeni testler | `test_d317_shopkeeper_purse.py` (D-317, D-403), `test_equipment_apply_pin.py` (D-501 karakterizasyon: her islem icin altin, esya, makbuz metni, Geri Al'da dunyanin degismemesi, kollarin arguman sayisi), `test_front_failed_fallback.py` yeni walk-out ve evet+bozuk-okuma testleri, `test_d317_shopkeeper_purse.py` tek-sefer-sorma testi | ekleme |
+
+## G2.21 (borc-sifirlama): arayuz kucukleri (D-153, D-235, D-563, D-282)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `artifacts/ai-dnd-experience/tests/combat-panel.test.mjs` `skill result cards render canonical values...` ve `advantage rolls and explicit modes...`, `tests/play-viewport.test.mjs` `transcript keeps player then narration order...` | "DC hicbir yerde gorunmez" beklentisi D-282 (Kadir, 2026-11-16) ile yeniden tanimlandi: Zorluk satiri "Zor, DC 18" gibi etiket ve sayiyi birlikte yazar; DC kartin baska hicbir yerinde (ozet, erisilebilir ad) gorunmez (Zorluk satiri cikarilinca yine DC aranir). Sinir degisti | gevsetme olabilir |
+| `ai-dnd/api/tests/test_public_inventory_shield.py` | Kusanilmis esya etiketi artik el adini da yazar: `(kusanilmis) (ana el)` / `(ikinci el)`; yaratim kalkani ikinci elde sayilir. Beklenen metinler eslesecek sekilde yeniden yazildi, ikinci el icin ek dogrulama eklendi | yeniden yazim, siki |
+| `artifacts/ai-dnd-experience/tests/roadmap-c06-level4-ui.test.mjs`, `tests/roadmap-c06-nondex-asi-ui.test.mjs` | Sinif adi olmayan (`class_name` yok) onizleme artik Sorcerer denetimi cizmez (D-563); iki test onizlemesine `class_name: 'Sorcerer'` eklendi, sunucu bunu her zaman yollar | yeniden yazim, siki |
+| `artifacts/ai-dnd-experience/tests/character-identity-panel.test.mjs` | `LeftColumn` kaynak denetimi yeni `inventory` ozelligini bekler (D-235) | yeniden yazim, siki |
+| yeni test | `tests/g221-ui-small.test.mjs` (D-153 erisilebilir adlar, D-235 eller, D-563, D-282); `package.json` `test:standard` listesine eklendi | ekleme |

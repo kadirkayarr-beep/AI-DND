@@ -102,7 +102,8 @@ test('transcript keeps player then narration order, the recorded roll, and a foc
   assert.match(html, /Kapı kilitli\./);
   assert.match(html, /D20 8/);
   assert.match(html, /Başarısız/);
-  assert.doesNotMatch(html, /DC\s*\d/i);
+  assert.match(html, /<dt>Zorluk<\/dt><dd>Orta, DC 15<\/dd>/);
+  assert.doesNotMatch(html.replace(/<div><dt>Zorluk<\/dt><dd>[^<]*<\/dd><\/div>/, ''), /DC\s*\d/i);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /Yeni sonuç geldi\. 2/);
   assert.doesNotMatch(html, /autofocus|tabIndex=\{0\}|focus\(\)/);

@@ -23,7 +23,7 @@ import { RogueStatus } from '@/components/rogue-controls';
 import { MonkStatus } from '@/components/monk-controls';
 import { skillLabel } from '@/lib/skill-label';
 import { TOP_LEVEL_LABEL, xpProgress } from '@/lib/xp-progress';
-import { inventoryDisplay } from '@/lib/inventory-display';
+import { inventoryDisplay, inventoryHand } from '@/lib/inventory-display';
 import { trName } from '@/lib/tr-names';
 import { CharacterIdentityNotes } from '@/components/character-identity-notes';
 import { classLabel, speciesLabel } from '@/lib/campaign-presentation';
@@ -46,7 +46,13 @@ export function StoredProgressionChoices({ character, catalog }: { character: Ga
   return <>{character.metamagic?.length ? <p>Üstbüyü seçimleri: {character.metamagic.map(id => METAMAGIC_LABELS[id] ?? id).join(', ')}</p> : null}{character.subclass_id && subclassName?.trim() ? <p>Alt sınıf: {subclassName}</p> : null}</>;
 }
 
-export function CharacterPanel({ character, compact = false, walletTotalCp, catalog }: { character: GameCharacter; compact?: boolean; walletTotalCp?: number | null; catalog?: unknown }) {
+/** Main hand and off hand, read from the labels the server put its hand marks on; a shield stands in the off hand. */
+function HandsLine({ items }: { items: string[] }) {
+  const held = (hand: 'main' | 'off') => { const label = items.find(item => inventoryHand(item) === hand); return label ? trName(inventoryDisplay(label).name, 'items') : 'boş'; };
+  return <div className="key-values mt-3"><div className="key-value" data-testid="text-character-main-hand"><Kicker>Ana el</Kicker><span>{held('main')}</span></div><div className="key-value" data-testid="text-character-off-hand"><Kicker>İkinci el</Kicker><span>{held('off')}</span></div></div>;
+}
+
+export function CharacterPanel({ character, compact = false, walletTotalCp, catalog, inventory }: { character: GameCharacter; compact?: boolean; walletTotalCp?: number | null; catalog?: unknown; inventory?: string[] }) {
   const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
   const hp = character.max_hp > 0 ? Math.max(0, Math.min(100, character.current_hp / character.max_hp * 100)) : 0;
   return (
@@ -55,6 +61,7 @@ export function CharacterPanel({ character, compact = false, walletTotalCp, cata
       <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
       <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
       <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
+      {inventory && <HandsLine items={inventory} />}
       <XpBar xp={character.xp} level={character.level} />
       <PurseLine totalCp={walletTotalCp} />
       {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}

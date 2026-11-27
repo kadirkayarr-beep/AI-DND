@@ -345,7 +345,9 @@ test('inactive combat renders without invented round, target, or roll data', () 
   assert.doesNotMatch(html, /data-testid="combat-entry-/);
 });
 
-test('skill result cards render canonical values without exposing the DC', () => {
+// D-282 (Kadir, 2026-11-16): the difficulty row names the label and the number; the DC shows nowhere else on the card.
+const withoutDifficultyRow = (html) => html.replace(/<div><dt>Zorluk<\/dt><dd>[^<]*<\/dd><\/div>/, '');
+test('skill result cards render canonical values and the DC only in the difficulty row', () => {
   const cases = [
     ['Persuasion', 'charisma'],
     ['Deception', 'charisma'],
@@ -379,8 +381,8 @@ test('skill result cards render canonical values without exposing the DC', () =>
     assert.ok(html.includes('Orta'));
     assert.ok(html.includes('<details'));
     assert.ok(html.includes('<summary'));
-    assert.ok(!html.includes('DC'));
-    assert.doesNotMatch(html, /DC\s*15/i);
+    assert.ok(html.includes('<dt>Zorluk</dt><dd>Orta, DC 15</dd>'));
+    assert.ok(!withoutDifficultyRow(html).includes('DC'));
     assert.ok(!html.includes('<dt>PROF</dt>'));
     assert.ok(!html.includes('<dt>TOTAL</dt>'));
     assert.ok(!html.includes('<dt>STR</dt>'));
@@ -414,7 +416,8 @@ test('advantage rolls and explicit modes are shown faithfully; missing values an
   assert.match(html, /Avantaj · Dezavantaj|Avantaj.*Dezavantaj/);
   assert.match(html, /Uzmanlık/);
   assert.match(html, /Zor/);
-  assert.doesNotMatch(html, /DC|27|kritik/i);
+  assert.ok(html.includes('<dt>Zorluk</dt><dd>Zor, DC 27</dd>'));
+  assert.doesNotMatch(withoutDifficultyRow(html), /DC|27|kritik/i);
 
   const incomplete = renderSkillCheckResult({
     skill: 'Stealth',

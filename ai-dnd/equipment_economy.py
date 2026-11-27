@@ -877,13 +877,13 @@ def grant_plain(world, name):
 
 def public_inventory(world):
     """Preserve the API string-list contract; labels expose IDs and hand state."""
-    hands = world.get("equipment", {})
-    hands = hands if isinstance(hands, dict) else {}
-    shield = _shield_in_hand(world, hands)
+    hands = h if isinstance(h := world.get("equipment", {}), dict) else {}
+    shield, main = _shield_in_hand(world, hands), hands.get("main_hand")
     worn = {*hands.values(), shield.get("item_id") if shield else None}
     return [
         f'{i.get("name") or i.get("weapon_id", "Eşya")} [{i.get("item_id", "kimlik doğrulanmamış")}]'
-        + (" (kuşanılmış)" if i.get("item_id") and i["item_id"] in worn else "")
+        + (" (kuşanılmış)" + (" (ana el)" if i["item_id"] == main else " (ikinci el)")
+           if i.get("item_id") and i["item_id"] in worn else "")
         if isinstance(i, dict) else i
         for i in world.get("inventory", [])
     ]

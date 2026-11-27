@@ -1100,6 +1100,7 @@ export function CharacterCreationScreen({
                               <button
                                 type="button"
                                 className="cc-calc-btn"
+                                aria-label={`${ABILITY_NAMES_TR[key].full} puanını azalt`}
                                 disabled={base <= 8}
                                 onClick={() => setBaseScores((prev) => ({ ...prev, [key]: base - 1 }))}
                               >
@@ -1109,6 +1110,7 @@ export function CharacterCreationScreen({
                               <button
                                 type="button"
                                 className="cc-calc-btn"
+                                aria-label={`${ABILITY_NAMES_TR[key].full} puanını artır`}
                                 disabled={base >= 15 || (POINT_BUY_COSTS[base + 1] - POINT_BUY_COSTS[base] > pointBuyRemaining)}
                                 onClick={() => setBaseScores((prev) => ({ ...prev, [key]: base + 1 }))}
                               >
@@ -1118,6 +1120,7 @@ export function CharacterCreationScreen({
                           ) : abilityMethod === 'standard_array' ? (
                             <select
                               className="cc-score-select"
+                              aria-label={`${ABILITY_NAMES_TR[key].full} puanı`}
                               value={base}
                               onChange={(e) => {
                                 const newScore = Number(e.target.value);
@@ -1572,6 +1575,7 @@ export function CharacterCreationScreen({
                     <span className="cc-select-wrap">
                       <select
                         className="cc-input cc-literary"
+                        aria-label="1. ek dil"
                         value={selectedLanguages[0]}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1590,6 +1594,7 @@ export function CharacterCreationScreen({
                     <span className="cc-select-wrap mt-2">
                       <select
                         className="cc-input cc-literary"
+                        aria-label="2. ek dil"
                         value={selectedLanguages[1]}
                         onChange={(e) => {
                           const val = e.target.value;

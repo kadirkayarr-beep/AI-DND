@@ -39,8 +39,6 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
   const exactCounts = (expected: Record<string, number>) => Object.keys(counts ?? {}).length === Object.keys(expected).length
     && Object.entries(expected).every(([key, value]) => counts?.[key] === value);
   const sorcerer = preview.class_name === 'Sorcerer';
-  // Legacy4/5 previews predate class_name; early steps require the explicit server class.
-  const retainedSorcerer = sorcerer || preview.class_name == null;
   const needsMetamagic = sorcerer && preview.target_level === 2 && exactCounts({ prepared_spells: 2, metamagic: 2 });
   const needsSubclass = sorcerer && preview.target_level === 3 && exactCounts({ prepared_spells: 2, subclass_id: 1 });
   // Barbarian 2 (Danger Sense/Reckless Attack) and 5 (Extra Attack/Fast Movement) have no choices: explicit confirmation of an empty object.
@@ -50,8 +48,8 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
   const needsBerserker = preview.class_name === 'Barbarian' && preview.target_level === 3 && exactCounts({ subclass_id: 1, primal_knowledge_skill: 1 });
   const needsNoncasterAsi = (preview.class_name === 'Barbarian' || fighter) && preview.target_level === 4 && exactCounts({ asi: 1 }) && preview.capacity === null;
   const supported = needsNoncasterAsi || needsBerserker || needsSubclassPick || needsMetamagic || needsSubclass || emptyChoice
-    || (retainedSorcerer && preview.target_level === 4 && exactCounts({ prepared_spells: 1, cantrips: 1, asi: 1 }))
-    || (retainedSorcerer && preview.target_level === 5 && exactCounts({ prepared_spells: 2 }));
+    || (sorcerer && preview.target_level === 4 && exactCounts({ prepared_spells: 1, cantrips: 1, asi: 1 }))
+    || (sorcerer && preview.target_level === 5 && exactCounts({ prepared_spells: 2 }));
   if (!supported) return <p role="status">Bu seviye seçimleri henüz desteklenmiyor.</p>;
   const prepared = emptyChoice || needsBerserker || needsSubclassPick || needsNoncasterAsi ? [] : draft.preparedSpells ?? [draft.preparedSpell];
   const metamagic = draft.metamagic ?? [];
@@ -69,7 +67,7 @@ export function LevelUpChoices({ preview, draft, onChange, onConfirm, onCancel, 
     && prepared.every(id => preview.prepared_spell_ids?.includes(id));
   return <fieldset disabled={disabled} data-testid="level-up-choices">
     <legend>Kazanılmış {preview.target_level}. seviye seçimleri</legend>
-    <p>{preview.class_name ?? 'Sorcerer'}{preview.from_level != null ? ` ${preview.from_level} → ${preview.target_level}` : ` · ${preview.target_level}. seviye`}. XP kazandırmaz; kazanılmış sıradaki adımı tamamlar.</p>
+    <p>{preview.class_name}{preview.from_level != null ? ` ${preview.from_level} → ${preview.target_level}` : ` · ${preview.target_level}. seviye`}. XP kazandırmaz; kazanılmış sıradaki adımı tamamlar.</p>
     {needsAsi && <AsiChoicePicker choices={preview.supported_asi_choices} selected={asi} disabled={disabled} testId="level-up-asi-choice" onChange={choice => onChange({ ...draft, asi: choice, confirmed: false })} />}
     {!emptyChoice && <p>Desteklenen ve bekleyen kapsamı sunucu aşağıda bildirir. Tüm büyü ve sınıf özellikleri desteklenmiş değildir.</p>}
     {emptyChoice && <p>Bu adım ek seçim gerektirmez. Yalnız aşağıda belirtilen kapsam desteklenir; tüm sınıf özellikleri uygulanmış değildir.</p>}
