@@ -8,11 +8,17 @@ The index is built on the measured tree (`--engine-root` = a `git archive <measu
 the current worktree: line numbers only mean something in the tree that produced them.
 A base is two equal runs (`--base`, `--base2`); the two counts of a name are its band.
   NOISE: names the two bases disagree on (printed; such a name is still checked against its band).
+  The noise set (D-468): the union of both flag modes' base noise, plus the earlier
+        bands `_inspection_findings` [84, 85] and
+        `_is_scene_referent_activity_observation` [14, 17]. A mode whose two bases agree
+        by chance on such a name is still read through that band. The union is kept in
+        the plan's ledger; `--diff` reads one flag mode per call.
   DOWN: names that ran fewer lines in `--new` than in the lower base (exit 1). A name whose lower base is its import
         floor (only the lines that run when the module loads) cannot show DOWN.
   UP:   names that ran more lines than the higher base (new tests may explain them; each is listed in the ledger with
         its test).
-Refusals (exit 2): a run without its lines file or its proof; a lines file naming a path the engine root does not hold;
+Refusals (exit 2): a run without its lines file or its proof; a lines file naming a
+path the engine root does not hold;
 a run that counts no function; two bases on different trees.
 Shards of one run on different trees print `MIXED TREE` and exit 1 (D-436).
 After COLLECTED, `UNCOUNTED_BLOCKS` names the top-level if/try blocks that hold
@@ -110,8 +116,9 @@ def _collect(pattern: str, engine_root: Path, out: Path) -> int:
         print("NO_FUNCTIONS")
         return 2
     Path(out).write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"COLLECTED runs={len(runs)} files={len(lines)} functions={len(data['functions'])} "
-          f"seconds={data['seconds']}", *uncounted_lines(engine_root), sep="\n")
+    print(f"COLLECTED runs={len(runs)} files={len(lines)} "
+          f"functions={len(data['functions'])} seconds={data['seconds']}",
+          *uncounted_lines(engine_root), sep="\n")
     return 0
 
 

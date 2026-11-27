@@ -310,9 +310,10 @@ def _other_parts_differing(base_root: Path, new_root: Path, part_names: list[str
 
 
 def _changed_lines(base_part: Path, new_part: Path) -> set[int]:
-    """D-432: the new part's line numbers that are inserted or replaced against the base.
+    """D-432: the new part's line numbers inserted or replaced against the base.
 
-    A deletion names the line that follows it; a new file changes every line, a gone file none.
+    A deletion names the line that follows it; a new file changes every line,
+    a gone file none.
     """
     if not new_part.exists():
         return set()

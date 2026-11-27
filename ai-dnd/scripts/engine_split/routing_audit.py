@@ -761,7 +761,7 @@ def part_files(root: Path) -> list[Path]:
 
 
 def identity_row_ok(row: object) -> bool:
-    """Tell whether a row has exactly file, function, name and reason, all non-empty strings."""
+    """Tell whether a row has exactly file, function, name and reason, all non-empty."""
     return (isinstance(row, dict) and set(row) == {"file", "function", "name", "reason"}
             and all(isinstance(v, str) and v.strip() for v in row.values()))
 

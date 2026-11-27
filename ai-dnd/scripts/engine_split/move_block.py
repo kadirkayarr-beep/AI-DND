@@ -148,7 +148,8 @@ class _Scan:
             if identity_call and not self.allowed(node.func.id, in_def):
                 raise MoveRefused(f"`{node.func.id}(` at line {node.lineno} (N3 rule 6)")
             if (isinstance(node, ast.Attribute) and node.attr == "modules"
-                    and self.is_sys(node.value) and not self.allowed("sys.modules", in_def)):
+                    and self.is_sys(node.value)
+                    and not self.allowed("sys.modules", in_def)):
                 raise MoveRefused(f"`sys.modules` at line {node.lineno} (N3 rule 6)")
             # an allowed `locals(` call: its name is the call, not a bare use
             children = ([*node.args, *node.keywords] if identity_call
@@ -163,7 +164,7 @@ class _Scan:
 
     @staticmethod
     def refuse_bare_identity(node: ast.Name, *, is_global: bool) -> None:
-        """Refuse a bare `locals`, `globals` or `vars` (`g = locals`); visit() sees calls."""
+        """Refuse a bare `locals`, `globals` or `vars` (`g = locals`)."""
         if node.id in DYNAMIC_CALLS and is_global:
             reason = f"bare `{node.id}` at line {node.lineno} (N3 rule 6)"
             raise MoveRefused(reason)
@@ -267,7 +268,7 @@ def _checked_block(game_lines: list[str], key: tuple[int, int],
 
 
 def _blank_lines(by_name: dict[str, dict], blocks: list[dict], names: list[str]) -> int:
-    """Blank lines before the next block: two (E302) next to a def or class, else one."""
+    """Blank lines before the next block: two (E302) next to a def or class, else 1."""
     before = blocks[-1]["names"] if blocks else []
     defs = any(by_name[n]["kind"] in ("function", "class") for n in [*before, *names])
     return 2 if before and defs else 1
@@ -356,7 +357,7 @@ def read_names(path: Path) -> list[str]:
 
 
 def _identity_rows(path: Path | None) -> list[dict]:
-    """Rows of identity_allowlist.json; MoveRefused if unreadable or a row is malformed."""
+    """Rows of identity_allowlist.json; MoveRefused if unreadable or malformed."""
     if path is None:
         return []
     try:
