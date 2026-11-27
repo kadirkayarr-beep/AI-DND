@@ -12,6 +12,7 @@ import uuid
 from unittest.mock import patch
 
 import game
+import interaction_adventure
 import living_world
 import npc_statements
 import world_threads
@@ -742,17 +743,18 @@ class CheckIsNotSpeech(Table):
         self.assertIn(own, person)
         self.assertTrue(person.endswith("”") and "“" in person, person)  # the person's part is their quoted speech
 
-    async def test_a_stock_check_line_swapped_for_their_words_is_not_said_twice(self):
-        """Re-review R2: a generic check line is swapped by the stock rule; their fallback is shown once."""
+    async def test_a_lost_persuasion_is_told_in_their_own_outcome_line_once(self):
+        """G2.4 (D-226): a lost Persuasion is the person's own outcome line, alone."""
         await self.job()
         world_threads.view(self.world)["threads"].clear()
         self.npc.pop("place_role_of")
-        plain = "Yirmi beş bakır, üç gün; söz söz."  # a fallback that does not start with their name
-        with patch.object(game, "_job_fallback", return_value=plain):
+        plain = "Yirmi beş bakır, üç gün; söz söz."  # no job fallback after the line
+        with patch.object(game, "_job_fallback", return_value=plain),                 patch.object(game, "roll_d20", return_value=1):
             reply = await self.line("Marek, seni ikna etmeye çalışıyorum, bana biraz yardım et",
                                     "Elbette, dün buraya iş sormaya gelmiştin.", mode="say")
-        self.assertEqual(reply["narration"].count(plain), 1, reply["narration"])
-        self.assertNotIn("gelmiştin", reply["narration"])
+        name = living_world.public_npc_name(self.npc)
+        own = interaction_adventure.social_outcome_line(name, "Persuasion", "failure")
+        self.assertEqual(reply["narration"], own)
 
 
 if __name__ == "__main__":
