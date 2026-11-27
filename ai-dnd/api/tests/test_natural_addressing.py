@@ -258,6 +258,19 @@ class WorldQuestionsReachThePerson(TownCase):
         self.assertIn("Hanı", data["narration"])
 
 
+    async def test_a_scene_only_person_asked_a_world_question_is_promoted_and_answers(self):
+        # D-308: nobody stands here but the traveller the scene text shows; the line names that traveller.
+        for npc in self.people:
+            npc["location"] = "elsewhere"
+        scene = self.world["scene_state"]["scenes"][self.world["location"]]
+        referent = next(ref for ref in scene["referents"] if "yolcu" in ref["aliases"])
+        self.assertIsNone(referent["promoted_npc_id"])
+        data = await self.say("Yolcudan soruyorum: Kral Zorvan bu şehrin hükümdarı mı?")
+        self.assertNotIn("fısıldıyor", data["narration"])
+        self.assertIsNotNone(referent["promoted_npc_id"])
+        self.assertEqual(self.flags["active_npc_id"], referent["promoted_npc_id"])
+        self.assertIn(self.client.SPOKEN, data["narration"])
+
     async def test_a_question_without_a_mark_is_still_a_question(self):
         data = await self.say("Bu çevrede bir han var mı")
         self.assertEqual(self.flags["active_npc_id"], self.other["id"])

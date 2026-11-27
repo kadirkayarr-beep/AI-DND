@@ -784,7 +784,7 @@ def resolve_command(session, message):
             "unlock" if re.search(r"\b(?:kilidi ac\w*|unlock\w*)\b", text) else
             "break" if re.search(r"\b(?:kiriyorum|kir|break\w*)\b", text) else
             "close" if re.search(r"\b(?:kapatiyorum|kapat|close\w*)\b", text) else
-            "open" if re.search(r"\b(?:aciyorum|ac|open\w*)\b", text) else None
+            "open" if re.search(r"\b(?:aciyorum|ac|open\w*|iceri giriyor\w*)\b", text) else None
         )
         candidates = {
             e.get("door_id") for e in catalog.EXITS.values()
@@ -795,7 +795,7 @@ def resolve_command(session, message):
         if operation and len(named) == 1:
             return _door_action(session, message, named[0], operation)
         generic = re.fullmatch(
-            r"(?:kapiyi|kapi|kilidi) (?:ac|aciyorum|kapat|kapatiyorum|kir|kiriyorum)[.! ]*"
+            r"(?:kapiyi|kapi|kilidi) (?:ac|aciyorum|kapat|kapatiyorum|kir|kiriyorum)[.! ]*|(?:kapidan )?iceri giriyorum[.! ]*"
             r"|(?:open|close|break|unlock)(?: the)? (?:door|lock)[.! ]*", text)
         if operation and generic and len(candidates) == 1:
             return _door_action(session, message, next(iter(candidates)), operation)
