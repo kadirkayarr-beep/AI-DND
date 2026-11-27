@@ -95,6 +95,13 @@ test('the legacy class-less branch is gone from the source', async () => {
   const source = await readFile('src/components/level-up-controls.tsx', 'utf8');
   assert.doesNotMatch(source, /retainedSorcerer|class_name == null|class_name \?\? 'Sorcerer'/);
 });
+test('every browser fixture that serves a level-up preview names its class', async () => {
+  for (const fixture of ['c06-level4-fixture', 'play-screen-fixture']) {
+    const source = await readFile(`tests/${fixture}/main.tsx`, 'utf8');
+    const at = source.indexOf('target_level');
+    assert.match(source.slice(source.lastIndexOf('=>', at), at), /class_name:/, fixture);
+  }
+});
 
 // D-282: the difficulty row names the label and the number (Kadir, 2026-11-16).
 test('the difficulty row reads label and DC together', () => {

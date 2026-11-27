@@ -56,7 +56,7 @@ let rerender: (identity:string)=>void = ()=>{};
 let remountCampaign: ()=>void = ()=>{};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json'}});
 const session=()=>({session_id:SESSION_ID,campaign_id:CAMPAIGN_ID,name:'C06 synthetic earned fixture',state:state(),history:[],combat_history:[]});
-const preview=()=>({session_id:SESSION_ID,campaign_id:CAMPAIGN_ID,revision:7,status:world.applied?'blocked':'ready',reason:world.applied?'already_applied':null,target_level:4,choices_required:{prepared_spells:1,cantrips:1,asi:1},cantrip_ids:['Shocking Grasp','Minor Illusion'],prepared_spell_ids:['Mage Armor','Web'],supported_asi_choices:[{feat:'Ability Score Improvement',increase:{constitution:2}}],capacity:{cantrips:5,prepared_spells:7,slots:{'1':4,'2':3},sorcery_points:4},effects_pending:[]});
+const preview=()=>({session_id:SESSION_ID,campaign_id:CAMPAIGN_ID,revision:7,status:world.applied?'blocked':'ready',reason:world.applied?'already_applied':null,class_name:'Sorcerer',target_level:4,choices_required:{prepared_spells:1,cantrips:1,asi:1},cantrip_ids:['Shocking Grasp','Minor Illusion'],prepared_spell_ids:['Mage Armor','Web'],supported_asi_choices:[{feat:'Ability Score Improvement',increase:{constitution:2}}],capacity:{cantrips:5,prepared_spells:7,slots:{'1':4,'2':3},sorcery_points:4},effects_pending:[]});
 async function reply(kind:string,body:unknown){const frozen=JSON.parse(JSON.stringify(body));const held=holds.get(kind);if(held){holds.delete(kind);await held.promise;}return json(frozen);}
 const releases=new Map<string,()=>void>();
 window.fetch=async(input,init)=>{
