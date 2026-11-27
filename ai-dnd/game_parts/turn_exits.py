@@ -503,14 +503,17 @@ def _tx_timed_sequence(*, finish_turn, interaction_mode, player_input, scene_pla
                 )
             )
         )
+        started_at = world_state.get("location")
         timed_result = (
             None
             if (interaction_adventure.hint(player_input) == "plan" and not sleeping) or local_scene_move
             else timed_gameplay.resolve_input(game._session(), player_input)
         )
         if timed_result is not None:
+            # D-301 (Kadir K29): the narrator tells an arrival the walk completed.
+            told = timed_gameplay.tell_arrival(timed_result, started_at)
             return finish_turn(
-                timed_result, timed_result["direct_response"], is_final=True
+                timed_result, timed_result["direct_response"], is_final=not told
             )
     return game._TURN_FALL_THROUGH
 

@@ -64,7 +64,8 @@ class HeldWeaponTests(unittest.TestCase):
         self.assertIsNone(world["equipment"]["main_hand"])
         self.assertIsNone(held_weapon.attack_weapon_name(world))
         self.assertTrue(any(item.get("item_id") == "sword-a" for item in world["inventory"] if isinstance(item, dict)))
-        self.assertIn("Kılıç", world["ground_items_by_location"][world["location"]])
+        self.assertEqual(world["ground_items_by_location"][world["location"]],
+                         [{"item_id": "sword-b", "weapon_id": "longsword", "name": "Longsword"}])
 
 
 if __name__ == "__main__":

@@ -161,6 +161,17 @@ class TalkAsksFor(JourneyCase):
         self.assertEqual((seen["kart"]["max_total_cp"], seen["kart"]["counterparty_label"]), (50, "Marek"))
         self.assertEqual(self.ledger_rows(), [])                          # no payment row
 
+    async def test_room_deal_in_talk_mode_has_speech_call(self):
+        # D-425 (Kadir S19 a): flag on, a room asked for in talk mode opens the room card AND the keeper answers by
+        # speech (one speech call), so the scene has a voice; the card and the purse are as without the speech.
+        await self.talk("bir oda tutmak istiyorum", {"asks_for": "room"},
+                        front={"kind": "speak_to", "person_id": "barman", "deal": "room"})
+        self.assertIsNotNone(self.last_speech_input)                      # the keeper was asked to speak
+        seen = self.observed()
+        self.assertEqual((seen["kese"], seen["kart"]["kalemler"], seen["kart"]["max_total_cp"]),
+                         (100, ["Oda (bir gece)"], 50))
+        self.assertEqual(self.ledger_rows(), [])
+
     async def test_asking_for_beer_while_talking_opens_the_counter_offer(self):
         await self.talk("bir bira alabilir miyim", {"asks_for": "goods:bira"})
         seen = self.observed()

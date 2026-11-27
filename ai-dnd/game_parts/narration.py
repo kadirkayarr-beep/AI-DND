@@ -1,5 +1,6 @@
 import game
 import logging
+import spell_effects
 import living_world
 import model_phase
 import re
@@ -8,6 +9,7 @@ import campaign_time
 import copy
 import equipment_economy
 import incidents.projection as incident_projection
+import bold_acts
 import interaction_adventure
 import local_dialogue
 import scheduled_events
@@ -831,7 +833,6 @@ def _narrator_shop_record(shop):
 
 def build_world_context(npc_target=None):
     world_state = game._session().world_state
-    game._normalize_ground_items()
     npcs = game.active_npcs()
     if npc_target and not any(
         npc.get("id") == npc_target.get("id")
@@ -950,6 +951,7 @@ def build_world_context(npc_target=None):
     known_history = incident_projection.known_history(world_state)
     if known_history:
         context["known_history"] = known_history
+    context.update(spell_effects.scene_view(world_state))
     door = game._current_door()
     if door:
         context["door"] = {key: door.get(key) for key in ("name", "description", "open", "broken")}
@@ -992,11 +994,8 @@ def _fallback_narration(player_input, npc_target=None):
 
     if ("kılıc" in text or "kılıç" in text or "silah" in text) and re.search(
         r"\b(?:nerede|nerde|var mı|yanımda|envanter\w*|duruyor mu)\b", text
-    ):
-        if "Kılıç" in world_state["ground_items"]:
-            return "Kılıç yerde duruyor ve envanterinde bulunmuyor."
-        if "Kılıç" in world_state["inventory"]:
-            return "Kılıç envanterinde bulunuyor."
+    ) and "Kılıç" in world_state["inventory"]:
+        return "Kılıç envanterinde bulunuyor."
 
     if npc_target is not None and isinstance(npc_target, dict):
         target_npc = npc_target
@@ -1422,6 +1421,8 @@ def _states_the_failed_check(narration, result, player_input):
     room = narration.strip()
     if told.strip() in room:
         return narration  # the narration already is the failure line
+    if game._YIELDS.search(game._normalize_turkish_typos(narration)):
+        return told  # D-241: a lost try that the narration tells as won keeps only the failure line
     return f"{told} {tr_case.upper_first(room)}".strip()
 
 def _fallback_for_action_result(player_input, action_result=None, npc_target=None):
@@ -1434,7 +1435,7 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
     if action == "travel":
         place = game.location_display_name(result.get("target")) if result.get("target") else result.get("target_reference", "hedef")
         if status == "intended":
-            return f"{place} yönüne gitmek istediğini anladım; henüz oraya ulaşmadın."
+            return bold_acts.fresh_line(game._session(), "travel_intended", interaction_adventure.TRAVEL_INTENDED).format(p=place)
         if status == "completed":
             location_id = result.get("new_location") or result.get("target")
             presence = (
@@ -1450,7 +1451,7 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
         import grounded_places
         return (grounded_action.road_ends_line(game._session())
                 or grounded_places.known_places_question(game._session(), player_input)
-                or "Birkaç sokak dolaşıyorsun ama oraya çıkan yolu bulamıyorsun; olduğun yerdesin.")
+                or bold_acts.fresh_line(game._session(), "travel_no_road", interaction_adventure.TRAVEL_NO_ROAD))
     if action == "explore" and isinstance(result.get("inspection"), dict):
         return str(result["inspection"].get("text") or "")
     if result.get("scene_look") and result.get("direct_response"):
@@ -1473,7 +1474,7 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
         findings = result.get("inspection")
         if isinstance(findings, dict) and isinstance(findings.get("text"), str):
             return findings["text"]
-        if result.get("status") == "resolved" and result.get("target_type") != "door":
+        if result.get("status") in ("resolved", "experimental_attributed_speech") and result.get("target_type") != "door":
             grounded = game._resolved_skill_result_narration(result)
             if grounded:
                 return grounded

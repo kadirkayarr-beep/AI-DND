@@ -28,8 +28,7 @@ LOCK_PATH = ROOT / "api" / "tests" / "engine_split_locks" / "sensitive.json"
 SNAPSHOT_NAMES = {"_capture_runtime_snapshot", "_restore_runtime_snapshot", "_capture_combat_death_checkpoint",
                   "_restore_combat_death_checkpoint", "_restore_in_place"}
 SAVE_NAMES = {"save_game", "load_game", "serialize_game_state", "_player_state_for_save", "_validate_save_payload",
-              "_validate_combat_v3_payload", "_validate_saved_multilevel_slots", "_origin_choices_for_save",
-              "_migrate_legacy_combat_state"}
+              "_validate_combat_v3_payload", "_validate_saved_multilevel_slots", "_origin_choices_for_save"}
 # Spec section 5 word list widened by the strong review; matches source text, comments included.
 MONEY = re.compile(r"currency|coin|gold|money|shop|merchant|price|pay\(")
 WRITE_ATTRS = {"write_text", "write_bytes"}

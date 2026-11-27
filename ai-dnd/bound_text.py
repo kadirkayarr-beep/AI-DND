@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import living_world
+import name_catalog
+import turn_close
 
 KEY = "bound_text_v1"
 SCHEMA_VERSION = 1
@@ -47,7 +49,7 @@ def rules() -> dict[str, Any]:
     global _rules_cache
     if _rules_cache is None:
         try:
-            _rules_cache = json.loads((_DIR / "catalog" / "mapping.json").read_text(encoding="utf-8"))["bound_text"]
+            _rules_cache = name_catalog.mapping(_DIR / "catalog")["bound_text"]
         except (OSError, ValueError, KeyError, TypeError):
             _LOG.warning("The text binding table could not be read.")
             _rules_cache = {}
@@ -240,9 +242,8 @@ def take_reading_turn(session: Any, text: Any, looked_at: str = "", *, to_someon
     shown = paper_words(session, text, looked_at, to_someone=to_someone)
     if shown is None:
         return None
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": shown}])
+    turn_close.advance(session.world_state)
+    turn_close.record_exchange(session.messages, text, shown)
     return {"messages": session.messages, "narration": shown, "model_calls": 0,
             "action_result": {"action": "read_paper", "status": "resolved", "success": True,
                               "state_changes": [], "direct_response": shown}}

@@ -15,7 +15,7 @@ from api.tests.auth_fixture import TEST_PLAYER
 
 
 class SaveMigrationTests(unittest.TestCase):
-    def test_ordinary_campaign_resume_keeps_v3_and_v5(self):
+    def test_ordinary_campaign_resume_keeps_v4_and_v5(self):
         with tempfile.TemporaryDirectory() as directory:
             store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
@@ -23,20 +23,20 @@ class SaveMigrationTests(unittest.TestCase):
             session = record.game_session
             self.assertEqual(session.serialize_game_state()["version"], 4)
 
-            session._persisted_engine_format = 3
+            session._persisted_engine_format = 4
             session.character["xp"] = 300
             session.character["cantrips"] = ["Fire Bolt"]
             manager.save_campaign(campaign_id)
             stored = store.get_campaign(campaign_id)
-            self.assertEqual(stored.payload["engine_save"]["version"], 3)
+            self.assertEqual(stored.payload["engine_save"]["version"], 4)
             self.assertEqual(stored.payload["engine_save"]["player"]["xp"], 300)
-            self.assertNotIn("cantrips", stored.payload["engine_save"]["player"])
+            self.assertEqual(stored.payload["engine_save"]["player"]["cantrips"], ["Fire Bolt"])
             revision = stored.metadata["revision"]
             SessionManager(campaign_store=store).resume_campaign(campaign_id)
             SessionManager(campaign_store=store).resume_campaign(campaign_id)
             after = store.get_campaign(campaign_id)
             self.assertEqual(after.metadata["revision"], revision)
-            self.assertEqual(after.payload["engine_save"]["version"], 3)
+            self.assertEqual(after.payload["engine_save"]["version"], 4)
             self.assertEqual(after.payload["engine_save"]["player"]["xp"], 300)
 
             session._persisted_engine_format = 5

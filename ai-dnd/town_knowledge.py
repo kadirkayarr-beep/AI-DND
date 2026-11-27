@@ -28,6 +28,7 @@ import name_catalog
 import npc_statements
 import relationships
 import town_rumours
+import turn_close
 import vouching
 import world_happenings
 import world_threads
@@ -198,9 +199,8 @@ def board_turn(session: Any, text: Any) -> dict[str, Any] | None:
     shown = read_board(world)
     if shown is None:
         return None
-    flags = world.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": shown}])
+    turn_close.advance(world)
+    turn_close.record_exchange(session.messages, text, shown)
     return {"messages": session.messages, "narration": shown, "model_calls": 0,
             "action_result": {"action": "read_board", "status": "resolved", "success": True,
                               "state_changes": ["world_threads"], "direct_response": shown}}
@@ -448,7 +448,7 @@ def _job_note(world, npc, decision):
 @lru_cache(maxsize=1)
 def _role_profiles() -> tuple[dict[str, Any], dict[str, Any]]:
     try:
-        mapping = json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        mapping = name_catalog.mapping(name_catalog.CATALOG_DIR)
         roles = json.loads((name_catalog.CATALOG_DIR / "npc_roles.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         _LOG.warning("The role profiles could not be read.")
@@ -835,6 +835,10 @@ def _shows_terms(thread, text):
         not terms.get("work_days") or world_threads.figure_before(text, terms.get("work_days"), ("gun", "gece")))
 
 
+_WORK_REFUSED = re.compile(
+    r"\b(?:is\s+yok|isim\s+yok|is\s+vermem|is\s+vermiyorum|ihtiyac\w*\s+yok|aradigim\s+yok|hayir|istemiyorum)\b")
+
+
 def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any,
                  asked_about_work: bool | None = None) -> str | None:
     """The owner's terms, when they were asked for the work and the reply left the figures out.
@@ -842,6 +846,7 @@ def terms_to_add(world: dict[str, Any], npc: Any, player_text: Any, reply: Any,
     asked_about_work: the model's reading of the line when there is one; None leaves it to the word table."""
     thread = _offerable(world, npc) if isinstance(npc, dict) else None
     if (thread is None or not isinstance(reply, str) or _shows_terms(thread, reply) or thread["owner_line"] in reply
+            or _WORK_REFUSED.search(world_threads._folded(reply))  # D-242: a reply that turns the work down gets no terms
             or world_threads.owner_mood(world, thread, npc) != "yes"
             or not (asks_about_work(player_text, thread) if asked_about_work is None else asked_about_work)):
         return None

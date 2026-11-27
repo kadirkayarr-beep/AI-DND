@@ -29,7 +29,6 @@ from .models import (
     BindingStatus,
     CampaignCanonOverride,
     CampaignLoreState,
-    FactionStanding,
     ClaimType,
     EntityType,
     is_setting_place,
@@ -57,7 +56,7 @@ from .registry import (
     retrieve_lore_context,
     validate_lore_claim,
 )
-from .player_knowledge import read_player_knowledge, read_public_npc_label
+from .player_knowledge import read_player_knowledge
 from .pack_loader import (
     EXTRACTED_PACK,
     PRODUCTION_REGISTRY,

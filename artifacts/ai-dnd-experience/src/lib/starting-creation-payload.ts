@@ -2,6 +2,7 @@ import type { CharacterCreateInput } from '@workspace/api-client-react';
 import { barbarianStartingCreationFields } from './barbarian-starting-creation.ts';
 import { paladinStartingCreationFields } from './paladin-starting-creation.ts';
 import { fighterStartingCreationFields, monkStartingCreationFields, rogueStartingCreationFields } from './simple-class-starting-creation.ts';
+import { casterOptions, casterStartingFields, isCasterStartClass, type CasterStarting } from './prepared-caster-starting-creation.ts';
 import { startingCreationFields, type StartingDraft } from './sorcerer-starting-creation.ts';
 
 type StartingPayload = { ok: true; fields: Pick<CharacterCreateInput, 'starting_level' | 'level_choices'> } | { ok: false; message: string };
@@ -14,6 +15,7 @@ type StartingSources = {
   paladin?: Parameters<typeof paladinStartingCreationFields>[1];
   rogue?: Parameters<typeof rogueStartingCreationFields>[1];
   monk?: Parameters<typeof monkStartingCreationFields>[1];
+  caster?: CasterStarting;
 };
 type StartingContext = StartingSources & { spells: string[]; cantrips: string[]; ownedSkills?: readonly string[] };
 
@@ -24,5 +26,6 @@ export function startingCreationPayload(characterClass: string, draft: StartingD
   if (characterClass === 'Paladin') return paladinStartingCreationFields(draft, context.paladin, context.spells);
   if (characterClass === 'Rogue') return rogueStartingCreationFields(draft, context.rogue);
   if (characterClass === 'Monk') return monkStartingCreationFields(draft, context.monk);
+  if (isCasterStartClass(characterClass)) return casterStartingFields(characterClass, draft, casterOptions(characterClass, context.caster), context.spells, context.cantrips);
   return startingCreationFields(characterClass, draft, context.spells, context.sorcerer, context.cantrips);
 }

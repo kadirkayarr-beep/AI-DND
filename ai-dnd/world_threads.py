@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 import living_world
 import tr_case
 import local_places
+import turn_close
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -327,7 +328,7 @@ def want_table() -> dict[str, Any]:
     """The things a character can be after; the only ids a reading can name."""
     import name_catalog
     try:
-        return json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8")).get("player_wants") or {}
+        return name_catalog.mapping(name_catalog.CATALOG_DIR).get("player_wants") or {}
     except (OSError, ValueError):
         _LOG.warning("The list of what a character can be after could not be read.")
         return {}
@@ -1907,12 +1908,11 @@ def work_turn(session: Any, thread_id: str, text: Any) -> dict[str, Any]:
     validate(world[KEY])
     alive = session.character.get("current_hp", 0) > 0
     shown = _shift_text(world, thread, *parts, short=short, worked=worked if alive else 0)
-    flags = world.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(world)
     action = {"action": "work", "status": "resolved", "success": True, "state_changes": ["campaign_time", "currency"],
               "elapsed_seconds": passed, "direct_response": shown}
     session.evaluate_quest_events(before, action)
-    session.messages.extend([{"role": "user", "content": str(text)}, {"role": "assistant", "content": shown}])
+    turn_close.record_exchange(session.messages, str(text), shown)
     return {"messages": session.messages, "narration": shown, "model_calls": 0, "action_result": action}
 
 

@@ -15,6 +15,7 @@ import uuid
 from typing import Any, Iterator
 
 import game
+from engine_digest import engine_digest as _engine_digest
 
 from api import action_contract
 from api.auth import AuthenticationError, Principal, current_principal
@@ -117,6 +118,30 @@ def _row_of_receipt(history_rows: Any, created_at: Any, narration: Any) -> int |
     return matches[0] if len(matches) == 1 and type(matches[0]) is int else None
 
 
+def _paged_rows(cursor: sqlite3.Cursor, page_size: int = 500) -> Iterator[sqlite3.Row]:
+    """Yield the rows of a cursor a page at a time (D-495), so a long adventure is never fetched in one call."""
+    while page := cursor.fetchmany(page_size):
+        yield from page
+
+
+def _read_history(connection: sqlite3.Connection, campaign_id: str) -> tuple[list[sqlite3.Row], list[dict[str, str]]]:
+    """Read the story rows in pages: the raw rows (kept to bind receipts to rows) and their validated entries."""
+    rows = []
+    history = []
+    for row in _paged_rows(connection.execute(
+        "SELECT sequence, player_message, narration, created_at FROM campaign_history "
+        "WHERE campaign_id = ? ORDER BY sequence ASC",
+        (campaign_id,),
+    )):
+        rows.append(row)
+        history.append(validate_history_entry({
+            "player_message": row["player_message"],
+            "narration": row["narration"],
+            "created_at": row["created_at"],
+        }))
+    return rows, history
+
+
 def _is_uuid4(campaign_id: str) -> bool:
     try:
         parsed = uuid.UUID(campaign_id)
@@ -201,18 +226,6 @@ def _has_receipt(connection: sqlite3.Connection, campaign_id: str, action_id: st
 _OWNED_SQL = (
     "ownership_state = 'owned' AND owner_issuer = ? AND owner_subject = ?"
 )
-
-
-def _engine_files(game_file: Path) -> list[Path]:
-    return [game_file] + sorted((game_file.parent / "game_parts").glob("*.py"))
-
-
-def _engine_digest(game_file: Path) -> str:
-    digest = hashlib.sha256()
-    for path in _engine_files(game_file):
-        digest.update(path.relative_to(game_file.parent).as_posix().encode("utf-8") + b"\0")
-        digest.update(path.read_bytes() + b"\0")
-    return digest.hexdigest()
 
 
 class CampaignStore:
@@ -1509,98 +1522,6 @@ class CampaignStore:
         finally:
             connection.close()
 
-    def compact_receipts(
-        self,
-        campaign_id: str,
-        before_revision: int,
-        principal: Principal | None = None,
-        batch_size: int = 500,
-        keep_latest: int = 1,
-    ) -> dict[str, Any]:
-        """Replace receipts committed at revisions strictly older than `before_revision` with verified tombstones.
-
-        Nothing is dropped blindly: a receipt that cannot be verified, one without a recorded revision, and the receipt that
-        opened a still-open reaction are left whole, and so are the `keep_latest` newest receipts (default 1): a client that
-        lost the reply to its last action must still get that result back. The campaign state and revision head are not touched.
-        """
-        self._validate_campaign_id(campaign_id)
-        if (type(before_revision) is not int or before_revision < 0 or type(batch_size) is not int or batch_size < 1
-                or type(keep_latest) is not int or keep_latest < 0):
-            raise CampaignValidationError("Compaction bounds are invalid.")
-        connection = self._owned_connection(campaign_id, principal)
-        try:
-            payload_row = connection.execute(
-                "SELECT payload_json FROM campaigns WHERE campaign_id = ?", (campaign_id,),
-            ).fetchone()
-            try:
-                open_reaction = receipt_archive.has_open_reaction(json.loads(str(payload_row["payload_json"])))
-            except (json.JSONDecodeError, TypeError, ValueError):
-                open_reaction = True  # an unreadable state is not evidence that nothing is pending: keep everything whole
-            protected: set[str] = set()
-            if keep_latest:
-                for newest_row in connection.execute(
-                    "SELECT action_id FROM campaign_turn_actions WHERE campaign_id = ? "
-                    "ORDER BY committed_revision IS NULL, committed_revision DESC, rowid DESC LIMIT ?",
-                    (campaign_id, keep_latest),
-                ).fetchall():
-                    protected.add(str(newest_row["action_id"]))
-            if open_reaction:
-                newest = connection.execute(
-                    "SELECT action_id FROM campaign_turn_actions WHERE campaign_id = ? "
-                    "ORDER BY committed_revision IS NULL, committed_revision DESC, rowid DESC LIMIT 1",
-                    (campaign_id,),
-                ).fetchone()
-                if newest is not None:
-                    protected.add(str(newest["action_id"]))
-            archived = skipped = 0
-            now = _now()
-            skip_ids: set[str] = set(protected)
-            history_rows = connection.execute(
-                "SELECT sequence, narration, created_at FROM campaign_history WHERE campaign_id = ?", (campaign_id,),
-            ).fetchall()
-            while True:
-                rows = connection.execute(
-                    "SELECT action_id, request_hash, response_json, base_revision, committed_revision, result_digest, "
-                    "created_at "
-                    "FROM campaign_turn_actions WHERE campaign_id = ? AND committed_revision IS NOT NULL "
-                    "AND committed_revision < ? ORDER BY committed_revision ASC LIMIT ?",
-                    (campaign_id, before_revision, batch_size + len(skip_ids)),
-                ).fetchall()
-                rows = [row for row in rows if str(row["action_id"]) not in skip_ids][:batch_size]
-                if not rows:
-                    break
-                for row in rows:
-                    tombstone = receipt_archive.tombstone_from_row(row)
-                    if tombstone is None:
-                        skip_ids.add(str(row["action_id"]))
-                        skipped += 1
-                        continue
-                    # D-139: the archived turn is the story row the receipt was saved with (get_campaign binds the
-                    # skill result by it), not the engine turn number; a row that cannot be proven keeps none.
-                    tombstone["turn_index"] = _row_of_receipt(
-                        history_rows, row["created_at"], json.loads(str(row["response_json"])).get("narration"),
-                    )
-                    connection.execute(
-                        "INSERT OR IGNORE INTO campaign_turn_actions_archive (campaign_id, action_id, request_hash, "
-                        "result_digest, base_revision, committed_revision, turn_index, narration_digest, skill_json, archived_at) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        (campaign_id, row["action_id"], tombstone["request_hash"], tombstone["result_digest"],
-                         tombstone["base_revision"], tombstone["committed_revision"], tombstone["turn_index"],
-                         tombstone["narration_digest"], tombstone["skill_json"], now),
-                    )
-                    connection.execute(
-                        "DELETE FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?",
-                        (campaign_id, row["action_id"]),
-                    )
-                    archived += 1
-            connection.commit()
-            return {"archived": archived, "protected": len(protected), "skipped_unverifiable": skipped}
-        except Exception:
-            connection.rollback()
-            raise
-        finally:
-            connection.close()
-
     def get_turn_action_receipt(
         self,
         campaign_id: str,
@@ -1739,28 +1660,13 @@ class CampaignStore:
                 ):
                     if row[field] != engine_metadata[field]:
                         raise CampaignCorruptError("Campaign metadata is inconsistent.")
-                history_rows = connection.execute(
-                    """
-                    SELECT sequence, player_message, narration, created_at
-                    FROM campaign_history WHERE campaign_id = ?
-                    ORDER BY sequence ASC
-                    """,
-                    (campaign_id,),
-                ).fetchall()
-                history = [
-                    validate_history_entry({
-                        "player_message": history_row["player_message"],
-                        "narration": history_row["narration"],
-                        "created_at": history_row["created_at"],
-                    })
-                    for history_row in history_rows
-                ]
+                history_rows, history = _read_history(connection, campaign_id)
                 # Read-only projection of already committed, Python-validated skill
                 # outcomes. Do not change the strict campaign_history save format.
                 # Bind by BOTH resolved turn number and accepted narration; never
                 # attach a receipt to unrelated or ambiguous older history.
                 from api.schemas import SkillCheckResult
-                skill_rows = connection.execute(
+                skill_rows = _paged_rows(connection.execute(
                     """
                     SELECT action_id, request_hash, response_json, created_at
                     FROM campaign_turn_actions
@@ -1768,7 +1674,7 @@ class CampaignStore:
                     ORDER BY rowid ASC
                     """,
                     (campaign_id,),
-                ).fetchall()
+                ))
                 accepted = {}
                 ambiguous = set()
                 existing = {
@@ -1817,11 +1723,11 @@ class CampaignStore:
                     else:
                         accepted[turn_number] = validated
                 # D-077: a file without the archive table (see save_campaign) archived nothing.
-                for archived_row in [] if not _has_archive(connection) else connection.execute(
+                for archived_row in [] if not _has_archive(connection) else _paged_rows(connection.execute(
                     "SELECT action_id, turn_index, narration_digest, skill_json FROM campaign_turn_actions_archive "
                     "WHERE campaign_id = ? AND skill_json IS NOT NULL ORDER BY rowid ASC",
                     (campaign_id,),
-                ).fetchall():
+                )):
                     try:
                         turn_number = archived_row["turn_index"]
                         matched_history_row = existing.get(turn_number) if type(turn_number) is int else None
@@ -1847,10 +1753,10 @@ class CampaignStore:
                     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'campaign_history_sources'"
                 ).fetchone() is None else {
                     source_row["sequence"]: source_row["narration_source"]
-                    for source_row in connection.execute(
+                    for source_row in _paged_rows(connection.execute(
                         "SELECT sequence, narration_source FROM campaign_history_sources WHERE campaign_id = ?",
                         (campaign_id,),
-                    ).fetchall()
+                    ))
                 }
                 for index, history_row in enumerate(history_rows):
                     if sources.get(history_row["sequence"]) in _NARRATION_SOURCES:

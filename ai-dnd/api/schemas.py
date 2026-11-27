@@ -5,9 +5,18 @@ from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StrictBool, StrictStr, field_validator, model_validator
 
+from dnd_2024_rules import ABILITY_KEYS
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
 
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
+
+
+def require_non_blank(value: str | None, message: str) -> str:
+    """Refuse a missing, empty or blank value with one message; return it stripped."""
+    cleaned = value.strip() if isinstance(value, str) else ""
+    if not cleaned:
+        raise ValueError(message)
+    return cleaned
 
 
 class HealthResponse(BaseModel):
@@ -307,8 +316,7 @@ class TurnRequest(BaseModel):
     @field_validator("message")
     @classmethod
     def message_must_not_be_blank(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("Message must not be empty.")
+        require_non_blank(value, "Message must not be empty.")
         return value
 
     @field_validator("action_id")
@@ -323,10 +331,7 @@ class TurnRequest(BaseModel):
     def target_id_must_not_be_blank(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Target ID must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Target ID must not be blank.")
 
 
 class CombatParticipantState(BaseModel):
@@ -838,8 +843,6 @@ class SpellPrepareRequest(BaseModel):
     # so an oversized value is refused before it can reach a stored receipt through `dropped`.
     prepared: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
     close: StrictBool = False
-    # D-039: an old save's Wizard sends the spellbook once (exactly six is checked by the engine); never with `prepared`/`close`.
-    spellbook: Annotated[list[Annotated[StrictStr, Field(max_length=64)]], Field(max_length=32)] | None = None
     action_id: UUID
 
     @field_validator("action_id")
@@ -864,15 +867,12 @@ class SpellPrepareView(BaseModel):
     blocked_reason: Literal["not_preparing_class", "spellbook_missing"] | None = None
     class_name: str | None = None
     open: bool
-    reason: Literal["creation", "long_rest", "migration", "level_up"] | None = None
+    reason: Literal["creation", "long_rest", "level_up"] | None = None
     limit: int
     candidates: list[str]
     prepared: list[str]
     spellbook: list[str] | None = None
     not_in_engine: list[str] = []
-    # D-039: only while `blocked_reason` is "spellbook_missing": the spells the book may hold and the engine's offer.
-    spellbook_options: list[str] = []
-    suggested_spellbook: list[str] = []
 
 
 class SpellPrepareViewResponse(SpellPrepareView):
@@ -882,7 +882,7 @@ class SpellPrepareViewResponse(SpellPrepareView):
 class SpellPrepareResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    status: Literal["prepared", "too_many", "spellbook_saved"]
+    status: Literal["prepared", "too_many"]
     prepared: list[str]
     dropped: list[SpellPrepareDropped]
     limit: int
@@ -1221,12 +1221,130 @@ class SorcererLevelChoices(BaseModel):
     level_5: LevelUpFiveChoices = Field(default_factory=lambda: None, alias="5")
 
 
+def _no_choice() -> Any:
+    """The default of a start step that was not sent (the field is left out of the dump)."""
+    return None
+
+
+class WizardLevelChoices(BaseModel):
+    """Wizard start 2-5: the earned-level steps (spellbook spells each level, subclass, cantrip and ASI)."""
+
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+    level_2: WizardSpellbookChoices = Field(alias="2")
+    level_3: WizardLevel3Choices = Field(
+        default_factory=_no_choice, alias="3", exclude_if=lambda value: value is None,
+    )
+    level_4: WizardLevel4Choices = Field(
+        default_factory=_no_choice, alias="4", exclude_if=lambda value: value is None,
+    )
+    level_5: WizardSpellbookChoices = Field(
+        default_factory=_no_choice, alias="5", exclude_if=lambda value: value is None,
+    )
+
+
+class ClericLevelChoices(BaseModel):
+    """Cleric start 2-5: levels 2 and 5 take no choice (the Barbarian's empty strict object)."""
+
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+    level_2: BarbarianLevel2Choices = Field(alias="2")
+    level_3: ClericLevel3Choices = Field(
+        default_factory=_no_choice, alias="3", exclude_if=lambda value: value is None,
+    )
+    level_4: ClericLevel4Choices = Field(
+        default_factory=_no_choice, alias="4", exclude_if=lambda value: value is None,
+    )
+    level_5: BarbarianLevel2Choices = Field(
+        default_factory=_no_choice, alias="5", exclude_if=lambda value: value is None,
+    )
+
+
+_MAX_LIST_ITEMS = 40
+_MAX_LIST_ENTRY_CHARS = 100
+
+
+def _small_list(value: list[str]) -> list[str]:
+    """Refuse a list with too many entries or an over-long entry."""
+    too_long = any(len(item) > _MAX_LIST_ENTRY_CHARS for item in value)
+    if len(value) > _MAX_LIST_ITEMS or too_long:
+        raise ValueError("A list holds too many entries or an entry is too long.")
+    return value
+
+
+def _ability_names_only(value: dict[str, int]) -> dict[str, int]:
+    """Refuse a dictionary that has a key other than the six ability names."""
+    if not set(value) <= set(ABILITY_KEYS):
+        raise ValueError("Only the six ability names are accepted.")
+    return value
+
+
+SmallStrings = Annotated[list[str], AfterValidator(_small_list)]
+AbilityMap = Annotated[dict[str, int], AfterValidator(_ability_names_only)]
+
+
+# Class -> (its own strict bundle model, whether the bare {"2": {}} body, which the union resolves to the Barbarian's, is also valid).
+_START_BUNDLES: dict[str, tuple[type[BaseModel], bool]] = {
+    "Barbarian": (BarbarianLevelChoices, False),
+    "Fighter": (FighterLevelChoices, True),
+    "Paladin": (PaladinLevelChoices, False),
+    "Rogue": (RogueLevelChoices, True),
+    "Monk": (MonkLevelChoices, True),
+    "Wizard": (WizardLevelChoices, False),
+    "Cleric": (ClericLevelChoices, True),
+}
+
+
+_CUSTOM_FIELD_NAMES = (
+    "name", "race", "character_class", "species", "giant_ancestry", "background", "alignment",
+    "ability_score_method", "ability_scores", "background_ability_bonuses", "proficient_skills",
+    "expertise_skills", "proficient_tools", "origin_feat", "species_bonus_feat", "species_bonus_skills",
+    "fighting_style", "equipment_package", "equipment_choices", "cantrips", "spells", "languages",
+    "background_equipment_option", "origin", "appearance", "personality", "backstory",
+)
+
+
+def _check_start_bundle(character_class: str | None, starting_level: int, level_choices: BaseModel | None) -> None:
+    """A custom start above level 1 needs its own class's exact choice bundle."""
+    if starting_level <= 1:
+        return
+    if character_class in _START_BUNDLES:
+        own, shares_start_two = _START_BUNDLES[character_class]
+        shared_start_two = shares_start_two and starting_level == 2 and isinstance(level_choices, BarbarianLevelChoices)
+        if not (shared_start_two or isinstance(level_choices, own)):
+            message = (
+                f"{character_class} supports only the exact level2 to level5 "
+                "choice bundle for its starting level."
+            )
+            raise ValueError(message)
+    elif character_class == "Sorcerer":
+        if not isinstance(level_choices, SorcererLevelChoices):
+            raise ValueError("Sorcerer requires its own per-level choices.")
+    else:
+        raise ValueError("Higher starting levels are unsupported for this class.")
+
+
+def _has_custom_field(model: BaseModel) -> bool:
+    return any(getattr(model, field) is not None for field in _CUSTOM_FIELD_NAMES)
+
+
+def _check_custom_identity(model: Any) -> None:
+    """Custom creation names a character, a species or race, and a class; a Goliath alone picks a Giant Ancestry."""
+    if model.name is None or (model.race is None and model.species is None) or model.character_class is None:
+        raise ValueError(
+            "Custom character creation requires a name, race, and class."
+        )
+    selected_species = model.species or model.race
+    if selected_species == "Goliath" and model.giant_ancestry is None:
+        raise ValueError("Goliath characters must choose a Giant Ancestry.")
+    if selected_species != "Goliath" and model.giant_ancestry is not None:
+        raise ValueError("Giant Ancestry is only available to Goliaths.")
+
+
 class CharacterCreateInput(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     mode: Literal["custom", "random"]
     starting_level: int = Field(default=1, ge=1, le=5, strict=True)
-    level_choices: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | None = None
+    level_choices: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | WizardLevelChoices | ClericLevelChoices | None = None
     name: str | None = Field(default=None, min_length=1, max_length=40)
     race: str | None = None
     character_class: str | None = Field(default=None, alias="class")
@@ -1235,20 +1353,20 @@ class CharacterCreateInput(BaseModel):
     background: str | None = None
     alignment: str | None = None
     ability_score_method: str | None = None
-    ability_scores: dict[str, int] | None = None
-    background_ability_bonuses: dict[str, int] | None = None
-    proficient_skills: list[str] | None = None
-    expertise_skills: list[str] | None = None
-    proficient_tools: list[str] | None = None
+    ability_scores: AbilityMap | None = None
+    background_ability_bonuses: AbilityMap | None = None
+    proficient_skills: SmallStrings | None = None
+    expertise_skills: SmallStrings | None = None
+    proficient_tools: SmallStrings | None = None
     origin_feat: str | None = None
     species_bonus_feat: str | None = None
-    species_bonus_skills: list[str] | None = None
+    species_bonus_skills: SmallStrings | None = None
     fighting_style: str | None = None
     equipment_package: str | None = None
-    equipment_choices: list[str] | None = None
-    cantrips: list[str] | None = None
-    spells: list[str] | None = None
-    languages: list[str] | None = None
+    equipment_choices: SmallStrings | None = None
+    cantrips: SmallStrings | None = None
+    spells: SmallStrings | None = None
+    languages: SmallStrings | None = None
     background_equipment_option: Literal["A", "B"] | None = None
     origin: str | None = Field(default=None, max_length=240)
     appearance: str | None = Field(default=None, max_length=1000)
@@ -1260,10 +1378,7 @@ class CharacterCreateInput(BaseModel):
     def character_name_must_not_be_blank(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Character name must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Character name must not be blank.")
 
     @model_validator(mode="after")
     def fields_must_match_creation_mode(self) -> "CharacterCreateInput":
@@ -1275,78 +1390,12 @@ class CharacterCreateInput(BaseModel):
             if self.starting_level != 1 or self.level_choices is not None:
                 raise ValueError("Random creation supports level 1 without level choices only.")
         else:
-            if self.starting_level > 1:
-                if self.character_class == "Barbarian":
-                    if self.starting_level not in (2, 3, 4, 5) or not isinstance(self.level_choices, BarbarianLevelChoices):
-                        raise ValueError("Barbarian supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Fighter":
-                    # {"2": {}} is the same strict body for both classes and the union resolves it to the first; nothing else is shared.
-                    shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
-                    if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, FighterLevelChoices)):
-                        raise ValueError("Fighter supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Paladin":
-                    if self.starting_level not in (2, 3, 4, 5) or not isinstance(self.level_choices, PaladinLevelChoices):
-                        raise ValueError("Paladin supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Rogue":
-                    shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
-                    if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, RogueLevelChoices)):
-                        raise ValueError("Rogue supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Monk":
-                    # {"2": {}} resolves to the first strict body, and a bundle up to level 2 is shared the same way.
-                    shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
-                    if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, MonkLevelChoices)):
-                        raise ValueError("Monk supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Sorcerer":
-                    if not isinstance(self.level_choices, SorcererLevelChoices):
-                        raise ValueError("Sorcerer requires its own per-level choices.")
-                else:
-                    raise ValueError("Higher starting levels are unsupported for this class.")
+            _check_start_bundle(self.character_class, self.starting_level, self.level_choices)
             if steps != {str(level) for level in range(2, self.starting_level + 1)}:
                 raise ValueError("Level choices must contain exactly the steps through the starting level.")
-        custom_fields = (
-            self.name,
-            self.race,
-            self.character_class,
-            self.species,
-            self.giant_ancestry,
-            self.background,
-            self.alignment,
-            self.ability_score_method,
-            self.ability_scores,
-            self.background_ability_bonuses,
-            self.proficient_skills,
-            self.expertise_skills,
-            self.proficient_tools,
-            self.origin_feat,
-            self.species_bonus_feat,
-            self.species_bonus_skills,
-            self.fighting_style,
-            self.equipment_package,
-            self.equipment_choices,
-            self.cantrips,
-            self.spells,
-            self.languages,
-            self.background_equipment_option,
-            self.origin,
-            self.appearance,
-            self.personality,
-            self.backstory,
-        )
         if self.mode == "custom":
-            if (
-                self.name is None
-                or (self.race is None and self.species is None)
-                or self.character_class is None
-            ):
-                raise ValueError(
-                    "Custom character creation requires a name, race, and class."
-                )
-            selected_species = self.species or self.race
-            if selected_species == "Goliath" and self.giant_ancestry is None:
-                raise ValueError("Goliath characters must choose a Giant Ancestry.")
-            if selected_species != "Goliath" and self.giant_ancestry is not None:
-                raise ValueError("Giant Ancestry is only available to Goliaths.")
-        elif any(value is not None for value in custom_fields):
+            _check_custom_identity(self)
+        elif _has_custom_field(self):
             raise ValueError(
                 "Random character creation does not accept custom character fields."
             )
@@ -1579,6 +1628,74 @@ class MonkStartingCreationOptions(BaseModel):
     level_5: BarbarianStartingLevel5Options | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
+class WizardStartingSpellbookOptions(BaseModel):
+    """Two spellbook spells a Wizard adds at one start level, from the level's own list."""
+
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spell_count: int
+    spellbook_spell_ids: list[str]
+
+
+class WizardStartingLevel3Options(BaseModel):
+    """Wizard start level 3: the spellbook picks and the subclass to take."""
+
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spell_count: int
+    spellbook_spell_ids: list[str]
+    subclass_options: list[SorcererSubclassOption]
+
+
+class WizardStartingLevel4Options(BaseModel):
+    """Wizard start level 4: spellbook picks, one cantrip and the ASI choices."""
+
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spell_count: int
+    spellbook_spell_ids: list[str]
+    cantrip_count: int
+    cantrip_ids: list[str]
+    supported_asi_choices: list[LevelUpAsiChoice]
+
+
+class WizardStartingCreationOptions(BaseModel):
+    """Every Wizard start level 1-5, or none: the server never offers a partial start."""
+
+    model_config = ConfigDict(extra="forbid")
+    supported_starting_levels: list[int]
+    level_2: WizardStartingSpellbookOptions
+    level_3: WizardStartingLevel3Options
+    level_4: WizardStartingLevel4Options
+    level_5: WizardStartingSpellbookOptions
+    effects_pending_by_level: SorcererEffectsPendingByLevel
+
+
+class ClericStartingLevel3Options(BaseModel):
+    """Cleric start level 3: the subclass to take."""
+
+    model_config = ConfigDict(extra="forbid")
+    subclass_options: list[SorcererSubclassOption]
+
+
+class ClericStartingLevel4Options(BaseModel):
+    """Cleric start level 4: one cantrip and the ASI choices."""
+
+    model_config = ConfigDict(extra="forbid")
+    cantrip_count: int
+    cantrip_ids: list[str]
+    supported_asi_choices: list[LevelUpAsiChoice]
+
+
+class ClericStartingCreationOptions(BaseModel):
+    """Every Cleric start level 1-5, or none; levels 2 and 5 take no pick (the Barbarian's empty object)."""
+
+    model_config = ConfigDict(extra="forbid")
+    supported_starting_levels: list[int]
+    level_2: BarbarianLevel2Choices
+    level_3: ClericStartingLevel3Options
+    level_4: ClericStartingLevel4Options
+    level_5: BarbarianLevel2Choices
+    effects_pending_by_level: SorcererEffectsPendingByLevel
+
+
 class CharacterCreationCatalogResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -1588,6 +1705,8 @@ class CharacterCreationCatalogResponse(BaseModel):
     paladin_starting_creation: PaladinStartingCreationOptions | None = None
     rogue_starting_creation: RogueStartingCreationOptions | None = None
     monk_starting_creation: MonkStartingCreationOptions | None = None
+    wizard_starting_creation: WizardStartingCreationOptions | None = None
+    cleric_starting_creation: ClericStartingCreationOptions | None = None
     races: dict[str, Any]
     classes: dict[str, Any]
     backgrounds: dict[str, Any]
@@ -1616,10 +1735,7 @@ class CampaignStartSelection(BaseModel):
     )
     @classmethod
     def selection_ids_must_not_be_blank(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Campaign start selections must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Campaign start selections must not be blank.")
 
 
 class CampaignStartLocationOption(BaseModel):
@@ -1667,10 +1783,7 @@ class CampaignCreateRequest(BaseModel):
     def campaign_name_must_not_be_blank(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("Campaign name must not be blank.")
-        return cleaned
+        return require_non_blank(value, "Campaign name must not be blank.")
 
 
 class CampaignSummary(BaseModel):

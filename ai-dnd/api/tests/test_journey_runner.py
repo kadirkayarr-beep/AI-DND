@@ -22,6 +22,8 @@ import front_proposal
 from api import serializers
 from api.tests.journeys import runner
 from api.tests.journeys.runner import (
+    REPEAT_SEED_STRIDE,
+    SCENARIO_DIR,
     JourneyCase,
     NarratorInput,
     ScriptedClient,
@@ -1230,11 +1232,22 @@ class TheDilim3Additions(JourneyCase):
 class ASeededSetupMadeAgain(JourneyCase):
     async def test_each_new_campaign_of_one_seeded_setup_in_a_test_takes_the_next_seed(self):
         """A seed is the campaign's id and one store holds one of each, so a test that makes the same seeded setup
-        again (a reset, a subtest) gets the next seed for each new campaign, as fixed_town does: the same towns in
-        the same order on every run, never a refused second campaign."""
+        again (a reset, a subtest) gets a repeat seed for each new campaign (the seed plus a stride no scenario seed
+        reaches): the same towns in the same order on every run, never a refused second campaign."""
         made = [(await self._journey_campaign({"campaign_seed": 2711}))["campaign_id"] for _ in range(3)]
         self.assertEqual([campaign_id[-12:] for campaign_id in made],
-                         ["000000002711", "000000002712", "000000002713"])
+                         ["000000002711", "000000102711", "000000202711"])
+
+    async def test_a_repeat_never_takes_a_sibling_scenarios_seed(self):
+        """09a twice and then 09b in one store (D-384): the repeat of 09a (10901) must not be 09b's seed (10902)."""
+        sibling = {"campaign_seed": 10902}
+        made = [(await self._journey_campaign({"campaign_seed": 10901}))["campaign_id"] for _ in range(2)]
+        made.append((await self._journey_campaign(sibling))["campaign_id"])
+        self.assertEqual(len(set(made)), 3)
+        self.assertEqual(made[2][-12:], "000000010902")
+        seeds = [load_scenario(path).setup["campaign_seed"] for path in sorted(SCENARIO_DIR.glob("*.json"))
+                 if "campaign_seed" in load_scenario(path).setup]
+        self.assertLess(max(seeds), REPEAT_SEED_STRIDE)
 
     async def test_a_fresh_store_starts_from_the_setup_seed_again(self):
         """A test that replays a seeded scenario in a store of its own (36's reading on and off) sees the same town."""

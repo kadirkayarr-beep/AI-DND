@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from api.dnd_2024_rules import proficiency_bonus_for_level
+from dnd_2024_rules import proficiency_bonus_for_level
 
 TABLE_DIR = Path(__file__).resolve().parents[1] / "content" / "rules" / "phb2024" / "class_tables"
 MOVED_TO_CLASSES = {"Cleric", "Fighter", "Monk", "Paladin", "Rogue", "Wizard"}  # progression owns these files now; the oracle reads the one file, never a copy

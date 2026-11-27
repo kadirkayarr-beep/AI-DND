@@ -8,11 +8,12 @@ process.env.PORT ||= '4187';
 process.env.BASE_PATH ||= '/';
 delete process.env.REPL_ID;
 
-let vite, ui, React, render;
+let vite, ui, ctl, React, render;
 before(async () => {
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   ui = await vite.ssrLoadModule('/src/components/shop-panel.tsx');
+  ctl = await vite.ssrLoadModule('/src/lib/shop-controllers.ts');
   React = await import('react');
   render = (await import('react-dom/server')).renderToStaticMarkup;
 });
@@ -79,12 +80,12 @@ test('an unavailable counter shows why, offers only close, and a notice asks aga
   assert.match(render(React.createElement(ui.ShopCounterCard, h.props())), /Burada sana bir şey satacak kimse yok/);
   h.byId('button-close-shop').props.onClick();
   assert.equal(h.closed, 1);
-  const asked = render(React.createElement(ui.ShopCounterCard, harness(counter, { notice: ui.shopReasonText('price_changed') }).props()));
+  const asked = render(React.createElement(ui.ShopCounterCard, harness(counter, { notice: ctl.shopReasonText('price_changed') }).props()));
   assert.match(asked, /Fiyat değişti, yeniden onayla/);
 });
 
 test('the panel reads what the last turn did from its outcome status and reason, never from an HTTP code', () => {
-  const step = ui.shopOutcomeStep;
+  const step = ctl.shopOutcomeStep;
   assert.equal(step({ action: 'shop_offer', status: 'offer_open' }, false), 'open');
   assert.equal(step({ action: 'shop_offer', status: 'refused' }, false), null);
   assert.equal(step({ action: 'equipment_transaction', status: 'rejected', reason: 'offer_stale' }, true), 'ask_again');
@@ -97,7 +98,7 @@ test('the panel reads what the last turn did from its outcome status and reason,
 });
 
 test('an open counter refreshes after a turn it did not send, so a paid card never leaves a stale purse or stock', () => {
-  const step = ui.shopOutcomeStep;
+  const step = ctl.shopOutcomeStep;
   assert.equal(step({ action: 'economic_offer', status: 'resolved' }, false, true), 'refresh');
   assert.equal(step({ action: 'dialogue', status: 'resolved' }, false, true), 'refresh');
   assert.equal(step({ action: 'dialogue', status: 'resolved' }, false, false), null);
@@ -107,7 +108,7 @@ test('an open counter refreshes after a turn it did not send, so a paid card nev
 
 test('a double press of confirm sends one trade until the gate is reopened', () => {
   const sent = [];
-  const gate = ui.createConfirmGate(text => sent.push(text));
+  const gate = ctl.createConfirmGate(text => sent.push(text));
   assert.equal(gate.fire('/item shop_buy barman bira 1 7 4'), true);
   assert.equal(gate.fire('/item shop_buy barman bira 1 7 4'), false);
   assert.equal(gate.waiting(), true);

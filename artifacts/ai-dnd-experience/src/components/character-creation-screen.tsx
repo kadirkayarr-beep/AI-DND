@@ -8,6 +8,8 @@ import { readBarbarianStartingCreationOptions, pruneBarbarianDraft } from '@/lib
 import { readPaladinStartingCreationOptions, prunePaladinDraft } from '@/lib/paladin-starting-creation';
 import { readFighterStartingCreationOptions, pruneFighterDraft, readMonkStartingCreationOptions, pruneMonkDraft, readRogueStartingCreationOptions, pruneRogueDraft } from '@/lib/simple-class-starting-creation';
 import { startingCreationPayload } from '@/lib/starting-creation-payload';
+import { PreparedCasterStartingChoices, PreparedCasterStartingLevelControl, PreparedCasterStartingSummary } from '@/components/prepared-caster-starting-creation';
+import { casterOptions, isCasterStartClass, pruneCasterDraft, readClericStartingCreationOptions, readWizardStartingCreationOptions } from '@/lib/prepared-caster-starting-creation';
 import { StartingLevelControl, StartingLevelChoices, StartingHitPoints, StartingArmorClass, StartingDerivedValue, ProgressionEffectsNotice, StaleInitialSpellChoices } from '@/components/sorcerer-starting-creation';
 import { emptyStartingDraft, changeStartingLevel, pruneStartingDraft, readStartingCreationOptions } from '@/lib/sorcerer-starting-creation';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -263,7 +265,8 @@ export function CharacterCreationScreen({
     () => readMonkStartingCreationOptions(propCatalog?.monk_starting_creation),
     [propCatalog?.monk_starting_creation],
   );
-  const startingSources = { sorcerer: startingMetadata, barbarian: barbarianStartingMetadata, fighter: fighterStartingMetadata, paladin: paladinStartingMetadata, rogue: rogueStartingMetadata, monk: monkStartingMetadata };
+  const casterStarting = useMemo(() => ({ wizard: readWizardStartingCreationOptions(propCatalog?.wizard_starting_creation), cleric: readClericStartingCreationOptions(propCatalog?.cleric_starting_creation) }), [propCatalog?.wizard_starting_creation, propCatalog?.cleric_starting_creation]);
+  const startingSources = { caster: casterStarting, sorcerer: startingMetadata, barbarian: barbarianStartingMetadata, fighter: fighterStartingMetadata, paladin: paladinStartingMetadata, rogue: rogueStartingMetadata, monk: monkStartingMetadata };
   const startingValidation = startingCreationPayload(characterClass, startingDraft, { ...startingSources, spells: selectedSpells, cantrips: selectedCantrips });
   useEffect(() => {
     // Sorcerer metadata must never rewrite another class's draft (a Berserker pick is not a Sorcerer subclass).
@@ -493,7 +496,8 @@ export function CharacterCreationScreen({
   useEffect(() => {
     if (characterClass === 'Fighter') setStartingDraft(draft => pruneFighterDraft(draft, fighterStartingMetadata));
     if (characterClass === 'Rogue') setStartingDraft(draft => pruneRogueDraft(draft, rogueStartingMetadata));
-  }, [characterClass, fighterStartingMetadata, rogueStartingMetadata]);
+    if (isCasterStartClass(characterClass)) setStartingDraft(draft => pruneCasterDraft(characterClass, draft, casterOptions(characterClass, casterStarting), selectedSpells, selectedCantrips));
+  }, [characterClass, fighterStartingMetadata, rogueStartingMetadata, casterStarting, selectedSpells, selectedCantrips]);
   useEffect(() => {
     if (characterClass === 'Monk') setStartingDraft(draft => pruneMonkDraft(draft, monkStartingMetadata));
   }, [characterClass, monkStartingMetadata]);
@@ -556,7 +560,7 @@ export function CharacterCreationScreen({
   const isStepValid = (stepId: StepId): boolean => {
     switch (stepId) {
       case 'class':
-        return Boolean(characterClass) && (startingDraft.startingLevel === 1 || (characterClass === 'Sorcerer' && !!startingMetadata) || (characterClass === 'Barbarian' && !!barbarianStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Rogue' && !!rogueStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Monk' && !!monkStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Fighter' && !!fighterStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Paladin' && !!paladinStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)));
+        return Boolean(characterClass) && (startingDraft.startingLevel === 1 || (characterClass === 'Sorcerer' && !!startingMetadata) || (characterClass === 'Barbarian' && !!barbarianStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Rogue' && !!rogueStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Monk' && !!monkStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Fighter' && !!fighterStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (characterClass === 'Paladin' && !!paladinStartingMetadata?.supported_starting_levels.includes(startingDraft.startingLevel)) || (isCasterStartClass(characterClass) && !!casterOptions(characterClass, casterStarting)?.supported_starting_levels.includes(startingDraft.startingLevel)));
       case 'background':
         return Boolean(
           background &&
@@ -617,7 +621,7 @@ export function CharacterCreationScreen({
   const getStepValidationHint = (stepId: StepId): string => {
     switch (stepId) {
       case 'class':
-        return startingDraft.startingLevel > 1 && !(characterClass === 'Barbarian' ? barbarianStartingMetadata : characterClass === 'Fighter' ? fighterStartingMetadata : characterClass === 'Rogue' ? rogueStartingMetadata : characterClass === 'Monk' ? monkStartingMetadata : characterClass === 'Paladin' ? paladinStartingMetadata : startingMetadata) ? 'Seviye kataloğunu yeniden deneyin veya seviye 1 seçin.' : 'İlerlemek için bir sınıf seçin.';
+        return startingDraft.startingLevel > 1 && !(characterClass === 'Barbarian' ? barbarianStartingMetadata : characterClass === 'Fighter' ? fighterStartingMetadata : characterClass === 'Rogue' ? rogueStartingMetadata : characterClass === 'Monk' ? monkStartingMetadata : characterClass === 'Paladin' ? paladinStartingMetadata : isCasterStartClass(characterClass) ? casterOptions(characterClass, casterStarting) : startingMetadata) ? 'Seviye kataloğunu yeniden deneyin veya seviye 1 seçin.' : 'İlerlemek için bir sınıf seçin.';
       case 'background':
         if (!background) return 'İlerlemek için bir geçmiş seçin.';
         if (
@@ -989,6 +993,7 @@ export function CharacterCreationScreen({
               <StartingLevelControl draft={startingDraft} metadata={startingMetadata} disabled={creating} onRetry={onRetryOptions}
                 onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />
             )}
+            {startingDraft.startingLevel > 1 && !casterOptions(characterClass, casterStarting) && currentStep !== 'class' && <PreparedCasterStartingLevelControl characterClass={characterClass} sources={casterStarting} draft={startingDraft} disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
             {characterClass === 'Paladin' && startingDraft.startingLevel > 1 && !paladinStartingMetadata && currentStep !== 'class' && (
               <PaladinStartingLevelControl draft={startingDraft} metadata={paladinStartingMetadata} disabled={creating} onRetry={onRetryOptions}
                 onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />
@@ -1011,7 +1016,7 @@ export function CharacterCreationScreen({
             )}
             {/* STEP 1: CLASS */}
             {currentStep === 'class' && (
-              <ClassStep characterClass={characterClass} catalog={catalog} setCharacterClass={setCharacterClass} startingDraft={startingDraft} startingMetadata={startingMetadata} creating={creating} onRetryOptions={onRetryOptions} setStartingDraft={setStartingDraft} paladinStartingMetadata={paladinStartingMetadata} rogueStartingMetadata={rogueStartingMetadata} fighterStartingMetadata={fighterStartingMetadata} monkStartingMetadata={monkStartingMetadata} barbarianStartingMetadata={barbarianStartingMetadata} classPortraitSheet={classPortraitSheet} />
+              <ClassStep characterClass={characterClass} catalog={catalog} setCharacterClass={setCharacterClass} startingDraft={startingDraft} startingMetadata={startingMetadata} creating={creating} onRetryOptions={onRetryOptions} setStartingDraft={setStartingDraft} paladinStartingMetadata={paladinStartingMetadata} rogueStartingMetadata={rogueStartingMetadata} fighterStartingMetadata={fighterStartingMetadata} monkStartingMetadata={monkStartingMetadata} barbarianStartingMetadata={barbarianStartingMetadata} casterStarting={casterStarting} classPortraitSheet={classPortraitSheet} />
             )}
 
             {/* STEP 2: BACKGROUND */}
@@ -1095,6 +1100,7 @@ export function CharacterCreationScreen({
                               <button
                                 type="button"
                                 className="cc-calc-btn"
+                                aria-label={`${ABILITY_NAMES_TR[key].full} puanını azalt`}
                                 disabled={base <= 8}
                                 onClick={() => setBaseScores((prev) => ({ ...prev, [key]: base - 1 }))}
                               >
@@ -1104,6 +1110,7 @@ export function CharacterCreationScreen({
                               <button
                                 type="button"
                                 className="cc-calc-btn"
+                                aria-label={`${ABILITY_NAMES_TR[key].full} puanını artır`}
                                 disabled={base >= 15 || (POINT_BUY_COSTS[base + 1] - POINT_BUY_COSTS[base] > pointBuyRemaining)}
                                 onClick={() => setBaseScores((prev) => ({ ...prev, [key]: base + 1 }))}
                               >
@@ -1113,6 +1120,7 @@ export function CharacterCreationScreen({
                           ) : abilityMethod === 'standard_array' ? (
                             <select
                               className="cc-score-select"
+                              aria-label={`${ABILITY_NAMES_TR[key].full} puanı`}
                               value={base}
                               onChange={(e) => {
                                 const newScore = Number(e.target.value);
@@ -1496,6 +1504,7 @@ export function CharacterCreationScreen({
                   initialSpells={selectedSpells} initialCantrips={selectedCantrips} disabled={creating}
                   spellLabels={Object.fromEntries(availableSpellsForClass.level_1.map((spell: { id: string; name_tr?: string; name?: string }) => [spell.id, spell.name_tr ?? spell.name ?? spell.id]))}
                   onChange={draft => setStartingDraft(pruneStartingDraft(draft, selectedSpells, startingMetadata, selectedCantrips))} />}
+                <PreparedCasterStartingChoices characterClass={characterClass} sources={casterStarting} draft={startingDraft} initialSpells={selectedSpells} initialCantrips={selectedCantrips} disabled={creating} onChange={setStartingDraft} />
                 {characterClass === 'Paladin' && startingDraft.startingLevel >= 2 && <PaladinStartingChoices draft={startingDraft}
                   metadata={paladinStartingMetadata} disabled={creating} onChange={setStartingDraft} />}
                 {characterClass === 'Rogue' && startingDraft.startingLevel >= 3 && <RogueStartingChoices draft={startingDraft}
@@ -1566,6 +1575,7 @@ export function CharacterCreationScreen({
                     <span className="cc-select-wrap">
                       <select
                         className="cc-input cc-literary"
+                        aria-label="1. ek dil"
                         value={selectedLanguages[0]}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1584,6 +1594,7 @@ export function CharacterCreationScreen({
                     <span className="cc-select-wrap mt-2">
                       <select
                         className="cc-input cc-literary"
+                        aria-label="2. ek dil"
                         value={selectedLanguages[1]}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1942,6 +1953,7 @@ export function CharacterCreationScreen({
                         <ProgressionEffectsNotice effects={startingMetadata?.effects_pending_by_level[String(startingDraft.startingLevel) as '1' | '2' | '3' | '4' | '5']} />
                       </div>}
                       {characterClass === 'Barbarian' && startingDraft.startingLevel > 1 && <BarbarianStartingSummary draft={startingDraft} metadata={barbarianStartingMetadata} />}
+                      <PreparedCasterStartingSummary characterClass={characterClass} sources={casterStarting} draft={startingDraft} />
                       {characterClass === 'Rogue' && startingDraft.startingLevel > 1 && <RogueStartingSummary draft={startingDraft} metadata={rogueStartingMetadata} />}
                       {characterClass === 'Fighter' && startingDraft.startingLevel > 1 && <FighterStartingSummary draft={startingDraft} metadata={fighterStartingMetadata} />}
                       {characterClass === 'Paladin' && startingDraft.startingLevel > 1 && <PaladinStartingSummary draft={startingDraft} metadata={paladinStartingMetadata} />}

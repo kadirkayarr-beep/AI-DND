@@ -446,7 +446,7 @@ class CloudJauntRegressionTests(MovementRegressionBase):
     def test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources(self):
         self.walk_to_contact()
         # Negative fixture: consume the shared Bonus Action, not the teleport.
-        action_economy.use_species_bonus(self.session, "cloud_jaunt")
+        action_economy.ensure(self.session)["player"]["bonus_action_spent"] = True
         before = self.canonical()
         with self.assertRaises(Exception):
             action_economy.execute(self.session, {"steps": [

@@ -234,33 +234,30 @@ class QuestOutcomeTests(unittest.TestCase):
         self.assertEqual(first.world_state["quests"][0]["objectives"][0]["progress"], 0)
         self.assertEqual(second.world_state["quests"], [])
 
-    def test_v1_save_migrates_without_replacing_held_state_or_rng(self):
+    def test_v1_save_is_refused_without_replacing_held_state_or_rng(self):
+        # G2.6 (D-525, owner rule, onay listesi [GEVŞETME OLABİLİR]): was "a v1 file migrates"; a format below 4 is refused.
         session = game.create_session(seed=123)
         held_world = session.world_state
         held_character = session.character
         held_rng = session.rng
         rng_state = held_rng.getstate()
+        before = copy.deepcopy(session.serialize_game_state())
         payload = session.serialize_game_state()
         payload["version"] = 1
         payload["world_state"].pop("quests")
         payload["world_state"].pop("quest_processed_event_ids")
-        expected_world = copy.deepcopy(payload["world_state"])
-        expected_world["quests"] = []
-        expected_world["quest_processed_event_ids"] = []
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "legacy-v1.json"
             path.write_text(json.dumps(payload), encoding="utf-8")
-            session.load_game(path)
+            with self.assertRaisesRegex(ValueError, "desteklenmiyor"):
+                session.load_game(path)
 
         self.assertIs(session.world_state, held_world)
         self.assertIs(session.character, held_character)
         self.assertIs(session.rng, held_rng)
         self.assertEqual(session.rng.getstate(), rng_state)
-        self.assertEqual(session.world_state, expected_world)
-        # A loaded v1-v3 file is written back as its own version (game.py keeps
-        # _persisted_engine_format); only a fresh session writes the current one.
-        self.assertEqual(session.serialize_game_state()["version"], 1)
+        self.assertEqual(session.serialize_game_state(), before)
         self.assertEqual(game.create_session(seed=1).serialize_game_state()["version"],
                          game.SAVE_FORMAT_VERSION)
 

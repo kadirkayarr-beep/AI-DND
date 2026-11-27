@@ -86,7 +86,7 @@
     "api.tests.test_dilim4c_surrender_spells_http",
     "api.tests.test_d115_undone_fight_question",
     "api.tests.test_d211_undone_fight_answer",
-    "api.tests.test_d039_spellbook_choice",
+    "api.tests.test_g26_old_save_branches",
     "api.tests.test_d061_unrecorded_xp_line",
     "api.tests.test_d109_timing",
     "api.tests.test_coin_ask_persuasion",

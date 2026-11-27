@@ -52,6 +52,11 @@ jobs:
         run: |
           git fetch --no-tags origin main
           python -m scripts.quality_gate.size_lock_shrink scripts/quality_gate/size_lock.json origin/main
+      - name: Engine size budget may only shrink (D-553)
+        working-directory: ai-dnd
+        run: |
+          git fetch --no-tags origin main
+          python -m scripts.quality_gate.size_lock_shrink api/tests/engine_split_locks/size_budget.json origin/main
       - name: Vulture with the whitelist
         run: vulture ai-dnd ai-dnd/scripts/quality_gate/vulture_whitelist.py --min-confidence 80
 

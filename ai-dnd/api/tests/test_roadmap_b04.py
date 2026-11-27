@@ -3,7 +3,9 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
+import tomllib
 import unittest
 
 
@@ -269,7 +271,7 @@ class RoadmapB04Tests(unittest.TestCase):
                 self.assertTrue(row["proposed_owner"], row["id"])
         self.assertGreater(matched, 0)
         barbarian = next(row for row in self.rows if row["source_id"] == "phb2024:class:barbarian")
-        self.assertEqual(barbarian["resolver"]["existing_owner"], "ai-dnd/api/dnd_2024_rules.py")
+        self.assertEqual(barbarian["resolver"]["existing_owner"], "ai-dnd/dnd_2024_rules.py")
 
     def test_proposed_owners_follow_the_plan_task_map(self):
         owners = {}
@@ -301,7 +303,7 @@ class RoadmapB04Tests(unittest.TestCase):
             self.assertNotEqual(row["source_version"], "2024")
             self.assertTrue(row["legacy"])
             self.assertEqual(row["source"]["page_reference_status"], "NOT_READ_IN_B04")
-            self.assertEqual(row["resolver"]["existing_owner"], "ai-dnd/api/dnd_2024_rules.py")
+            self.assertEqual(row["resolver"]["existing_owner"], "ai-dnd/dnd_2024_rules.py")
             self.assertEqual(row["proposed_owner"], "C02")
             self.assertEqual(row["rights_ref"], DECISION_ID)
         self.assertEqual(owner.validate_catalog(self.rows + self.legacy["rows"], self.entries), [])
@@ -348,6 +350,64 @@ class RoadmapB04Tests(unittest.TestCase):
         for entry in with_bookmark:
             self.assertIn(entry["pdf_page"], titles.get(entry.get("bookmark_title", entry["name"]), set()), entry["source_id"])
         self.assertEqual(sorted(e["name"] for e in outline_based if not e["bookmark_present"]), ["Bane", "Heavy Armor Master"])
+
+
+class PythonDependencyDeclarationTests(unittest.TestCase):
+    """D-587 / D-593: certifi is locked past the advisory; imports are declared."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Read the manifests the contract is about."""
+        project = (REPO / "pyproject.toml").read_text(encoding="utf-8")
+        lock = (REPO / "uv.lock").read_text(encoding="utf-8")
+        cls.pyproject = tomllib.loads(project)
+        cls.lock = tomllib.loads(lock)
+        workflow = REPO / ".github" / "workflows" / "ai-dnd-ci.yml"
+        cls.workflow = workflow.read_text(encoding="utf-8")
+
+    def declared(self, group: list[str]) -> set[str]:
+        """Return the lower-cased package names of a requirement list."""
+        return {re.split(r"[<>=!~ \[]", item, maxsplit=1)[0].lower() for item in group}
+
+    def test_locked_certifi_is_past_pysec_2026_4320(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        packages = {p["name"]: p["version"] for p in self.lock["package"]}
+        version = packages["certifi"]
+        parts = tuple(int(part) for part in version.split("."))
+        self.assertGreaterEqual(parts, (2026, 10, 18))
+
+    def test_no_unpinned_constraint_reaches_the_hash_pinned_export(self) -> None:
+        """CI exports with --require-hashes; a uv constraint exports as an unpinned line."""
+        self.assertNotIn("constraint-dependencies", self.pyproject.get("tool", {}).get("uv", {}))
+        self.assertNotIn("manifest", self.lock)
+
+    def test_pydantic_and_starlette_are_declared_direct_dependencies(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        names = self.declared(self.pyproject["project"]["dependencies"])
+        self.assertLessEqual({"pydantic", "starlette"}, names)
+
+    def test_pypdf_is_declared_as_a_development_dependency(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        dev = self.declared(self.pyproject["dependency-groups"]["dev"])
+        self.assertIn("pypdf", dev)
+        runtime = self.declared(self.pyproject["project"]["dependencies"])
+        self.assertNotIn("pypdf", runtime)
+
+    def test_ci_audits_and_checks_python_dependencies(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        self.assertIn("pip-audit", self.workflow)
+        self.assertIn("deptry", self.workflow)
+
+    def test_deptry_maps_distribution_names_to_import_names(self) -> None:
+        """A clean uvx deptry cannot guess jwt and yaml, so the map names them."""
+        mapping = self.pyproject["tool"]["deptry"]["package_module_name_map"]
+        self.assertEqual("jwt", mapping["pyjwt"])
+        self.assertEqual("yaml", mapping["pyyaml"])
+
+    def test_root_package_json_drops_the_unused_replit_connectors_sdk(self) -> None:
+        """D-593: nothing imports @replit/connectors-sdk, so the root drops it."""
+        manifest = json.loads((REPO / "package.json").read_text(encoding="utf-8"))
+        self.assertNotIn("@replit/connectors-sdk", manifest.get("dependencies", {}))
 
 if __name__ == "__main__":
     unittest.main()

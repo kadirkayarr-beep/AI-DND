@@ -7,20 +7,6 @@ import re
 import scheduled_events
 
 
-def _filter_unsupported_lore_paragraphs(narration, lore_claims, lore_context, world_state):
-    if not isinstance(narration, str):
-        return ""
-    kept = []
-    for paragraph in re.split(r"\n\s*\n", narration):
-        if not paragraph.strip():
-            continue
-        if game._narration_has_unsupported_lore_claim(
-            paragraph, lore_claims, lore_context, world_state
-        ):
-            continue
-        kept.append(paragraph.strip())
-    return "\n\n".join(kept)
-
 def _empty_lore_authority_context():
     return {
         "authority_boundary": {

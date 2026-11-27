@@ -3709,13 +3709,6 @@ export interface SpellPrepareInput {
      */
   prepared?: string[] | null;
   close?: boolean;
-  /**
-     * D-039 one-time spellbook choice of an old save's Wizard (exactly six distinct Wizard level-1 spells, checked by the server); sent alone, never with prepared or close.
-     * @maxItems 32
-     * @nullable
-     * @items.maxLength 64
-     */
-  spellbook?: string[] | null;
   /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
   action_id: string;
 }
@@ -3755,7 +3748,6 @@ export type SpellPrepareViewResponseReason = typeof SpellPrepareViewResponseReas
 export const SpellPrepareViewResponseReason = {
   creation: 'creation',
   long_rest: 'long_rest',
-  migration: 'migration',
   level_up: 'level_up',
 } as const;
 
@@ -3775,10 +3767,6 @@ export interface SpellPrepareViewResponse {
   /** @nullable */
   spellbook?: string[] | null;
   not_in_engine?: string[];
-  /** D-039, only while blocked_reason is spellbook_missing; the spells the book may hold. */
-  spellbook_options?: string[];
-  /** D-039, only while blocked_reason is spellbook_missing; the engine's offer, which the player may change. */
-  suggested_spellbook?: string[];
 }
 
 export type SpellPrepareResultStatus = typeof SpellPrepareResultStatus[keyof typeof SpellPrepareResultStatus];
@@ -3787,7 +3775,6 @@ export type SpellPrepareResultStatus = typeof SpellPrepareResultStatus[keyof typ
 export const SpellPrepareResultStatus = {
   prepared: 'prepared',
   too_many: 'too_many',
-  spellbook_saved: 'spellbook_saved',
 } as const;
 
 export interface SpellPrepareResult {
@@ -3867,6 +3854,20 @@ export interface PaladinLevelChoices {
   '5'?: PaladinLevel5Choices;
 }
 
+export interface WizardLevelChoices {
+  '2': WizardSpellbookChoices;
+  '3'?: WizardLevel3Choices;
+  '4'?: WizardLevel4Choices;
+  '5'?: WizardSpellbookChoices;
+}
+
+export interface ClericLevelChoices {
+  '2': BarbarianLevel2Choices;
+  '3'?: ClericLevel3Choices;
+  '4'?: ClericLevel4Choices;
+  '5'?: BarbarianLevel2Choices;
+}
+
 /**
  * @nullable
  */
@@ -3913,7 +3914,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | WizardLevelChoices | ClericLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -4254,6 +4255,53 @@ export interface MonkStartingCreationOptions {
   level_5?: BarbarianStartingLevel5Options | null;
 }
 
+export interface WizardStartingSpellbookOptions {
+  spellbook_spell_count: number;
+  spellbook_spell_ids: string[];
+}
+
+export interface WizardStartingLevel3Options {
+  spellbook_spell_count: number;
+  spellbook_spell_ids: string[];
+  subclass_options: SorcererSubclassOption[];
+}
+
+export interface WizardStartingLevel4Options {
+  spellbook_spell_count: number;
+  spellbook_spell_ids: string[];
+  cantrip_count: number;
+  cantrip_ids: string[];
+  supported_asi_choices: LevelUpAsiChoice[];
+}
+
+export interface WizardStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: WizardStartingSpellbookOptions;
+  level_3: WizardStartingLevel3Options;
+  level_4: WizardStartingLevel4Options;
+  level_5: WizardStartingSpellbookOptions;
+  effects_pending_by_level: SorcererEffectsPendingByLevel;
+}
+
+export interface ClericStartingLevel3Options {
+  subclass_options: SorcererSubclassOption[];
+}
+
+export interface ClericStartingLevel4Options {
+  cantrip_count: number;
+  cantrip_ids: string[];
+  supported_asi_choices: LevelUpAsiChoice[];
+}
+
+export interface ClericStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: BarbarianLevel2Choices;
+  level_3: ClericStartingLevel3Options;
+  level_4: ClericStartingLevel4Options;
+  level_5: BarbarianLevel2Choices;
+  effects_pending_by_level: SorcererEffectsPendingByLevel;
+}
+
 export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
@@ -4261,6 +4309,8 @@ export interface CharacterCreationCatalogResponse {
   paladin_starting_creation?: PaladinStartingCreationOptions | null;
   rogue_starting_creation?: RogueStartingCreationOptions | null;
   monk_starting_creation?: MonkStartingCreationOptions | null;
+  wizard_starting_creation?: WizardStartingCreationOptions | null;
+  cleric_starting_creation?: ClericStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

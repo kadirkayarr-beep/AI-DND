@@ -38,6 +38,10 @@ jobs:
         run: |
           uv export --frozen --no-dev --no-emit-project --format requirements-txt --output-file "$RUNNER_TEMP/ai-dnd-requirements.txt"
           uv pip install --system --require-hashes -r "$RUNNER_TEMP/ai-dnd-requirements.txt"
+      - name: Audit and check Python dependencies
+        run: |
+          uvx pip-audit==2.10.1 --require-hashes --disable-pip -r "$RUNNER_TEMP/ai-dnd-requirements.txt"
+          uvx deptry==0.25.1 .
       - name: Install locked workspace dependencies
         run: pnpm install --frozen-lockfile
       - name: Validate official hosted Chrome runtime
@@ -61,6 +65,20 @@ jobs:
       - name: Final Gate (bounded offline regression and frontend)
         if: ${{ !cancelled() }}
         run: python ai-dnd/scripts/final_gate.py --archive-root "$RUNNER_TEMP/ai-dnd-evidence"
+      - name: Engine start probe (D-341)
+        if: ${{ !cancelled() }}
+        working-directory: ai-dnd
+        run: python scripts/engine_split/outside_probe.py
+      - name: Regression script, all 30 must pass (D-342)
+        if: ${{ !cancelled() }}
+        working-directory: ai-dnd
+        run: |
+          python test_regression.py | tee "$RUNNER_TEMP/regression-script.log"
+          grep -qx "Results: 30 passed, 0 failed out of 30" "$RUNNER_TEMP/regression-script.log"
+      - name: Protected save and move tests run unskipped (D-467)
+        if: ${{ !cancelled() }}
+        working-directory: ai-dnd
+        run: python scripts/protected_tests_run.py
       - name: Retain new execution evidence including failures
         if: ${{ always() }}
         uses: actions/upload-artifact@v4

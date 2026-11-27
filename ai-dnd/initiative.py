@@ -255,19 +255,12 @@ def initialize(session, actors):
 def validate_saved(combat):
     results = combat.get("initiative_results")
     if results is None:
-        if any(k in combat for k in ("initiative_groups", "initiative_effects")):
-            raise ValueError("Partial Initiative audit state.")
-        return  # Existing saves preserve their old totals; never fabricate dice.
+        raise ValueError("An active combat needs its Initiative results.")
     if not isinstance(results, dict) or set(results) != set(combat["participants"]):
         raise ValueError("Invalid Initiative result owners.")
     for actor, result in results.items():
         if not isinstance(result, dict) or result.get("actor_id") != actor:
             raise ValueError("Invalid Initiative actor result.")
-        if result.get("mode") == "legacy_preserved":
-            if (type(result.get("final_total")) is not int or result.get("raw_rolls") != []
-                    or result.get("group_id") is not None):
-                raise ValueError("Invalid preserved legacy Initiative total.")
-            continue
         for name in ("advantage_sources", "disadvantage_sources"):
             values = result.get(name)
             if not isinstance(values, list) or any(not isinstance(v, str) or not v for v in values):
@@ -360,14 +353,6 @@ def join(session, actor_ids):
             if data.get("combat_status", "active") not in {"active", "unconscious"}:
                 raise ValueError("Inactive combatant cannot join Initiative.")
         current = combat["current_actor_id"]
-        if "initiative_results" not in combat:
-            if any(type(r["initiative"]) is not int for r in combat["participant_records"]):
-                raise ValueError("Legacy encounter has no authoritative totals for newcomer insertion.")
-            combat.update(initiative_results={
-                r["id"]: {"actor_id": r["id"], "final_total": r["initiative"],
-                          "mode": "legacy_preserved", "raw_rolls": [], "group_id": None}
-                for r in combat["participant_records"]
-            }, initiative_groups={}, initiative_effects=[])
         results, groups, effects = roll_members(session, fresh, combat["initiative_results"], combat["initiative_groups"])
         combat["initiative_results"], combat["initiative_groups"] = results, groups
         for actor in fresh:
@@ -403,20 +388,19 @@ def leave(session, actor):
                 return True
         current = combat["current_actor_id"]
         old_order = list(combat["initiative_order"])
-        if "initiative_results" in combat:
-            # Preserve historical swap consequences when one partner leaves.
-            counts = {r["id"]: r["initiative"] for r in combat["participant_records"]}
-            combat["initiative_effects"] = [
-                {"kind": "count_adjustment", "source": "preserved_order_on_departure",
-                 "actor_id": a, "value": counts[a] - r["final_total"],
-                 "prior_effects": copy.deepcopy(combat["initiative_effects"])}
-                for a, r in combat["initiative_results"].items() if a != actor and counts[a] != r["final_total"]]
-            del combat["initiative_results"][actor]
-            groups = combat["initiative_groups"]
-            for group in list(groups):
-                groups[group] = [a for a in groups[group] if a != actor]
-                if not groups[group]:
-                    del groups[group]
+        # Preserve historical swap consequences when one partner leaves.
+        counts = {r["id"]: r["initiative"] for r in combat["participant_records"]}
+        combat["initiative_effects"] = [
+            {"kind": "count_adjustment", "source": "preserved_order_on_departure",
+             "actor_id": a, "value": counts[a] - r["final_total"],
+             "prior_effects": copy.deepcopy(combat["initiative_effects"])}
+            for a, r in combat["initiative_results"].items() if a != actor and counts[a] != r["final_total"]]
+        del combat["initiative_results"][actor]
+        groups = combat["initiative_groups"]
+        for group in list(groups):
+            groups[group] = [a for a in groups[group] if a != actor]
+            if not groups[group]:
+                del groups[group]
         for key in ("participants", "initiative_order", "actions_used"):
             combat[key] = [a for a in combat[key] if a != actor]
         combat["participant_records"] = [r for r in combat["participant_records"] if r["id"] != actor]

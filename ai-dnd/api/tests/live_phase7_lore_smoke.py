@@ -27,6 +27,8 @@ import uuid
 
 import httpx
 
+from api.ollama_adapter import turn_call_cap
+
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 PACK_FILES = (
@@ -34,7 +36,7 @@ PACK_FILES = (
     AI_DND_DIR / "api" / "lore_authority" / "packs" / "neverwinter_the_north_v1.review.json",
 )
 MODEL_NAME = "qwen3:8b"
-MAX_MODEL_CALLS_PER_TURN = 2
+MAX_MODEL_CALLS_PER_TURN = turn_call_cap([], most=True)  # the adapter's ceiling (D-417), not a copy of two
 HIDDEN_SUMMARY = "Gizli bir hareket başladı."
 AFTERMATH = "Mavi tebeşirle çizilmiş küçük bir daire kaldı."
 FLAG_KEY = "scheduled:phase7-mark"
@@ -410,7 +412,7 @@ def run_smoke(report_dir: Path | None = None) -> dict[str, Any]:
                 )
                 narrated_text = str(narrated.get("narration", ""))
                 _require(HIDDEN_SUMMARY not in narrated_text and AFTERMATH not in narrated_text, "Narration leaked the hidden aftermath.")
-                _require(turns[-1]["model_calls"] <= MAX_MODEL_CALLS_PER_TURN, "The narration turn exceeded two model calls.")
+                _require(turns[-1]["model_calls"] <= MAX_MODEL_CALLS_PER_TURN, "The narration turn exceeded the model-call ceiling.")
 
                 revealed = play(client, session_id, "Observe the aftermath", "Etrafıma bakıyorum.")
                 revealed_summaries = [event.get("summary") for event in revealed["state"].get("known_scheduled_events", [])]

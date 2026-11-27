@@ -10,6 +10,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from api.tests import test_campaign_api as fixtures
+from api.tests.receipt_archive_fixture import archive_receipts
 from api.tests.test_economic_action_http import TIP, EconomicHttpFixture
 from api.tests.town_seed import fixed_town
 
@@ -56,8 +57,7 @@ class SkillCardRowIdentity(EconomicHttpFixture):
         await self.card(**TIP)
         body = await self.stealth_turn()
         campaign_id = self.campaign["campaign_id"]
-        revision = self.store.get_campaign(campaign_id).metadata["revision"]
-        self.store.compact_receipts(campaign_id, before_revision=revision + 1, keep_latest=0)
+        archive_receipts(self.store.path, campaign_id)
         self.assert_card_only_on_last_row(await self.history(), body)
 
 

@@ -22,7 +22,7 @@ class DisplayReview(unittest.TestCase):
         self.check_inventory('\u00e7antamda ne var')
 
     def check_inventory(self, message):
-        session = game.create_session()
+        session = game.create_session(seed=1)
         session.character['current_hp'] = 20
         session.world_state['inventory'] = []
         session.world_state['ammunition'] = {'arrow':19}

@@ -51,7 +51,7 @@ def _validate_record(held: Any) -> None:
 
 def _class_spell_ids(character: dict[str, Any]) -> set[str]:
     """Every spell the character's class could ever cast: the same lists `spell_scope.validate` allows (D-068)."""
-    from api.dnd_2024_rules import SPELLS_CATALOG
+    from dnd_2024_rules import SPELLS_CATALOG
     import character_progression
     catalog = SPELLS_CATALOG.get(character.get("class"), {})
     return ({s["id"] for field in ("cantrips", "spells_level_1") for s in catalog.get(field, [])}

@@ -45,7 +45,7 @@ def turn(session, message):
 
 class ClockTests(unittest.TestCase):
     def test_first_scene_anchor_and_canonical_start(self):
-        session = game.create_session()
+        session = game.create_session(seed=1)
         self.assertIsNone(session.ensure_campaign_clock())
         session.world_state["canonical_start_time"] = {
             "year": 1501, "month": "Kythorn", "day": 12, "hour": 18, "minute": 42,

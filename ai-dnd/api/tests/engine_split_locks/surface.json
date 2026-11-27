@@ -707,6 +707,10 @@
   "kind": "data",
   "type": "Pattern"
  },
+ "_YIELDS": {
+  "kind": "data",
+  "type": "Pattern"
+ },
  "_a_walk": {
   "kind": "function",
   "module": "game_parts.places",
@@ -1451,12 +1455,6 @@
   "session_bound": true,
   "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
  },
- "_existing_local_tavern": {
-  "kind": "function",
-  "module": "game_parts.places",
-  "session_bound": true,
-  "signature": "(parent_location_id)"
- },
  "_experimental_npc_dialogue_context": {
   "kind": "function",
   "module": "game_parts.dialogue",
@@ -1558,12 +1556,6 @@
   "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, accepted_keys, rejected_names)"
- },
- "_filter_unsupported_lore_paragraphs": {
-  "kind": "function",
-  "module": "game_parts.lore",
-  "session_bound": true,
-  "signature": "(narration, lore_claims, lore_context, world_state)"
  },
  "_finalize_player_death": {
   "kind": "function",
@@ -2381,12 +2373,6 @@
   "session_bound": true,
   "signature": "(player_input)"
  },
- "_migrate_legacy_combat_state": {
-  "kind": "function",
-  "module": "game_parts.combat_flow",
-  "session_bound": true,
-  "signature": "(legacy)"
- },
  "_model_query_type_is_plausible": {
   "kind": "function",
   "module": "game_parts.intent",
@@ -2519,17 +2505,17 @@
   "session_bound": true,
   "signature": "(species, proficiency_bonus)"
  },
+ "_no_list_fallback": {
+  "kind": "function",
+  "module": "game_parts.turn_front",
+  "session_bound": true,
+  "signature": "(player_input, target_id, reads)"
+ },
  "_nobody_here": {
   "kind": "function",
   "module": "game_parts.dialogue",
   "session_bound": true,
   "signature": "(word)"
- },
- "_normalize_ground_items": {
-  "kind": "function",
-  "module": "game_parts.places",
-  "session_bound": true,
-  "signature": "()"
  },
  "_normalize_interaction_mode": {
   "kind": "function",
@@ -2732,8 +2718,8 @@
  "_nsd_outcome_failure_critical": {
   "kind": "function",
   "module": "game_parts.narration_safety_steps",
-  "session_bound": true,
-  "signature": "(*, outcome, reject, text)"
+  "signature": "(*, action_result, outcome, reject, text)",
+  "session_bound": true
  },
  "_nsd_outcome_success_critical": {
   "kind": "function",
@@ -2788,6 +2774,12 @@
   "module": "game_parts.narration_safety_steps",
   "session_bound": true,
   "signature": "(*, reject, speech_fields, world_state)"
+ },
+ "_nsd_text_without_awarded_xp": {
+  "kind": "function",
+  "module": "game_parts.narration_safety_steps",
+  "session_bound": true,
+  "signature": "(*, text)"
  },
  "_nsd_travel_result_action": {
   "kind": "function",
@@ -4461,7 +4453,7 @@
   "kind": "function",
   "module": "game_parts.savefile",
   "session_bound": true,
-  "signature": "(player, version)"
+  "signature": "(player)"
  },
  "_validate_save_header": {
   "kind": "function",
@@ -4485,7 +4477,7 @@
   "kind": "function",
   "module": "game_parts.savefile",
   "session_bound": true,
-  "signature": "(player, saved_world, version)"
+  "signature": "(player, saved_world)"
  },
  "_validate_saved_multilevel_slots": {
   "kind": "function",
@@ -4939,7 +4931,7 @@
  },
  "get_expertise_choice_count": {
   "kind": "function",
-  "module": "api.dnd_2024_rules",
+  "module": "dnd_2024_rules",
   "session_bound": false,
   "signature": "(character_class: 'str', level: 'int') -> 'int'"
  },

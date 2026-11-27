@@ -70,7 +70,10 @@ class TrailCase(JourneyCase):
         return next(n for n in self.world["npcs"] if n.get("id") == npc_id)
 
     def delivered_thread(self):
-        return world_threads.by_id(self.world, self.thread_id)
+        thread = world_threads.by_id(self.world, self.thread_id)
+        if thread is None:
+            self.fail("the delivered thread is in the world")
+        return thread
 
     def follow_on_thread(self):
         [row] = self.rows("delivered")
@@ -300,7 +303,11 @@ class Letter(TrailCase):
 
     async def test_an_unread_letter_is_no_trail(self):
         await self.accept_sealed_letter()
-        self.assertEqual(quest_log.trails(self.world), [])
+        # D-337: an unanswered offer is a trail; the unread letter adds none
+        offered = [t["owner_line"] for t in self.state()["threads"]
+                   if t["status"] == "offered"]
+        trails = quest_log.trails(self.world)
+        self.assertEqual([trail["what"] for trail in trails], offered)
 
 
 class Following(TrailCase):

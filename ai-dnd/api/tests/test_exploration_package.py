@@ -175,6 +175,20 @@ class ExplorationPackageTests(NativeBase):
         self.assertEqual(self.session.world_state["location"], catalog.VAULT)
         self.reject("/explore trap stone_wire disarm")
 
+    def test_entering_with_one_visible_named_door_goes_to_that_door(self):
+        # D-244: "içeri giriyorum" with the door named, or with one visible door, is that door, not a "which door?" question.
+        self.enter()
+        self.assertEqual({e["id"] for e in self.client.get(
+            f"/api/game/sessions/{self.sid}/state").json()["exploration"]["exits"]}, {"entry_hall"})
+        self.check("/explore door stone_oak_door unlock")
+        oak = next(door for door in self.session.world_state["doors"] if door["id"] == "stone_oak_door")
+        for line in ("Meşe Kapı'dan içeri giriyorum.", "Kapıdan içeri giriyorum."):
+            with self.subTest(line=line):
+                oak["open"] = False
+                reply = self.call(line)[1]
+                self.assertNotIn("Hangi", reply["narration"])
+                self.assertTrue(oak["open"])
+
     def test_trap_disarm_and_bypass_survive_save_and_reload(self):
         for operation, expected in (("disarm", "disarmed"), ("bypass", "bypassed")):
             with self.subTest(operation=operation):

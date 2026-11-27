@@ -113,7 +113,7 @@ class QualityFlipToBlockingTest(unittest.TestCase):
             self.assertTrue(_job_text(job), job)
 
     def test_size_lock_shrink_step_in_python_gate(self):
-        steps = [s for s in _job_steps(_job_text("python-gate")) if "size_lock_shrink" in s]
+        steps = [s for s in _job_steps(_job_text("python-gate")) if "size_lock_shrink scripts/quality_gate/size_lock.json" in s]
         self.assertEqual(len(steps), 1)
         self.assertIn("scripts/quality_gate/size_lock.json origin/main", steps[0])
         self.assertIn("git fetch --no-tags origin main", steps[0])

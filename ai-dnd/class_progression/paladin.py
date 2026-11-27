@@ -43,7 +43,7 @@ def _row_ok(row: Any, level: int) -> bool:
 
 
 def _spell_ids(level: int) -> list[str]:
-    from api.dnd_2024_rules import SPELLS_CATALOG
+    from dnd_2024_rules import SPELLS_CATALOG
     return [spell["id"] for spell in SPELLS_CATALOG["Paladin"]["spells_level_2" if level >= 5 else "spells_level_1"]]
 
 
@@ -53,7 +53,7 @@ def _allowed_ids(level: int) -> list[str]:
 
 
 def _cantrip_ids() -> list[str]:
-    from api.dnd_2024_rules import SPELLS_CATALOG
+    from dnd_2024_rules import SPELLS_CATALOG
     return [spell["id"] for spell in SPELLS_CATALOG["Cleric"]["cantrips"]]
 
 
@@ -173,7 +173,7 @@ def _check_style(choices) -> str | None:
 
 def _armor_worn(character: dict[str, Any]) -> bool:
     """The creation calculator's reading of carried equipment, the same one the Fighter's Defense total used. A load drops the list and keeps the origin."""
-    from api.dnd_2024_rules import get_equipment_armor_and_shield
+    from dnd_2024_rules import get_equipment_armor_and_shield
     origin = character.get("armor_origin")
     armor, _ = (origin["armor"], origin["shield"]) if type(origin) is dict else get_equipment_armor_and_shield(character.get("equipment_choices"))
     return armor is not None

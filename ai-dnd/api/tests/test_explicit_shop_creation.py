@@ -16,7 +16,7 @@ from api.persistence.campaign_models import CampaignStorageError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.live_neverwinter_canon_smoke import START_SELECTION
-from api.tests.journeys.runner import call_kind
+from api.tests.front_reading import call_kind, with_reading
 
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
@@ -46,7 +46,7 @@ def call_kinds(model):
 
 def one_line_calls():
     """What one shop-creation line spends: its narration, after the front reading when the flag is on."""
-    return ["front", "narration"] if front_proposal.enabled() else ["narration"]
+    return with_reading("narration")
 
 
 class ShopCreationTests(unittest.TestCase):

@@ -128,11 +128,13 @@ def _shaped(game, narration: str, scene: dict[str, Any]) -> str:
     return town_knowledge.without_unbacked_money(" ".join(sentences[:limit])) or ""
 
 
-def _remember(world: dict[str, Any], place_id: str, text: str) -> None:
-    """The text the player was shown, the one arrival kept for the NPC speech at this place (BM Task 6). It lives in
-    the scene state, so a save keeps it and Undo takes it back with the turn."""
+def _remember(world: dict[str, Any], place_id: str, text: str, info: dict) -> None:
+    """The text the player was shown, kept for the NPC speech at this place (BM Task 6),
+    and who wrote it (D-309). It lives in the scene state: a save keeps it, Undo takes it back."""
+    turn = (world.get("flags") or {}).get("turn_index", 0)
     world.setdefault("scene_state", {})["arrival_text"] = {
-        "place_id": place_id, "text": text.strip(), "turn": (world.get("flags") or {}).get("turn_index", 0)}
+        "place_id": place_id, "text": text.strip(), "turn": turn,
+        "source": info["source"], "reason_code": info["reason_code"]}
 
 
 def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = "",
@@ -158,7 +160,7 @@ def narrate(game, scene: dict[str, Any], *, player_input, messages, lead: str = 
         info = {"source": source, "reason_code": reason_code, "calls": calls}
         session.last_arrival_narration = dict(info)
         shown = whole(body, presence=presence, model=model)
-        _remember(session.world_state, scene["place_id"], shown)
+        _remember(session.world_state, scene["place_id"], shown, info)
         return shown, info
 
     def python(reason_code, calls):

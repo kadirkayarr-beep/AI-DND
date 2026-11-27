@@ -8,10 +8,31 @@ dependencies = [
     "fastapi>=0.141.1",
     "httpx>=0.28.1",
     "ollama>=0.6.2",
+    "pydantic>=2.13.5",
     "pyjwt==2.15.1",
     "pyyaml>=6.0.3",
+    "starlette>=1.7.0",
     "uvicorn>=0.54.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pypdf>=7.2.0",
+]
+
+[tool.deptry]
+# Repo-local modules (api, game, engine_split, ...) live beside the code, not in the lock, so DEP001 is noise.
+ignore = ["DEP001"]
+known_first_party = ["scripts"]
+
+[tool.deptry.package_module_name_map]
+# A clean uvx deptry env has no installed metadata, so it cannot map these distribution names itself.
+pyjwt = "jwt"
+pyyaml = "yaml"
+
+[tool.deptry.per_rule_ignores]
+# pypdf is a development-only dependency (one skipped-unless-PDF test and evidence scripts).
+DEP004 = ["pypdf"]
 
 [tool.pyrefly]
 search-path = ["ai-dnd"]

@@ -51,7 +51,7 @@ _HOUR_OF_PERIOD = {"dawn": 7, "day": 13, "evening": 18, "night": 22}
 @lru_cache(maxsize=1)
 def _catalog() -> dict[str, Any]:
     try:
-        mapping = json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        mapping = name_catalog.mapping(name_catalog.CATALOG_DIR)
         lines = json.loads((name_catalog.CATALOG_DIR / "opening_lines.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         _LOG.warning("The opening lines could not be read.")

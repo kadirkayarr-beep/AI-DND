@@ -6,14 +6,8 @@ check, and whether gold moves. Narrated gambling winnings never pay.
 
 from __future__ import annotations
 
-SOCIAL = "social"
-URBAN_THEFT = "urban_theft"
-LOST_PROPERTY = "lost_property"
-TRAVEL = "travel"
-WILDERNESS = "wilderness"
 COMBAT = "combat"
 GAMBLING = "gambling"
-DISTURBANCE = "disturbance"
 
 PYTHON_DCS = {
     "easy": 10,
@@ -62,7 +56,3 @@ def motif_allowed(world, motif):
     if not isinstance(recent, list):
         return True
     return recent[-MOTIF_COOLDOWN:].count(motif) < MOTIF_COOLDOWN
-
-
-def combat_bind_allowed(envelope):
-    return bool(envelope.get("allowed_creature_ids")) and envelope.get("threat_band") != "none"

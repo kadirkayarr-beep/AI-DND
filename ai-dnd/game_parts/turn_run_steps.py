@@ -6,6 +6,7 @@ import interaction_adventure
 import talk_front
 import local_dialogue
 import living_world
+import ambient_actions
 import game
 
 
@@ -35,7 +36,7 @@ def _rpt_lore_gate_interaction(*, combat, experimental_dialogue_session, interac
             and game._people_speak_for_themselves(world_state)
             and not game._ASKS_DISTANCE.search(local_dialogue.normalize_text(player_input))):
         # Asked aloud with someone standing there, the town's talk is theirs to answer, not the street's.
-        here = game._conversation_npcs()
+        here = ambient_actions.people_or_named_referent(game._session(), game._conversation_npcs(), player_input)
         npc_target = game._explicit_addressee(player_input, here) or npc_target or game.most_plausible_addressee(here, player_input)
         if isinstance(npc_target, dict):
             lore_gate = False

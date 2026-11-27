@@ -209,6 +209,22 @@ class RoutingAuditTests(unittest.TestCase):
         self.assertEqual(self.run_audit(self.tree("import game\nK2 = 1\n", game=constant_only)), [])
         self.assertEqual(self.run_audit(self.tree(moved, game=GAME_REEXPORT)), [])
 
+    def test_the_accepted_blind_spots_are_documented_and_still_unseen(self) -> None:
+        """D-349, owner S25 (a): the audit does not see these; the docstring says so."""
+        audit_doc = sys.modules[audit.__module__].__doc__ or ""
+        self.assertIn("Known blind spots", audit_doc)
+        head = "import game\nimport builtins\n"
+        for spot, src in (
+            ("builtins.eval", head + "def f(s):\n    return builtins.eval(s)\n"),
+            ("getattr on a module",
+             head + "def f():\n    return getattr(builtins, 'open')\n"),
+        ):
+            with self.subTest(spot):
+                self.assertIn(spot, audit_doc)
+                self.fresh()
+                tree = self.tree(src, game=reexporting("f"))
+                self.assertEqual(self.run_all(tree), [])
+
     def test_a_patched_name_is_defined_only_in_the_part_game_py_reexports_it_from(self):
         bound = "patched name roll_d20 is bound in the part"
         q = {"game_parts/q.py": "import game\ndef roll_d20():\n    return 1\n"}

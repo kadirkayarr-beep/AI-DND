@@ -6,10 +6,13 @@ from __future__ import annotations
 import json
 import unittest
 import uuid
+from typing import Any
+from unittest.mock import patch
 
 import front_proposal
 import grounded_action
 import local_places
+import money_owner
 import world_threads
 from api.tests import test_front_proposal as front_tests
 from api.tests.town_seed import fixed_town
@@ -51,6 +54,7 @@ class CutClient(front_tests.FrontClient):
 
 class FailedReading(unittest.IsolatedAsyncioTestCase):
     # The parent table's helpers only: its own tests are not run again here.
+    world: Any  # set by FrontTable.begin, called on this case
     asyncSetUp = front_tests.FrontTable.asyncSetUp
     asyncTearDown = front_tests.FrontTable.asyncTearDown
     campaign_with_npc = front_tests.FrontTable.campaign_with_npc
@@ -106,6 +110,42 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
                 self.lose_the_reading()
                 await self.line(line)
                 self.assertEqual(self.status(), "accepted")
+
+    async def test_a_recovered_walk_out_decides_its_coin_and_moves_nothing(self):
+        # D-403 (2): the recovery path left the coin in the words with no decision.
+        await self.begin()
+        self.lose_the_reading()
+        before = self.world["location"]
+        purse = self.world.get("currency", {}).get("player")
+        made, real = [], money_owner.decide
+
+        def spy(*a, **k):
+            made.append(real(*a, **k))
+            return made[-1]
+        with patch.object(money_owner, "decide", side_effect=spy):
+            await self.line("5 bakır bırakıp şehrin dışına gidiyorum")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable:go_to")
+        self.assertNotEqual(self.world["location"], before)
+        self.assertEqual([(d.amount_cp, d.source) for d in made], [(5, "structural")])
+        self.assertEqual(self.world.get("currency", {}).get("player"), purse)
+
+    async def test_a_yes_holding_coin_is_no_yes_but_its_coin_is_decided(self):
+        # D-403 (2): a line holding coin is no plain yes: the offer stays open, the coin is decided once.
+        await self.begin()
+        self.offer()
+        self.lose_the_reading()
+        purse = self.world.get("currency", {}).get("player")
+        made, real = [], money_owner.decide
+
+        def spy(*a, **k):
+            made.append(real(*a, **k))
+            return made[-1]
+        with patch.object(money_owner, "decide", side_effect=spy):
+            await self.line("kabul ediyorum, 5 bakır bırakıyorum")
+        self.assertEqual(self.status(), "offered")
+        self.assertNotIn("offer_answer", self.routes()[-1]["route"])
+        self.assertEqual([d.amount_cp for d in made], [5])
+        self.assertEqual(self.world.get("currency", {}).get("player"), purse)
 
     async def test_a_yes_with_no_open_offer_accepts_nothing(self):
         await self.begin()

@@ -1,11 +1,17 @@
 import copy,uuid,unittest
+from typing import Any
 from unittest.mock import patch
 import game,interaction_adventure,exploration
 from api.tests.test_route_focus_regressions import RouteFocusRegressionTests
 from api.tests.test_experimental_npc_dialogue import ScriptedNpcSpeechClient
+import os
+import sys
+from api.tests import test_experimental_npc_dialogue as speech
+from api.tests.front_reading import RouteWatch, forbid_unscripted
 from api.tests.test_intent_response_consistency import kinds, read_first
 
 class PublicDoorFocusTests(unittest.IsolatedAsyncioTestCase):
+ npc:Any  # set by RouteFocusRegressionTests.prepare, called on this case
  asyncSetUp=RouteFocusRegressionTests.asyncSetUp
  asyncTearDown=RouteFocusRegressionTests.asyncTearDown
  prepare=RouteFocusRegressionTests.prepare
@@ -54,8 +60,22 @@ class PublicDoorFocusTests(unittest.IsolatedAsyncioTestCase):
     before=copy.deepcopy(w);self.assertIsNone(self.context(w,n).get('conversation_focus'));self.assertEqual(w,before)
   with patch.object(exploration,'known_locations',return_value={base['location']}):self.assertIsNone(self.context(base).get('conversation_focus'))
  async def test_http_followup_topic_end_rollback_cold_replay(self):
+  await self.followup_rollback_cold_replay()
+ async def test_http_followup_topic_end_rollback_cold_replay_with_a_usable_reading(self):
+  # D-410: the same contract, flag on, when the front reading comes back usable (plain talk to the person chosen): the
+  # path local play takes with a working model, not the failed-reading path.
+  self.enterContext(patch.dict(os.environ,{'AI_DND_FRONT_PROPOSAL':'1'}))
+  self.enterContext(patch.object(sys.modules[__name__],'ScriptedNpcSpeechClient',
+   lambda narration:speech.plain_talk_client(narration,person_id=self.npc['id'])))
+  watch=RouteWatch(self)
+  def after_focus():
+   watch.reset()  # the set-up lines are answered by a client that reads nothing; every line of the test itself must
+   forbid_unscripted(self)
+  await self.followup_rollback_cold_replay(after_focus)
+  self.assertEqual(watch.fell_back(),[]);self.assertTrue(watch.routes)
+ async def followup_rollback_cold_replay(self,after_focus=lambda:None):
   from api.persistence.campaign_models import CampaignStorageError
-  await self.setup_focus();contexts=[];original=game._experimental_npc_dialogue_context
+  await self.setup_focus();after_focus();contexts=[];original=game._experimental_npc_dialogue_context
   def capture(*a,**k):
    result=original(*a,**k);contexts.append(copy.deepcopy(result));return result
   self.client=ScriptedNpcSpeechClient('Bunun nedenini bilmiyorum.')

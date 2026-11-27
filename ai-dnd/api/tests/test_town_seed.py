@@ -132,6 +132,15 @@ class DefaultTown(unittest.TestCase):
         self.assertIs(session_manager.uuid, uuid)
 
 
+class FixedTownNeedsNoRunnerTests(unittest.TestCase):
+    def test_the_pin_imports_nothing_from_the_journey_runner(self) -> None:
+        """The pin is a helper of its own (D-554): it must not reach for the journey runner's private function."""
+        tree = ast.parse((ROOT / "api" / "tests" / "town_seed.py").read_text(encoding="utf-8"))
+        modules = [node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
+        modules += [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names]
+        self.assertEqual([name for name in modules if name.startswith("api.tests.journeys.runner")], [])
+
+
 class EveryNewCampaignHasAFixedTown(unittest.TestCase):
     def test_the_scan_knows_each_form(self) -> None:
         planted = _planted(

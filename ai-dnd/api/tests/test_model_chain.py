@@ -1370,13 +1370,17 @@ class TheUsageLedgerWiring(unittest.TestCase):
 
     def test_spend_warning_reads_the_ledger_and_is_none_without_one(self):
         adapter = self.adapter(FakeCloud())
+        kept = [0.0]
+        adapter._now = lambda: kept[0]  # D-496: the warning is kept a few seconds; each step below is later than that
         self.assertIsNone(adapter.spend_warning())
         self.ledger.record("haiku", input_tokens=30_000_000, output_tokens=0)
+        kept[0] += ollama_adapter.SPEND_WARNING_CACHE_SECONDS + 1
         with self.assertLogs("ai_dnd.api.ollama", "WARNING"):
             self.assertIn("3.00 USD", adapter.spend_warning())
         adapter.usage_ledger = None
         self.assertIsNone(adapter.spend_warning())
         adapter.usage_ledger = RaisingLedger()
+        kept[0] += ollama_adapter.SPEND_WARNING_CACHE_SECONDS + 1
         with self.assertLogs("ai_dnd.api.ollama", "WARNING"):
             self.assertIsNone(adapter.spend_warning())
 
@@ -1387,23 +1391,34 @@ class TheUsageLedgerWiring(unittest.TestCase):
         ledger = usage_ledger.UsageLedger(self.path, now=clock)
         adapter = AuthenticatedOllamaAdapter(LocalEngine(), model_name="gemma4-fast")
         adapter.usage_ledger = ledger
+        kept = [0.0]
+        adapter._now = lambda: kept[0]  # D-496: the warning is kept a few seconds; every read below is later than that
+
+        def later():
+            kept[0] += ollama_adapter.SPEND_WARNING_CACHE_SECONDS + 1
+
         ledger.record("haiku", input_tokens=30_000_000, output_tokens=0)
         with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
             first = adapter.spend_warning()
         self.assertIn("3.00 USD", first)
         self.assertEqual(logs.output, [f"WARNING:ai_dnd.api.ollama:{first}"])
         with self.assertNoLogs("ai_dnd.api.ollama", "WARNING"):
+            later()
             self.assertEqual(adapter.spend_warning(), first)
+            later()
             self.assertEqual(adapter.spend_warning(), first)
         clock.advance(24 * 3600)
+        later()
         with self.assertNoLogs("ai_dnd.api.ollama", "WARNING"):
             self.assertIsNone(adapter.spend_warning())  # a new day: nothing spent yet
         ledger.record("haiku", input_tokens=31_000_000, output_tokens=0)
+        later()
         with self.assertLogs("ai_dnd.api.ollama", "WARNING") as logs:
             again = adapter.spend_warning()
         self.assertEqual(logs.output, [f"WARNING:ai_dnd.api.ollama:{again}"])
         self.assertIn("3.10 USD", again)
         with self.assertNoLogs("ai_dnd.api.ollama", "WARNING"):
+            later()
             adapter.spend_warning()
 
 

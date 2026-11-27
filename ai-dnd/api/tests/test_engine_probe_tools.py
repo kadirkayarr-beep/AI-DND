@@ -19,7 +19,7 @@ from api.tests import engine_probe, gate_boot
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from engine_split import coverage_by_function, ledger_diff  # noqa: E402
+from engine_split import coverage_by_function, ledger_diff, outside_probe  # noqa: E402
 from engine_split.coverage_by_function import function_hits, unequal  # noqa: E402
 from engine_split.ledger_diff import drops, lost_tests, merge_ledger, merge_outcomes, noise, sublost  # noqa: E402
 
@@ -239,6 +239,18 @@ class LedgerCli(unittest.TestCase):
         self.assertEqual(printed, ["NOISE 0", "SUBNOISE 3", "  t", "  u", "  w", "DROPS 0", "LOST 0", "SUBLOST 0",
                                    "SUBGONE 0", "SUBCRASH 1", "  t", ""])
 
+    def test_subcrash_sees_a_red_in_one_base_only_and_ignores_a_new_skip(self) -> None:
+        """D-435: both branches of subcrash()."""
+        base = {"hits": {}, "outcomes": {"x": "fail", "y": "fail"},
+                "subtests": {}, "seconds": 1, "tree": "a"}
+        base2 = dict(base, subtests={"x": ["x (k=1)"], "y": ["y (k=1)"]})
+        new = dict(base, outcomes={"x": "error", "y": "skip"}, subtests={})
+        with tempfile.TemporaryDirectory() as tmp:
+            code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base2, new))
+        self.assertEqual(code, 1)
+        self.assertEqual(printed[printed.index("SUBCRASH 1"):],
+                         ["SUBCRASH 1", "  x", ""])
+
     def test_collect_refuses_a_run_with_no_outcome_record(self):  # review finding 2: an n7-only run, a dead shard
         with tempfile.TemporaryDirectory() as tmp:
             for shard, records in ((0, [{"test": "t", "outcome": "ok"}]),
@@ -249,7 +261,8 @@ class LedgerCli(unittest.TestCase):
             (Path(tmp) / "20261118T000000-x-n4-2" / "engine-probe").mkdir(parents=True)
             _write_proof(Path(tmp) / "20261118T000000-x-n4-2")
             out = Path(tmp) / "c.json"
-            code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(out))
+            code, printed = _cli(ledger_diff, "--collect",
+                                 f"{tmp}/*-x-n4-[0-9]*", "--out", str(out))
             self.assertEqual(code, 2)
             self.assertEqual(printed, ["NO_OUTCOMES runs=3", str(Path(tmp) / "20261118T000000-x-n4-1"),
                                        str(Path(tmp) / "20261118T000000-x-n4-2"), ""])
@@ -269,7 +282,9 @@ class LedgerCli(unittest.TestCase):
                 run = Path(tmp) / f"20261118T000000-x-n4-{shard}"
                 _write_lines(run / "engine-probe" / "ledger-7.jsonl", [{"test": f"t{shard}", "outcome": "ok"}])
                 _write_proof(run, digest)
-            code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(Path(tmp) / "c.json"))
+            out = Path(tmp) / "c.json"
+            code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(out))
+            self.assertFalse(out.exists())
         self.assertEqual(code, 1)
         self.assertEqual(printed, ["MIXED TREE", "abc", "def", ""])
 
@@ -599,11 +614,12 @@ class FunctionCountsCli(unittest.TestCase):
             self.assertEqual(printed.getvalue().split("\n"), ["NOISE 0", "DOWN 0", "UP 0", ""])
             self.assertEqual(code, 0)
 
-    def collect(self, tmp: str, shards: dict[int, tuple[dict | None, str | None]]) -> tuple[int, list[str], Path]:
+    def collect(self, tmp: str, shards: dict[int, tuple[dict | None, str | None]],
+                game: str = "def f():\n    return 1\n") -> tuple[int, list[str], Path]:
         # shard -> (lines file or None, proof digest or None) on a one-function engine root
         root = Path(tmp) / "ai-dnd"
         (root / "game_parts").mkdir(parents=True)
-        (root / "game.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+        (root / "game.py").write_text(game, encoding="utf-8")
         for shard, (lines, digest) in shards.items():
             run = Path(tmp) / f"20261118T000000-x-n7-{shard}"
             (run / "engine-probe").mkdir(parents=True)
@@ -627,10 +643,13 @@ class FunctionCountsCli(unittest.TestCase):
             code, printed, _ = self.collect(tmp, {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, None)})
             self.assertEqual((code, printed), (2, ["NO_PROOF runs=2", str(Path(tmp) / "20261118T000000-x-n7-1"), ""]))
 
-    def test_collect_refuses_shards_on_different_trees(self):  # stage A triage T3
+    def test_collect_refuses_shards_on_different_trees(self):
+        """Stage A triage T3; D-436: the same words as N4 collect."""
         with tempfile.TemporaryDirectory() as tmp:
-            code, printed, _ = self.collect(tmp, {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, "def")})
-        self.assertEqual((code, printed), (2, ["TREES_DIFFER", "abc", "def", ""]))
+            shards: dict[int, tuple[dict | None, str | None]] = {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, "def")}
+            code, printed, out = self.collect(tmp, shards)
+            self.assertFalse(out.exists())
+        self.assertEqual((code, printed), (1, ["MIXED TREE", "abc", "def", ""]))
 
     def test_collect_refuses_a_lines_file_that_names_a_file_outside_the_engine_root(self):  # stage A triage T3
         with tempfile.TemporaryDirectory() as tmp:
@@ -643,6 +662,17 @@ class FunctionCountsCli(unittest.TestCase):
             code, printed, out = self.collect(tmp, {0: ({}, "abc")})
             self.assertEqual((code, printed), (2, ["NO_FUNCTIONS", ""]))
             self.assertFalse(out.exists())
+
+    def test_collect_names_the_blocks_it_cannot_count(self) -> None:
+        """D-363: if/try blocks hold defs by line, not by name."""
+        game = ("def f():\n    return 1\n\ntry:\n    import x\n"
+                "except ImportError:\n    def g():\n        return 2\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            code, printed, _ = self.collect(tmp, {0: ({"game.py": [2]}, "abc")}, game)
+        self.assertEqual(
+            (code, printed),
+            (0, ["COLLECTED runs=1 files=1 functions=1 seconds=1.0",
+                 "UNCOUNTED_BLOCKS 1", "  game.py:<Try@4>", ""]))
 
     def test_the_diff_refuses_two_bases_on_different_trees(self):  # stage A review finding 2
         with tempfile.TemporaryDirectory() as tmp:
@@ -710,6 +740,43 @@ class LineProbe(unittest.TestCase):
         self.assertEqual(sys.monitoring.get_tool(outer), "engine-split-n7")
         self.module.f()
         self.assertEqual(engine_probe.stop_lines(outer), {"mod.py": [2, 3, 7]})
+
+    def test_a_probe_installed_again_on_the_same_id_sees_lines_that_already_ran(self):  # D-362
+        engine_probe.install_lines(self.tmp / "one", [self.path], tool_id=SELF_TEST_ID)
+        self.module.f()
+        self.assertEqual(engine_probe.stop_lines(SELF_TEST_ID), {"mod.py": [2, 3]})
+        engine_probe.install_lines(self.tmp / "two", [self.path], tool_id=SELF_TEST_ID)
+        self.module.f()
+        self.assertEqual(engine_probe.stop_lines(SELF_TEST_ID), {"mod.py": [2, 3]})
+
+    # D-365: a hung or failing outside_probe step prints PROBE FAIL <step>
+    def run_outside_probe(self, side_effect: object):
+        printed = io.StringIO()
+        with mock.patch.object(outside_probe.subprocess, "run", side_effect=side_effect), \
+                contextlib.redirect_stdout(printed), contextlib.redirect_stderr(io.StringIO()):
+            code = outside_probe.main()
+        return code, printed.getvalue()
+
+    def test_a_hung_first_step_prints_probe_fail_with_the_step(self):
+        hung = outside_probe.subprocess.TimeoutExpired(["python"], 120, output=b"partial", stderr=None)
+        self.assertEqual(self.run_outside_probe(hung), (1, "PROBE FAIL import game, game_parts\n"))
+
+    def test_a_hung_game_start_prints_probe_fail_python_game_py(self):
+        ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
+        hung = outside_probe.subprocess.TimeoutExpired(["python"], 120)
+        self.assertEqual(self.run_outside_probe([ok, ok, hung]), (1, "PROBE FAIL python game.py\n"))
+
+    def test_a_hung_closed_stdin_start_prints_probe_fail_closed_stdin(self):
+        ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
+        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapat\u0131l\u0131yor\n", "")
+        hung = outside_probe.subprocess.TimeoutExpired(["python"], 120)
+        self.assertEqual(self.run_outside_probe([ok, ok, started, hung]), (1, "PROBE FAIL closed stdin\n"))
+
+    def test_a_clean_run_prints_probe_ok(self):
+        ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
+        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapat\u0131l\u0131yor\n", "")
+        eof = outside_probe.subprocess.CompletedProcess(["python"], 1, "", "EOFError")
+        self.assertEqual(self.run_outside_probe([ok, ok, started, eof]), (0, "PROBE ok parts=['game_parts.a']\n"))
 
 
 if __name__ == "__main__":

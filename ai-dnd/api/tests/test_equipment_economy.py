@@ -12,7 +12,7 @@ from api.serializers import serialize_session_state
 
 class EquipmentEconomyTests(unittest.TestCase):
     def setUp(self):
-        self.s = game.create_session()
+        self.s = game.create_session(seed=1)
         self.w = self.s.world_state
         self.w["npcs"] = [{
             "id": "vendor", "name": "Mira", "location": self.w["location"],
@@ -212,7 +212,7 @@ class EquipmentEconomyTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as temp:
                 path = Path(temp) / "save.json"
                 self.s.save_game(path)
-                restored = game.create_session()
+                restored = game.create_session(seed=1)
                 self.assertTrue(restored.load_game(path))
                 self.assertEqual(restored.world_state["inventory"], self.w["inventory"])
                 self.assertEqual(restored.world_state["currency"], self.w["currency"])
@@ -224,7 +224,7 @@ class EquipmentEconomyTests(unittest.TestCase):
         self.assertTrue(any("[item_" in i for i in items))
 
     def test_session_and_rng_isolation(self):
-        other = game.create_session()
+        other = game.create_session(seed=1)
         before, rng = copy.deepcopy(other.world_state), self.s.rng.getstate()
         self.prepare()
         self.assertEqual(other.world_state, before)

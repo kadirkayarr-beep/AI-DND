@@ -10,7 +10,7 @@ import re
 from typing import Any
 
 import tr_names
-from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
+from dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
 
 
 SPELLS = {
@@ -185,6 +185,11 @@ def longer_spell_names(supported: dict[str, str]) -> list[str]:
                    and any(alias in spelling for alias in supported)), key=len, reverse=True)
 
 
+def longer_unsupported_names() -> list[str]:
+    """Return spellings of PHB spells holding a not-yet alias, longest first (D-280)."""
+    return longer_spell_names(dict(_UNSUPPORTED_ALIASES))
+
+
 def without_names(text: str, names: list[str]) -> str:
     """The text with each named longer spell blanked out, so its inner supported name is not read (D-120)."""
     for name in names:
@@ -213,20 +218,3 @@ def classify_cast_phrase(player_input: str) -> dict[str, str] | None:
         if _alias_in_text(folded, alias):
             return {"kind": "unsupported", "spell_id": spell_id}
     return {"kind": "unknown", "spell_id": ""}
-
-
-def legality(character: dict[str, Any], spell_id: str) -> str | None:
-    """Return a rejection outcome, or None when the spell may be resolved."""
-    spell = SPELLS[spell_id]
-    known_key = "cantrips" if spell["level"] == 0 else "spells"
-    known = character.get(known_key)
-    if not isinstance(known, list) or spell_id not in known:
-        return "not_known"
-    if character.get("class") not in spell["classes"]:
-        return "invalid_class"
-    level = character.get("level", 1)
-    if type(level) is not int or isinstance(level, bool) or level < spell["min_level"]:
-        return "invalid_level"
-    if spell["uses_slot"] and remaining_slots(character) < 1:
-        return "no_slot"
-    return None

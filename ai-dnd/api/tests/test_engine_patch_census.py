@@ -10,7 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from engine_split.patch_census import not_called_tests, report, scan, targets  # noqa: E402
+from engine_split.patch_census import (  # noqa: E402
+    REPORT_PATH,
+    not_called_tests,
+    report,
+    scan,
+    targets,
+)
 
 LOCK = Path(__file__).parent / "engine_split_locks" / "patch_census.json"
 SURFACE = Path(__file__).parent / "engine_split_locks" / "surface.json"
@@ -41,6 +47,14 @@ class PatchCensusTests(unittest.TestCase):
         unexplained = sorted({s["file"] for s in sites if s["target"] == "<dynamic>"} - set(DYNAMIC_REASONS))
         self.assertEqual(unexplained, [], "computed patch names that cannot be resolved; resolve them or list them with a reason")
         self.assertEqual(lock["not_called_tests"], not_called_tests(ROOT))
+
+    def test_the_report_equals_a_fresh_scan(self) -> None:
+        """D-427: the report went stale once while only the lock was checked."""
+        if not REPORT_PATH.is_file():
+            self.skipTest("docs/ is not in the slot tree; CI and the worktree run this")
+        sites = scan(ROOT, GAME_NAMES)
+        fresh = report(sites, targets(sites), not_called_tests(ROOT))
+        self.assertEqual(REPORT_PATH.read_text(encoding="utf-8"), fresh)
 
     def test_an_unknown_target_is_seen(self):
         sites = scan(self.fixture("import game\nfrom unittest.mock import patch\n"

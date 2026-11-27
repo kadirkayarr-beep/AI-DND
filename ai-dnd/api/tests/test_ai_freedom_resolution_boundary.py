@@ -16,6 +16,7 @@ import copy
 import json
 import os
 import unittest
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -25,46 +26,31 @@ import npc_statements
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.tests import test_campaign_api as campaign_api
 from api.tests import test_campaign_time as v1
+from api.tests.front_reading import intent_packet, reading_only
 
 
-def _intent_packet(**overrides):
-    packet = {
-        "intent": "narrative",
-        "action": "",
-        "target": {"type": "none", "reference": ""},
-        "completion": "unclear",
-        "confidence": 1.0,
+def boundary_scene(test):
+    """The scene both test classes below start from: a tavern with one scribe."""
+    test.session = game.create_session(seed=11)
+    test.session.world_state["location"] = "tavern"
+    test.person = {
+        "id": "npc_ilvara_boundary", "name": "Ilvara", "role": "kâtip",
+        "location": "tavern", "personality": "", "appearance": "Mürekkep lekeli eldivenli",
+        "relationship": "neutral", "knowledge": [], "memory": [],
     }
-    packet.update(overrides)
-    return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
-
-
-def _reading_only(kinds):
-    """A model that answers only the front reading (unclear, as for a line naming nobody listed); any other call fails."""
-    def chat(**kwargs):
-        if "front" not in kwargs["format"]["properties"]:
-            raise AssertionError("no model call besides the reading")
-        kinds.append("front")
-        body = json.loads(_intent_packet()["message"]["content"])
-        body["front"] = {"kind": "unclear"}
-        return {"message": {"content": json.dumps(body, ensure_ascii=False)}}
-    return chat
+    test.session.world_state["npcs"] = [test.person]
 
 
 class EngineResolutionBoundaryTests(unittest.TestCase):
+    session: game.GameSession  # both set by boundary_scene
+    person: dict[str, Any]
+
     def setUp(self):
-        self.session = game.create_session(seed=11)
-        self.session.world_state["location"] = "tavern"
-        self.person = {
-            "id": "npc_ilvara_boundary", "name": "Ilvara", "role": "kâtip",
-            "location": "tavern", "personality": "", "appearance": "Mürekkep lekeli eldivenli",
-            "relationship": "neutral", "knowledge": [], "memory": [],
-        }
-        self.session.world_state["npcs"] = [self.person]
+        boundary_scene(self)
 
     def test_greeting_the_only_visible_person_still_reaches_them(self):
         def fake_chat(**kwargs):
-            packet = _intent_packet(intent="dialogue", action="dialogue")
+            packet = intent_packet(intent="dialogue", action="dialogue")
             body = json.loads(packet["message"]["content"])
             if "narration" in kwargs["format"]["properties"]:
                 body["narration"] = "Kâtip başını kaldırıp selamını alıyor."
@@ -80,7 +66,7 @@ class EngineResolutionBoundaryTests(unittest.TestCase):
         self.session.world_state["npcs"].append(other)
 
         def fake_chat(**kwargs):
-            body = json.loads(_intent_packet(
+            body = json.loads(intent_packet(
                 intent="dialogue", action="dialogue",
                 target={"type": "npc", "reference": "halatlı kişi",
                         "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
@@ -102,7 +88,7 @@ class EngineResolutionBoundaryTests(unittest.TestCase):
         self.session.world_state["npcs"].append(other)
 
         def fake_chat(**kwargs):
-            body = json.loads(_intent_packet(
+            body = json.loads(intent_packet(
                 intent="dialogue", action="dialogue",
                 target={"type": "npc", "reference": "halatlı kişi",
                         "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
@@ -136,7 +122,7 @@ class EngineResolutionBoundaryTests(unittest.TestCase):
 
         def fake_chat(**kwargs):
             properties = kwargs["format"]["properties"]
-            body = json.loads(_intent_packet(
+            body = json.loads(intent_packet(
                 intent="dialogue", action="dialogue",
                 target={"type": "npc", "reference": "halatlı kişi",
                         "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
@@ -202,7 +188,7 @@ class ClaimAndBudgetBoundaryTests(unittest.TestCase):
         # Python owns the answer. With the front reading on (owner, 2026-11-19), the line's one call is that reading.
         kinds = []
         expected = ["front"] if front_proposal.enabled() else []
-        with patch("game.ollama.chat", side_effect=_reading_only(kinds)) as model:
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)) as model:
             result = self.session.run_player_turn("Tamsin bana gümüş pusuladan bahsetmişti.")
         action = result["action_result"]
         self.assertEqual(kinds, expected)
@@ -231,7 +217,7 @@ class ClaimAndBudgetBoundaryTests(unittest.TestCase):
 
         def fake_chat(**kwargs):
             calls.append(sorted(kwargs["format"]["properties"]))
-            body = json.loads(_intent_packet(
+            body = json.loads(intent_packet(
                 intent="dialogue", action="dialogue",
                 target={"type": "npc", "reference": "kırmızı atkılı",
                         "npc_id": dwarf["id"], "evidence_quote": "Kırmızı atkılı"},
@@ -265,7 +251,7 @@ class ClaimAndBudgetBoundaryTests(unittest.TestCase):
                      location="tavern", appearance="İri biri")
 
         def fake_chat(**kwargs):
-            body = json.loads(_intent_packet(intent="dialogue", action="dialogue")
+            body = json.loads(intent_packet(intent="dialogue", action="dialogue")
                               ["message"]["content"])
             if "narration" in kwargs["format"]["properties"]:
                 body.update(valid_response=True, narration="Kimse karşılık vermiyor.",
@@ -286,7 +272,7 @@ class HeldReadingIsToldOnceTests(unittest.TestCase):
 
     def setUp(self):
         self.enterContext(patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "1"}))
-        EngineResolutionBoundaryTests.setUp(self)
+        boundary_scene(self)
 
     def test_a_reading_two_steps_reuse_is_one_intent_call(self):
         other = dict(self.person, id="npc_kord_told_once", name="Kord", role="hamal",
@@ -297,7 +283,7 @@ class HeldReadingIsToldOnceTests(unittest.TestCase):
         def fake_chat(**kwargs):
             properties = kwargs["format"]["properties"]
             kinds.append("front" if "front" in properties else "other")
-            body = json.loads(_intent_packet(
+            body = json.loads(intent_packet(
                 intent="dialogue", action="dialogue",
                 target={"type": "npc", "reference": "halatlı kişi",
                         "npc_id": other["id"], "evidence_quote": "halat taşıyan kişiye"},
@@ -320,7 +306,7 @@ class HeldReadingIsToldOnceTests(unittest.TestCase):
         self.session.world_state["npcs"].append(dict(self.person, id="npc_tamsin_told", name="Tamsin",
                                                      location="forest", memory=[], knowledge=[]))
         kinds = []
-        with patch("game.ollama.chat", side_effect=_reading_only(kinds)):
+        with patch("game.ollama.chat", side_effect=reading_only(kinds)):
             result = self.session.run_player_turn("Tamsin bana gümüş pusuladan bahsetmişti.")
         self.assertEqual(kinds, ["front"])
         telemetry = result["_engine_event_evidence"]["telemetry"]
@@ -391,7 +377,7 @@ class _NoIntentModel(v1.NoModel):
 
     def chat(self, **kwargs):
         self.calls.append(kwargs)
-        return _intent_packet(intent="attack",
+        return intent_packet(intent="attack",
                               target={"type": "npc", "reference": "Rakip"})
 
 

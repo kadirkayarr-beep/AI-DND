@@ -230,7 +230,7 @@ def named_skill(player_input):
 
     The skill word and the check word stand side by side, or the skill stands in brackets after an ability word
     ("Güç (Atletizm)"): "tip", "tarih", "doğa" and "kontrol" far apart in a line are everyday words."""
-    from api.dnd_2024_rules import SKILL_DEFINITIONS
+    from dnd_2024_rules import SKILL_DEFINITIONS
     if not isinstance(player_input, str) or "?" in player_input:
         return None
     text = game._normalize_turkish_typos(player_input)
@@ -585,8 +585,6 @@ def resolve_python_world_action(player_input):
     if weapon_mentioned and any(token in text for token in ("kırdım", "yok ettim", "sattım", "parçaladım")):
         if "Kılıç" in equipment_economy.labels(world_state["inventory"]):
             return "Kılıcın hâlâ yanında; ona bir şey olmamış."
-        if "Kılıç" in equipment_economy.labels(world_state["ground_items"]):
-            return "Kılıç hâlâ yerde, olduğu gibi duruyor."
         return "Eşyaların olduğu gibi duruyor."
     if re.search(r"\buçuyorum\b|\buçmaya çalış", text):
         return "Kollarını açıp sıçrıyorsun ama ayakların yeniden yere iniyor; seni uçuracak bir gücün yok."
@@ -627,7 +625,7 @@ def resolve_python_world_action(player_input):
         if not any(recipient.casefold().startswith(target) for target in known_recipients if target):
             missing_item = None
     if missing_item:
-        tracked_items = {item.casefold() for item in equipment_economy.labels(world_state["inventory"] + world_state["ground_items"])}
+        tracked_items = {item.casefold() for item in equipment_economy.labels(world_state["inventory"])}
         for container in world_state["containers"]:
             tracked_items.update(item.casefold() for item in container.get("contents", []))
         if item_name not in tracked_items:

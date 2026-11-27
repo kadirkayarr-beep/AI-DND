@@ -38,7 +38,7 @@ def catalog() -> dict[str, dict[str, Any]]:
 
 
 def _class_definition(character: dict[str, Any]) -> dict[str, Any]:
-    from api.dnd_2024_rules import CLASS_DEFINITIONS
+    from dnd_2024_rules import CLASS_DEFINITIONS
     return CLASS_DEFINITIONS.get(character.get("class"), {})
 
 
@@ -103,11 +103,6 @@ def feat_status(character: dict[str, Any], feat: str, source: str) -> dict[str, 
     if feat in held_feats(character) and not info["repeatable"]:
         reasons.append("already_taken")
     return {"eligible": not reasons, "reasons": reasons}
-
-
-def eligible_feats(character: dict[str, Any], source: str) -> list[str]:
-    """Feats the character may take from `source` (background, species, class_asi, fighting_style, any), in catalog order."""
-    return [name for name in catalog() if feat_status(character, name, source)["eligible"]]
 
 
 def _default_source(category: str) -> str:

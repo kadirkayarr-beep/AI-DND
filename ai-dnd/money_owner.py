@@ -171,6 +171,20 @@ def current(session: Any) -> CoinDecision | None:
     return decision if isinstance(decision, CoinDecision) else None
 
 
+def room_by_speech(session: Any, hearer: Any) -> bool:
+    """D-425: a room asked for in talk with no coin held out is answered by the person in speech, and its card opens
+    after the reply (`ask_after_reply`, the way an `asks_for` room does), not in place of it. True when the line was
+    handed on: the decision is dropped and the room is asked for, so one consumer opens the card and `ask_after_reply`
+    keeps its own checks (declined today, a card already open, the purse)."""
+    decision = current(session)
+    if (decision is None or decision.kind != "room" or decision.amount_cp or getattr(session, "_coin_paid", None)
+            or not isinstance(hearer, dict) or hearer.get("id") != decision.npc_id):
+        return False
+    session._coin_decision = None
+    session._asks_for = (decision.npc_id, "room")
+    return True
+
+
 def forget_turn(session: Any) -> None:
     """A turn that runs no front reading (a check turn) starts with no decision, answer or note of an earlier line.
 
@@ -213,6 +227,15 @@ def unclear_note(amount_cp: int) -> str:
 
 def _tell(result: dict[str, Any], text: str) -> None:
     result["narration"] = f"{result.get('narration') or ''} {text}".strip()
+
+
+def ask_amount_after_reply(session: object, result: dict[str, Any]) -> None:
+    """D-403: coin held out with no figure has no amount to decide, so the player is asked. Nothing moves."""
+    if getattr(session, "_coin_unnamed", False) and isinstance(result, dict):
+        import economic_actions
+        ask = economic_actions._CLARIFY["amount_required"]
+        if ask not in (result.get("narration") or ""):  # the old chain may have asked
+            _tell(result, ask)
 
 
 def _note(session: Any, npc_id: str | None, text: str) -> None:

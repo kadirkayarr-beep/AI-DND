@@ -5,7 +5,6 @@ Uses REAL Ollama qwen3:8b - NO MOCKS
 """
 import sys
 import io
-import hashlib
 from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -28,6 +27,7 @@ except Exception as e:
 
 # Load game.py functions
 import game
+from engine_digest import engine_digest
 session = game.create_session()
 
 # Extract needed functions
@@ -43,7 +43,6 @@ def reset_world_state():
     world_state["location"] = "tavern"
     world_state["npcs"] = []
     world_state["inventory"] = ["Macera çantası", "Kılıç"]
-    world_state["ground_items"] = []
     world_state["ground_items_by_location"] = {}
     world_state["doors"] = []
     world_state["containers"] = []
@@ -85,8 +84,7 @@ def force_roll(value):
     return original
 
 def hash_file(path):
-    with open(path, 'rb') as f:
-        return hashlib.sha256(f.read()).hexdigest()[:16]
+    return engine_digest(path)[:16]
 
 # ============================================================
 print("="*80)

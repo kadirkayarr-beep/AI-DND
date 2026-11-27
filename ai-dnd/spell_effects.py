@@ -22,6 +22,8 @@ import functools
 import re
 from typing import Any
 
+import tr_names
+
 KEY = "spell_effects_v1"
 # Turkish creation names (dnd_2024_rules SPELLS_CATALOG name_tr) and what the fact tells; mechanics stay out of it.
 NARRATIVE = {
@@ -42,6 +44,18 @@ _CAST_IDIOM = re.compile(
     r"\bcast(?:s|ing)?\s+(?:(?:a|an|the|my|his|her|their|your|our|one|some)\s+)?(?:\w+\s+)?"
     r"(?:glances?|looks?|eyes?|gaze|glares?|shadows?|votes?|ballots?|nets?|lines?|lots?|dice|die|doubts?|stones?"
     r"|anchor)\b|\bcast(?:s|ing)?\s+(?:aside|away|off|around|about)\b")
+
+
+@functools.lru_cache(maxsize=1)
+def _turkish_spell_names() -> re.Pattern[str]:
+    """Return every Turkish PHB spell spelling (folded), longest first (D-280).
+
+    Its letters are a name, never a negation ("Yaşam", "Muhteşem").
+    """
+    spellings = tr_names.spellings_for(tr_names.table()["spells"])
+    names = sorted({_fold(spelling) for spelling in spellings}, key=len, reverse=True)
+    alternatives = "|".join(map(re.escape, names))
+    return re.compile(rf"(?<![a-z0-9])(?:{alternatives})(?![a-z0-9])")
 
 
 @functools.lru_cache(maxsize=1)
@@ -104,12 +118,18 @@ def _range_tr(value: str) -> str:
 
 
 @functools.lru_cache(maxsize=1)
-def _longer_names() -> list[str]:
-    """Folded spellings of PHB spells whose name holds a resolver's name ("mass healing word"), longest first (D-120)."""
+def _longer_names() -> tuple[list[str], list[str]]:
+    """Return folded spellings of PHB spells holding another spell's name (D-120).
+
+    First list: a resolver's name ("mass healing word").
+    Second: a not-yet alias ("lanet verme" holds "lanet") (D-280).
+    """
     import spell_scope
     import spells
     names = {name.casefold(): name for name in spell_scope.CATALOG} | spell_scope.ALIASES
-    return sorted({_fold(name) for name in spells.longer_spell_names(names)}, key=len, reverse=True)
+    resolvers, unsupported = (spells.longer_spell_names(names), spells.longer_unsupported_names())
+    return (sorted({_fold(n) for n in resolvers}, key=len, reverse=True),
+            sorted({_fold(n) for n in unsupported}, key=len, reverse=True))
 
 
 def named(message: Any) -> tuple[str, str] | None:
@@ -120,9 +140,12 @@ def named(message: Any) -> tuple[str, str] | None:
     import spell_scope
     import spells
     folded = _fold(message)
-    if _QUESTION.search(folded) or _NEGATED.search(folded):
+    unnamed = _turkish_spell_names().sub(" spell ", folded)
+    if _QUESTION.search(unnamed) or _NEGATED.search(unnamed):
         return None
-    plain = spells.without_names(folded, _longer_names())  # "mass healing word" is not Healing Word (D-214)
+    longer, longer_unsupported = _longer_names()
+    # "mass healing word" is not Healing Word (D-214)
+    plain = spells.without_names(folded, longer)
     if any(re.search(rf"(?<![a-z0-9]){re.escape(_fold(alias))}(?![a-z0-9])", plain)
            for alias in [*spell_scope.CATALOG, *spell_scope.ALIASES]):
         return None
@@ -135,8 +158,11 @@ def named(message: Any) -> tuple[str, str] | None:
         return "narrative", hits.pop()
     if not _CAST_WORD.search(_CAST_IDIOM.sub(" ", _spell_names().sub(" spell ", folded))):
         return None
+    # "lanet verme" is Bestow Curse, not Bane (D-280)
+    unsupported_plain = spells.without_names(plain, longer_unsupported)
     for alias, spell in spells._UNSUPPORTED_ALIASES:
-        if spell not in NARRATIVE and re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", plain):
+        pattern = rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])"
+        if spell not in NARRATIVE and re.search(pattern, unsupported_plain):
             return "not_yet", spell
     for spell in sorted(_manifest_names(), key=len, reverse=True):
         if re.search(rf"(?<![a-z0-9]){re.escape(_fold(spell))}(?![a-z0-9])", folded):
@@ -189,11 +215,37 @@ def current(world: dict[str, Any]) -> list[dict[str, Any]]:
     return facts if isinstance(facts, list) else []
 
 
-def active(world: dict[str, Any]) -> list[dict[str, Any]]:
-    """The facts still running at the campaign second (read only)."""
+def _running(world: dict[str, Any]) -> tuple[int, list[dict[str, Any]]]:
     import spell_scope
     now = spell_scope.clock_second(world)
-    return [fact for fact in current(world) if fact["until_second"] > now]
+    return now, [fact for fact in current(world) if fact["until_second"] > now]
+
+
+def active(world: dict[str, Any]) -> list[dict[str, Any]]:
+    """The facts still running at the campaign second (read only)."""
+    return _running(world)[1]
+
+
+def scene_view(world: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Return the scene context of the spells still running (D-057).
+
+    The next turn's narrator may tell about them; the result is empty when none runs
+    in the scene where the player now stands.
+    """
+    now, facts = _running(world)
+    here = str(world.get("location") or "unknown")
+    facts = [fact for fact in facts if fact["location_id"] == here]
+    view = [
+        {
+            "spell": fact["spell_id"],
+            "name_tr": NARRATIVE[fact["spell_id"]][0],
+            "effect": NARRATIVE[fact["spell_id"]][1],
+            "location_id": fact["location_id"],
+            "seconds_left": fact["until_second"] - now,
+        }
+        for fact in facts
+    ]
+    return {"active_spell_effects": view} if view else {}
 
 
 def validate_saved(world: dict[str, Any]) -> None:

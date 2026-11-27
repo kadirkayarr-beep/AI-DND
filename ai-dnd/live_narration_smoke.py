@@ -6,7 +6,6 @@ No model or engine function is mocked. Exit 2 means the live prerequisite is mis
 """
 
 import copy
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -14,6 +13,7 @@ from unittest.mock import patch
 
 import game
 import ollama
+from engine_digest import engine_digest
 
 
 TURNS = (
@@ -33,7 +33,7 @@ TURNS = (
 
 def main():
     source = Path(game.__file__).resolve()
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    digest = engine_digest(source)
     try:
         host = os.environ.get("OLLAMA_HOST")
         token = os.environ.get("OLLAMA_PROXY_TOKEN")

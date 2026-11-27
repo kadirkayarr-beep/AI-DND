@@ -17,6 +17,8 @@ from api.tests.town_seed import fixed_town
 
 # A fixed town: a new campaign seeds its work and places from its id, so a random id gave a random town.
 TOWN_SEED = 100
+# The dice of the fight-back test: a pinned run in which the worker lands a blow.
+FIGHT_BACK_DICE = 1776
 
 START = {
     "setting_id": "forgotten_realms", "region_pack_id": "fr:pack:the_north:neverwinter:v1",
@@ -197,8 +199,10 @@ class AttackWordsTests(ThreePlaysTests):
 
 
 class FightBackTests(ThreePlaysTests):
-    async def test_a_person_with_no_stat_block_hits_back(self):
+    async def _twelve_blows_at_a_worker(self):
+        """The session's dice are pinned (D-480), so the twelve counter-attacks are the same on every run."""
         await self.begin(BARBARIAN)
+        self.session.rng.seed(FIGHT_BACK_DICE)
         self.world["npcs"].clear()
         with self.app.state.ollama_adapter.engine_binding():
             person = self.session.create_npc_from_ai(
@@ -210,7 +214,16 @@ class FightBackTests(ThreePlaysTests):
             out = await self.say("liman işçisine vuruyorum", PlayClient(intent="attack"))
             log.append(out["narration"])
             log.append(str(out.get("combat_result"))[:700])
+        return before, log
+
+    async def test_a_person_with_no_stat_block_hits_back(self):
+        before, log = await self._twelve_blows_at_a_worker()
         self.assertLess(self.session.character["current_hp"], before, log)
+
+    async def test_the_fight_back_dice_are_pinned(self):
+        _, first = await self._twelve_blows_at_a_worker()
+        _, second = await self._twelve_blows_at_a_worker()
+        self.assertEqual(first[::2], second[::2])  # the narrations, which tell every die; the results carry random ids
 
     async def test_an_armed_guard_is_harder_than_a_passer_by(self):
         await self.begin(BARBARIAN)

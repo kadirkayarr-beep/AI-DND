@@ -58,7 +58,7 @@ _TURKISH_FOLD = str.maketrans({"ı": "i", "ğ": "g", "ü": "u", "ş": "s", "ö":
 
 
 def _fold(value: Any) -> str:
-    text = str(value or "").casefold().translate(_TURKISH_FOLD)
+    text = str(value or "").casefold().replace("\u0307", "").translate(_TURKISH_FOLD)
     text = re.sub(r"['’](?:s|[a-z]{1,5})\b", " ", text)
     return " ".join(re.findall(r"[a-z0-9]+", text))
 

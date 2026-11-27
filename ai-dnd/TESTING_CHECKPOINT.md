@@ -25,8 +25,6 @@ Moved to: `legacy_debug/`
 
 ## Deferred/Non-Release Diagnostics (still in root)
 - `test_door_enter.py` - Door mechanics
-- `test_migration.py` - Migration test
-- `test_migration_harden.py` - Migration hardening
 - `test_npc_query.py` - NPC query test
 - `test_query.py` - Query test
 - `test_query_logic.py` - Query logic

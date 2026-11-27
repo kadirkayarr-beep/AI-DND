@@ -9,11 +9,12 @@ process.env.PORT ||= '4188';
 process.env.BASE_PATH ||= '/';
 delete process.env.REPL_ID;
 
-let vite, ui, React, render;
+let vite, ui, ctl, React, render;
 before(async () => {
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'), server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   ui = await vite.ssrLoadModule('/src/components/shop-panel.tsx');
+  ctl = await vite.ssrLoadModule('/src/lib/shop-controllers.ts');
   React = await import('react');
   render = (await import('react-dom/server')).renderToStaticMarkup;
 });
@@ -37,7 +38,7 @@ function sender() {
 
 test('test_confirm_uses_bound_offer', () => {
   const { sentActions, send } = sender();
-  const card = ui.createOfferCardController({
+  const card = ctl.createOfferCardController({
     onConfirm: (offerId, digest) => send({ kind: 'confirm', offer_id: offerId, confirmation_digest: digest }),
     onCancel: offerId => send({ kind: 'cancel', offer_id: offerId }),
   });
@@ -59,7 +60,7 @@ test('test_confirm_uses_bound_offer', () => {
 
 test('test_double_click_sends_one_action', () => {
   const { sentActions, send } = sender();
-  const card = ui.createOfferCardController({
+  const card = ctl.createOfferCardController({
     onConfirm: (offerId, digest) => send({ kind: 'confirm', offer_id: offerId, confirmation_digest: digest }),
     onCancel: offerId => send({ kind: 'cancel', offer_id: offerId }),
   });
@@ -76,7 +77,7 @@ test('test_repriced_card_requires_second_click', () => {
   const notice = ui.economicResolutionNotice({ status: 'refused', reason_code: 'stale', public_summary: 'x', net_debit_cp: 0 });
   assert.match(notice, /Teklif değişti; yeni kart gerekir/);
   const { sentActions, send } = sender();
-  const card = ui.createOfferCardController({
+  const card = ctl.createOfferCardController({
     onConfirm: (offerId, digest) => send({ kind: 'confirm', offer_id: offerId, confirmation_digest: digest }),
     onCancel: offerId => send({ kind: 'cancel', offer_id: offerId }),
   });
@@ -91,7 +92,7 @@ test('test_repriced_card_requires_second_click', () => {
 
 test('test_cancel_restores_chat_without_mutation', () => {
   const { sentActions, send } = sender();
-  const card = ui.createOfferCardController({
+  const card = ctl.createOfferCardController({
     onConfirm: (offerId, digest) => send({ kind: 'confirm', offer_id: offerId, confirmation_digest: digest }),
     onCancel: offerId => send({ kind: 'cancel', offer_id: offerId }),
   });
@@ -110,7 +111,7 @@ test('test_refused_resolution_shows_engine_summary', () => {
 
 test('test_prepare_controls_send_room_with_null_amount', () => {
   const { sentActions, send } = sender();
-  const controls = ui.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
+  const controls = ctl.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
   assert.equal(controls.submit({ purpose: 'room', recipientId: 'barman', amount: '', tip: '', allOrNone: false }), true);
   assert.equal(sentActions.length, 1);
   assert.equal(sentActions[0].message, 'Teklif hazırla');
@@ -124,7 +125,7 @@ test('test_prepare_controls_send_room_with_null_amount', () => {
 
 test('test_prepare_controls_gift_and_tip_require_positive_amount', () => {
   const { sentActions, send } = sender();
-  const controls = ui.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
+  const controls = ctl.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
   for (const purpose of ['gift', 'tip']) {
     for (const amount of ['', '0', '-3', '2.5', 'beş']) {
       assert.equal(controls.submit({ purpose, recipientId: 'barman', amount, tip: '', allOrNone: false }), false, `${purpose}:${amount}`);
@@ -138,9 +139,9 @@ test('test_prepare_controls_gift_and_tip_require_positive_amount', () => {
 
 test('Görev 32: the Ne field opens empty and an empty Ne sends nothing, never a gift', () => {
   const { sentActions, send } = sender();
-  const controls = ui.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
+  const controls = ctl.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
   for (const amount of ['7', '5900', '']) {
-    assert.equal(ui.prepareProposal({ purpose: '', recipientId: 'barman', amount, tip: '', allOrNone: false }), null, amount);
+    assert.equal(ctl.prepareProposal({ purpose: '', recipientId: 'barman', amount, tip: '', allOrNone: false }), null, amount);
     assert.equal(controls.submit({ purpose: '', recipientId: 'barman', amount, tip: '', allOrNone: false }), false, amount);
   }
   assert.equal(sentActions.length, 0);
@@ -164,7 +165,7 @@ test('test_prepare_controls_disabled_while_card_open', () => {
 
 test('test_prepare_controls_room_tip_and_dependency', () => {
   const { sentActions, send } = sender();
-  const controls = ui.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
+  const controls = ctl.createPrepareController(proposal => send({ kind: 'prepare', proposal }));
   assert.equal(controls.submit({ purpose: 'room', recipientId: 'barman', amount: '', tip: '5', allOrNone: false }), true);
   assert.equal(sentActions[0].economic_action.proposal.tip_cp, 5);
   assert.equal(sentActions[0].economic_action.proposal.dependency, 'base_required');

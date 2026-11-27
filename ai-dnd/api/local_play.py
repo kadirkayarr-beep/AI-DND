@@ -37,6 +37,7 @@ from api.auth import (
     FailClosedAuthenticator,
     Principal,
     REQUEST_MARKER,
+    register_local_authenticator,
 )
 
 
@@ -150,6 +151,10 @@ def local_authenticator_from_environ(
     ):
         return FailClosedAuthenticator()
     return LocalPlayAuthenticator(listen_host)
+
+
+if __name__ != "__main__":  # a copy run under -m has classes the middleware ignores
+    register_local_authenticator(local_authenticator_from_environ)
 
 
 def bind_loopback_socket(host: str, port: int) -> socket.socket:

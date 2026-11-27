@@ -10,48 +10,24 @@ export function preparesSpells(state: { character?: { class?: string | null } | 
 
 const OPEN_REASON: Record<string, string> = {
   creation: 'Karakterin yeni yaratıldı: ilk hazırlık listeni seç. Pencere, ilk kaydettiğin listeye kadar açık kalır.',
-  migration: 'Eski kaydın yeni büyü kurallarına taşındı: hazırlık listeni bir kez seç. Pencere, ilk kaydettiğin listeye kadar açık kalır.',
   long_rest: 'Uzun dinlenmeyi bitirdin: hazırlık listeni değiştirebilirsin. Zaman ilerleyince ya da çatışma başlayınca pencere kapanır.',
   level_up: 'Yeni seviyeye geçtin ve hazırlık sınırın büyüdü. Bu pencerede yalnız büyü ekleyebilirsin; hazırladığın büyüleri değiştirmek için uzun dinlenme gerekir. Pencere, ilk kaydettiğin listeye kadar açık kalır.',
 };
 
 export const WINDOW_SHORT: Record<string, string> = {
-  creation: 'Açık · yaratım', migration: 'Açık · kayıt taşındı', long_rest: 'Açık · uzun dinlenme', level_up: 'Açık · yeni seviye',
+  creation: 'Açık · yaratım', long_rest: 'Açık · uzun dinlenme', level_up: 'Açık · yeni seviye',
 };
 
-/** D-039: an old save's Wizard with no spellbook chooses it once; the server sends the options and its own offer. */
-export function choosingBook(view: SpellPrepareViewResponse): boolean {
-  return !view.supported && view.blocked_reason === 'spellbook_missing' && (view.suggested_spellbook?.length ?? 0) > 0
-    && (view.spellbook_options?.length ?? 0) > 0;
-}
-
-/** How many spells the book takes: the size of the server's offer (six at level 1, PHB 2024). */
-export function bookSize(view: SpellPrepareViewResponse): number {
-  return choosingBook(view) ? view.suggested_spellbook?.length ?? 0 : 0;
-}
-
-/** What the player starts from: the server's offer while choosing a book, otherwise the saved list. */
+/** What the player starts from: the saved list. */
 export function initialDraft(view: SpellPrepareViewResponse): string[] {
-  return choosingBook(view) ? [...(view.suggested_spellbook ?? [])] : [...view.prepared];
-}
-
-/** The spells the player may tick: the book options while choosing a book, otherwise the window's candidates. */
-function selectable(view: SpellPrepareViewResponse): readonly string[] {
-  return choosingBook(view) ? view.spellbook_options ?? [] : view.candidates;
+  return [...view.prepared];
 }
 
 /** Why the window is open or closed, in plain Turkish; never a reason the engine did not give. */
 export function windowReasonText(view: SpellPrepareViewResponse, combatActive: boolean): string {
-  if (choosingBook(view)) {
-    return `Büyü kitabın kayıtta yok: bu eski kayıt büyü seçimlerini taşımıyor. Kitabına ${bookSize(view)} birinci seviye Wizard büyüsü seç. `
-      + 'Önerilen büyüler işaretli; istediğini değiştirebilirsin. Bu seçim bir kez yapılır ve Geri Al ile geri alınamaz. '
-      + (combatActive
-        ? 'Çatışma sürerken kaydedersen hazırlık penceresi açılmaz; uzun dinlenmeyi bitirince ya da yeni bir seviyeye geçince açılır.'
-        : 'Kitabı kaydedince hazırlık penceresi açılır.');
-  }
   if (!view.supported) {
     return view.blocked_reason === 'spellbook_missing'
-      ? 'Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor. Büyü hazırlanamaz.'
+      ? 'Büyü durumu kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor. Büyü hazırlanamaz.'
       : 'Bu sınıf büyü hazırlamaz.';
   }
   if (view.open) return OPEN_REASON[view.reason ?? ''] ?? 'Hazırlık penceresi açık.';
@@ -66,29 +42,20 @@ export function lockedSpells(view: SpellPrepareViewResponse): ReadonlySet<string
 
 /** Candidates first (server order), then any prepared spell the server did not list, so nothing silently disappears. */
 export function spellChoices(view: SpellPrepareViewResponse): string[] {
-  if (choosingBook(view)) return [...selectable(view)];
   return [...view.candidates, ...view.prepared.filter(id => !view.candidates.includes(id))];
 }
 
 export function toggleSpell(view: SpellPrepareViewResponse, draft: readonly string[], id: string): string[] {
-  if (choosingBook(view)) {
-    if (draft.includes(id)) return draft.filter(spell => spell !== id);
-    return draft.length >= bookSize(view) || !selectable(view).includes(id) ? [...draft] : [...draft, id];
-  }
   if (!view.open || !view.supported) return [...draft];
   if (draft.includes(id)) return lockedSpells(view).has(id) ? [...draft] : draft.filter(spell => spell !== id);
   if (draft.length >= view.limit || !view.candidates.includes(id)) return [...draft];
   return [...draft, id];
 }
 
-export type PrepareBody = { prepared: string[] } | { spellbook: string[] };
+export type PrepareBody = { prepared: string[] };
 
 /** The body for `spellcasting/prepare`, or null while the list cannot be sent as it is. */
 export function prepareRequest(view: SpellPrepareViewResponse, draft: readonly string[]): PrepareBody | null {
-  if (choosingBook(view)) {
-    const ok = draft.length === bookSize(view) && new Set(draft).size === draft.length && draft.every(id => selectable(view).includes(id));
-    return ok ? { spellbook: [...draft] } : null;
-  }
   if (!view.open || !view.supported || draft.length > view.limit || new Set(draft).size !== draft.length) return null;
   if (!draft.every(id => view.candidates.includes(id))) return null;
   for (const id of lockedSpells(view)) if (!draft.includes(id)) return null;
@@ -106,7 +73,6 @@ export function droppedText(dropped: readonly SpellPrepareDropped[], label: (id:
 
 /** Our own sentence from the result fields (D-070: the server message carries English ids). */
 export function resultText(result: SpellPrepareResult, label: (id: string) => string): string {
-  if (result.status === 'spellbook_saved') return 'Büyü kitabın kaydedildi. Şimdi hazırlık listeni seç.';
   if (result.status === 'too_many') {
     return `En çok ${result.limit} büyü hazırlayabilirsin; ${result.excess} fazlası var. Hangisini bırakıyorsun? Liste kaydedilmedi.`;
   }
@@ -115,11 +81,8 @@ export function resultText(result: SpellPrepareResult, label: (id: string) => st
 }
 
 const REFUSALS: Record<string, string> = {
-  prepare_spellbook_invalid: 'Büyü kitabına Wizard listesinden tam altı farklı birinci seviye büyü seçmelisin. Kitap kaydedilmedi.',
-  prepare_spellbook_not_missing: 'Büyü kitabın zaten kayıtlı; kitap yeniden seçilmez. Bu seçim kaydedilmedi; güncel durumu yenile.',
-  prepare_request_mixed: 'Büyü kitabı tek başına kaydedilir; hazırlık listesi ondan sonra seçilir. Hiçbir şey kaydedilmedi.',
   prepare_window_closed: 'Hazırlık penceresi kapalı: büyü hazırlamak için uzun dinlenmeyi yeni bitirmiş ya da yeni bir seviyeye geçmiş olmalısın. Listen kaydedilmedi.',
-  prepare_spellbook_missing: 'Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor. Listen kaydedilmedi.',
+  prepare_spellbook_missing: 'Büyü durumu kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor. Listen kaydedilmedi.',
   prepare_not_supported: 'Bu sınıf büyü hazırlamaz. Listen kaydedilmedi.',
   prepare_unavailable: 'Kayıtlı büyü durumu okunamadı. Listen kaydedilmedi.',
   prepare_level_up_additive_only: 'Yeni seviyede yalnız büyü ekleyebilirsin; hazırladığın büyüleri çıkarmak için uzun dinlenme gerekir. Listen kaydedilmedi.',

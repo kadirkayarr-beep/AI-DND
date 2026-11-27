@@ -22,7 +22,7 @@ let fixtureHp = 12;
 // UI slice 3: a preparing caster (Wizard/Cleric) and its preparation window, only with ?caster=wizard|cleric.
 const casterParam = new URLSearchParams(window.location.search).get("caster");
 const casterClass = casterParam === "wizard" ? "Wizard" : casterParam === "cleric" ? "Cleric" : null;
-const STANDING = ["creation", "migration", "level_up"];
+const STANDING = ["creation", "level_up"];
 const prepFixture = {
   reason: new URLSearchParams(window.location.search).get("prep") ?? "long_rest",
   open: true,

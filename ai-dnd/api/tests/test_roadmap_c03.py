@@ -1,7 +1,7 @@
 """C03: every PHB 2024 feat has its prerequisite, repeatability and ability-score rule enforced, from a source oracle.
 
 `content/rules/phb2024/feats.json` holds facts and pages read from the book (no book text). `feat_rules` answers who may take
-a feat (`eligible_feats`, `feat_status`) and computes the ability increase a feat gives (`apply_feat_choice`, pure: it returns
+a feat (`feat_status`) and computes the ability increase a feat gives (`apply_feat_choice`, pure: it returns
 a delta and never mutates the character). The expectations in the explicit tests below were written from the book text
 independently of the oracle, so the oracle cannot just agree with itself. The other benefits of a feat (what it lets a character
 DO) are not implemented here; every delta lists them under `effects_pending`, and the C03 leaves for them stay open.
@@ -28,7 +28,7 @@ def hero(cls="Fighter", level=4, **scores):
 
 
 def eligible(character, feat, source="class_asi"):
-    return feat in feat_rules.eligible_feats(character, source)
+    return feat in feat_rules.catalog() and feat_rules.feat_status(character, feat, source)["eligible"]
 
 
 class CatalogTests(unittest.TestCase):

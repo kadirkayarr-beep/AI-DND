@@ -29,7 +29,6 @@ from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Literal, Protocol
 from uuid import uuid4
 from unittest.mock import patch
@@ -50,8 +49,10 @@ from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
+from api.tests.front_reading import call_kind, schema_properties
 from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.journeys.report import scenario_outcome
+from api.tests.town_seed import campaign_seeded as _campaign_seeded
 from api.tests.journeys.schema import Scenario, ScenarioError, Step, check_expect, check_invariant, check_start_hour
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
@@ -95,6 +96,8 @@ Status = Literal["pass", "known_broken", "new_break", "marker_stale", "unreached
 SETUP_KEYS = frozenset({"character", "campaign_start", "place", "npcs", "currency", "inventory", "ammunition",
                         "current_hp", "seed", "front_proposal", "death_mode", "job", "letter", "room",
                         "ambient_event", "campaign_seed", "start_hour", "xp"})
+# Added to a scenario's seed for each repeat in one store; above every scenario seed (test_journey_runner checks).
+REPEAT_SEED_STRIDE = 100_000
 AMBIENT_EVENT_KEYS = frozenset({"event_id", "turns_ago"})
 PLACE_KEYS = frozenset({"kind", "name", "scene_kind", "place_kind", "no_exit"})
 JOB_KEYS = frozenset({"type", "owner", "status", "pay", "line", "work_days", "noun", "recipient", "target_kind"})
@@ -155,23 +158,6 @@ class StepResult:
     reading: str = ""  # what the model's front reading / classifier answered this step (the report's raw log)
     # What ``varis`` observed after the step ({cagri, kaynak, neden}); the real-chain report lists it for every run.
     varis: Mapping[str, Any] | None = None
-
-
-def _properties(schema: Any) -> Mapping[str, Any]:
-    properties = schema.get("properties", {}) if isinstance(schema, Mapping) else {}
-    return properties if isinstance(properties, Mapping) else {}
-
-
-def call_kind(schema: Any) -> str | None:
-    """The model call's kind, told apart by its requested schema: ``arrival`` (looked at first: its schema carries
-    ``narration`` too), ``front``, ``intent``, ``speech``, ``steps``, ``narration``, or None for a call no scenario
-    can script."""
-    properties = _properties(schema)
-    for key, kind in (("arrival", "arrival"), ("front", "front"), ("intent", "intent"), ("spoken_text", "speech"), ("steps", "steps"),
-                      ("narration", "narration")):
-        if key in properties:
-            return kind
-    return None
 
 
 class NarratorInput:
@@ -255,7 +241,7 @@ class ScriptedClient(fixtures.FakeOllamaClient):
         self.unexpected: list[list[str]] = []
 
     def chat(self, *args, **kwargs):
-        properties = _properties(kwargs.get("format"))
+        properties = schema_properties(kwargs.get("format"))
         kind = call_kind(kwargs.get("format"))
         if kind == "front":
             packet = {**self._intent_packet(properties), "front": self._front()}
@@ -1061,14 +1047,16 @@ class JourneyCase(unittest.IsolatedAsyncioTestCase):
 
     async def _journey_campaign(self, setup: Mapping[str, Any]) -> dict:
         # A seed is the campaign's id and one store holds one of each: a test that makes the same seeded setup
-        # again in the same store (a reset, a subtest) takes the next seed for each new campaign, as fixed_town
-        # does; a fresh store (a new asyncSetUp) starts from the setup's own seed again.
+        # again in the same store (a reset, a subtest) takes a repeat seed for each new campaign: the setup's seed
+        # plus REPEAT_SEED_STRIDE times the repeat count, far from every scenario's seed (sibling scenarios sit
+        # one apart), so a repeat never lands on a sibling; a fresh store (a new asyncSetUp) starts from the
+        # setup's own seed again.
         if type(setup.get("campaign_seed")) is int:
             if vars(self).get("_seeded_store") is not self.store:
                 self._seeded_store, self._seeded_campaigns = self.store, {}
             first = setup["campaign_seed"]
             self._seeded_campaigns[first] = self._seeded_campaigns.get(first, -1) + 1
-            setup = {**setup, "campaign_seed": first + self._seeded_campaigns[first]}
+            setup = {**setup, "campaign_seed": first + REPEAT_SEED_STRIDE * self._seeded_campaigns[first]}
         with _campaign_seeded(setup):
             return await self._new_journey_campaign(setup)
 
@@ -1240,19 +1228,6 @@ def _forget_arrival_source(case: Any, session_id: str) -> None:
 
 def _show(value: Any) -> str:
     return "yok" if value is None else str(value)
-
-
-def _campaign_seeded(setup: Mapping[str, Any]) -> AbstractContextManager[Any]:
-    """The setup's ``campaign_seed`` as the new campaign's id (every other id stays random); untouched without it."""
-    if "campaign_seed" not in setup:
-        return nullcontext()
-    number = setup["campaign_seed"]
-    if type(number) is not int or not 0 < number < 10 ** 12:
-        raise ScenarioError("setup 'campaign_seed' pozitif bir tam sayı olmalı")
-    import uuid
-    from api import session_manager
-    ids = iter([uuid.UUID(f"00000000-0000-4000-8000-{number:012d}")])
-    return patch.object(session_manager, "uuid", SimpleNamespace(uuid4=lambda: next(ids, None) or uuid4()))
 
 
 def _front_setting(setup: Mapping[str, Any]) -> AbstractContextManager[Any]:

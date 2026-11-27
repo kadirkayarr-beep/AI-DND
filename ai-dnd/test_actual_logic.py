@@ -12,7 +12,6 @@ def reset():
     session.world_state['location'] = 'tavern'
     session.world_state['npcs'] = []
     session.world_state['inventory'] = ['Macera çantası', 'Kılıç']
-    session.world_state['ground_items'] = []
     session.world_state['doors'] = []
     session.world_state['containers'] = []
     session.world_state['features'] = []

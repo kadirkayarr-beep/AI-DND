@@ -4,6 +4,7 @@ import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { emptyStartingDraft } from '../src/lib/sorcerer-starting-creation.ts';
+import { isCasterStartClass, casterOptions } from '../src/lib/prepared-caster-starting-creation.ts';
 
 // Fighter 1-5 UI. Behavioural tests only: real functions, real components called as functions or rendered, real screen code extracted by AST and run in vm.
 const ABILITIES = ['strength', 'constitution', 'intelligence', 'wisdom', 'charisma'];
@@ -128,7 +129,7 @@ test('starting components show the live levels and the server scope, and choosin
 test('real screen: class step, choices and summary follow the live catalog for Fighter only', async () => {
   const { evaluate, declaration, guards } = await screen();
   const read = helper.readFighterStartingCreationOptions, stepValid = declaration('isStepValid');
-  const run = (metadata, startingLevel, characterClass = 'Fighter') => evaluate(stepValid, { characterClass, startingDraft: { ...emptyStartingDraft(), startingLevel }, fighterStartingMetadata: metadata, barbarianStartingMetadata: undefined, startingMetadata: undefined, Boolean })('class');
+  const run = (metadata, startingLevel, characterClass = 'Fighter') => evaluate(stepValid, { characterClass, startingDraft: { ...emptyStartingDraft(), startingLevel }, fighterStartingMetadata: metadata, barbarianStartingMetadata: undefined, startingMetadata: undefined, casterStarting: {}, isCasterStartClass, casterOptions, Boolean })('class');
   for (const level of [1, 2, 3, 4, 5]) assert.equal(run(read(raw5()), level), true, `level ${level}`);
   assert.equal(run(read(raw3()), 4), false); assert.equal(run(undefined, 2), false); assert.equal(run(undefined, 1), true);
   assert.equal(run(read(raw5()), 4, 'Wizard'), false);

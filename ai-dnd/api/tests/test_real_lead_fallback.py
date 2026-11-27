@@ -7,6 +7,7 @@ from unittest.mock import patch
 import front_proposal
 import npc_statements
 import npc_told
+import quest_log
 import town_knowledge
 import world_threads
 from api.tests import test_town_knowledge as cases
@@ -71,6 +72,11 @@ class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(self.session.recent_dm_narrations), min(8, recent + 1))
                 self.assertIn(expected.casefold(), self.session.recent_dm_narrations[-1])
                 self.assertNotEqual(self.session.last_narration_safety.get("reason_code"), "UNREGISTERED_PERSISTENT_OBJECT")
+                # D-336: a stand-in line is no heard trail
+                thread = world_threads.by_id(world, target["thread_id"])
+                self.assertNotEqual(thread["status"], "heard")
+                seen = [row["what"] for row in quest_log.trails(world)]
+                self.assertNotIn(target["public_line"], seen)
 
     async def test_malformed_packet_only_publishes_the_live_source_and_never_its_forged_fields(self):
         world, target, expected = await self.armorer()
@@ -85,7 +91,10 @@ class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("yüz altın", text.casefold())
         self.assertEqual(said_calls(bad), SAY)
         self.assertEqual(self.finances(world), before)
-        self.assertEqual(npc_statements.last_said_place(world)["location_id"], target["place_id"])
+        said = npc_statements.last_said_place(world)
+        if said is None:
+            self.fail("a place was said")
+        self.assertEqual(said["location_id"], target["place_id"])
 
     async def test_nonempty_invented_object_speech_keeps_the_existing_rejection(self):
         world, _, _ = await self.armorer()

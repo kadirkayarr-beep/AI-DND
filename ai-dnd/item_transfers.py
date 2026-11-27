@@ -283,6 +283,6 @@ def real_thing_here(world: dict[str, Any], stem: str) -> tuple[str, dict[str, An
         if any(word.startswith(stem) for word in living_world.normalize_text(equipment_economy.label(item)).split()):
             if isinstance(item, dict):
                 return owner, item
-            equipment_economy.materialize(world)  # an old save's plain string gets its id before it moves
+            equipment_economy.materialize(world)  # a plain-string item (a new world's own shape) gets its id before it moves
             return real_thing_here(world, stem)
     return None

@@ -34,10 +34,6 @@ def _registered_persistent_object_names(world_state, include_carried=False):
         if isinstance(values, list):
             for value in values:
                 add_name(scene_names, value)
-    legacy_ground = world_state.get("ground_items", [])
-    if isinstance(legacy_ground, list):
-        for value in legacy_ground:
-            add_name(scene_names, value)
 
     for container in world_state.get("containers", []):
         if not isinstance(container, dict):
@@ -603,8 +599,13 @@ _TRACK_WORDS = re.compile(r"\b(?:iz|izler\w*|izleri\w*|ayak izi\w*|ayak izler\w*
 
 def _resolved_skill_result_narration(result):
     """Describe only the already resolved Python check, with no added consequences."""
-    if not isinstance(result, dict) or result.get("action") != "skill_check" or result.get("status") != "resolved":
+    if (not isinstance(result, dict) or result.get("action") != "skill_check"
+            or result.get("status") not in ("resolved", "experimental_attributed_speech")):
         return None
+    if result.get("status") != "resolved":
+        import interaction_adventure
+        return interaction_adventure.social_outcome_line(  # D-226: a reply that gave the roll away says what it decided
+            result.get("npc_name"), result.get("skill"), result.get("outcome"))
     outcome = result.get("outcome")
     if outcome not in ("success", "failure"):
         return None
@@ -635,6 +636,11 @@ _UNMOVED = re.compile(
     r"\b(?:geri\s+adim\s+atm(?:iyor|az|adi)|cekilm(?:iyor|ez|edi)|"
     r"islem(?:iyor|ez|edi)|etkilen?m(?:iyor|ez|edi)|umursam(?:iyor|az|adi)|"
     r"aldirm(?:iyor|az|adi)|korkm(?:uyor|az|adi)|yol\s+verm(?:iyor|ez|edi)|istifini\s+bozm(?:uyor|az|adi))\w*")
+
+# D-241: what tells a person giving way to a scare or a plea ("kenara çekiliyor", "yolu açıyor", "boyun eğiyor").
+_YIELDS = re.compile(
+    r"\b(?:kenara\s+cekil|geri\s+cekil|yol(?:u)?\s+(?:ver|ac)|boyun\s+eg|razi\s+ol|ikna\s+ol|pes\s+ed|"
+    r"teslim\s+ol|yutkun|korkuyla|korkup)\w*")
 
 _QUOTE_CLOSER_RE = re.compile(r"""(?<=[.!?…,])['"”’](?=\s|$)""")
 

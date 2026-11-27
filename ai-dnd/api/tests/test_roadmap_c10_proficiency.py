@@ -47,11 +47,6 @@ class ProficiencyTests(unittest.TestCase):
             with self.assertRaises(CampaignCorruptError):restore_campaign_session(t,p)
             self.assertEqual(t._capture_runtime_snapshot(),before)
 
-    def test_legacy_format_may_not_silently_drop_present_capability(self):
-        s=created();s.world_state.pop('rage_v1');s.world_state.pop('worn_armor_v1')
-        s.character['weapon_proficiencies']=['simple','martial'];s._persisted_engine_format=3
-        with self.assertRaises(ValueError):s.serialize_game_state()
-
     def test_grant_eligibility_is_separate_and_strict(self):
         from api.character_creation import _class_weapon_proficiencies
         grant = lambda *levels: _class_weapon_proficiencies('Barbarian', *levels)

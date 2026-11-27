@@ -14,12 +14,16 @@ import symtable
 import sys
 import tokenize
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # A script run as a file has only its own folder on sys.path: add ai-dnd and ai-dnd/scripts (same as the tests).
 if __name__ == "__main__":
     sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
 
 from engine_split.patch_census import _aliases  # noqa: E402
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -170,15 +174,41 @@ def _last_identifier(node: ast.AST) -> str | None:
     return node.id if isinstance(node, ast.Name) else node.attr if isinstance(node, ast.Attribute) else None
 
 
+def _session_value(node: ast.AST | None, helpers: set[str]) -> bool:
+    """A value that is a session (D-452): a call whose last identifier ends in "session" (create_session,
+    GameSession, make_session, session(...)) or names a local helper that returns one, or a BoolOp/IfExp with one."""
+    if isinstance(node, ast.Call):
+        last = _last_identifier(node) or ""
+        return last.lower().endswith("session") or last in helpers
+    if isinstance(node, ast.BoolOp):
+        return any(_session_value(v, helpers) for v in node.values)
+    if isinstance(node, ast.IfExp):
+        return _session_value(node.body, helpers) or _session_value(node.orelse, helpers)
+    return False
+
+
+def _session_helpers(tree: ast.Module) -> set[str]:
+    """Names of functions that return a session value, or another helper's session, until nothing grows (D-452)."""
+    functions = [n for n in ast.walk(tree) if isinstance(n, FUNCTION_NODES)]
+    helpers: set[str] = set()
+    grown = {None}
+    while grown:
+        grown = {f.name for f in functions if f.name not in helpers
+                 and any(isinstance(r, ast.Return) and _session_value(r.value, helpers) for r in ast.walk(f))}
+        helpers |= grown
+    return helpers
+
+
 def _created_sessions(tree: ast.Module) -> set[str]:
-    """Last identifiers of what the module binds from a call ending in create_session or GameSession (D-446):
-    `s = game.create_session()` gives `s`, `self.a = GameSession()` gives `a`."""
+    """Last identifiers of what the module binds from a session value (D-446, D-452): `s = game.create_session()`
+    gives `s`, `self.a = GameSession()` gives `a`, `p = make_session(seed=1)`, `s = sess or game.create_session()`
+    and `s = create()` (a module function that returns a session) give their targets."""
+    helpers = _session_helpers(tree)
     created = set()
     for n in ast.walk(tree):
-        if isinstance(n, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and isinstance(n.value, ast.Call):
-            if (_last_identifier(n.value) or "").endswith(("create_session", "GameSession")):
-                created.update(_last_identifier(t) for t in (n.targets if isinstance(n, ast.Assign) else [n.target])
-                               if isinstance(t, (ast.Name, ast.Attribute)))
+        if isinstance(n, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and _session_value(n.value, helpers):
+            created.update(_last_identifier(t) for t in (n.targets if isinstance(n, ast.Assign) else [n.target])
+                           if isinstance(t, (ast.Name, ast.Attribute)))
     return created
 
 
@@ -189,13 +219,30 @@ def _is_session(node: ast.AST, sessions: set[str]) -> bool:
     return last is not None and ("session" in last.lower() or last in sessions)
 
 
+def _names_engine(text: str, names: set[str]) -> bool:
+    """A string that holds "game.<name>", or that is the engine file path: a test that names the file reads its
+    source whatever the names (D-461)."""
+    return text == "game.py" or text.endswith("/game.py") or any(m in names for m in _GAME_STRING.findall(text))
+
+
+_TREE_SCANS = {"rglob", "glob", "iterdir", "walk"}
+
+
+def _scans_engine_parts(tree: ast.Module) -> bool:
+    """A module that scans a directory tree (rglob, glob, iterdir, walk) and holds the engine parts path
+    ("game_parts" or "game_parts/...") reads the engine source by path (D-461)."""
+    scans = any(isinstance(n, ast.Call) and _last_identifier(n) in _TREE_SCANS for n in ast.walk(tree))
+    return scans and any(isinstance(n, ast.Constant) and isinstance(n.value, str)
+                         and (n.value == "game_parts" or "game_parts/" in n.value) for n in ast.walk(tree))
+
+
 def _touches(node: ast.AST, aliases: set[str], names: set[str], sessions: set[str]) -> bool:
     if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in aliases:
         return node.attr in names
     if isinstance(node, ast.Attribute) and _is_session(node.value, sessions):  # session.<name>
         return node.attr in names
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return any(m in names for m in _GAME_STRING.findall(node.value))
+        return _names_engine(node.value, names)
     if isinstance(node, ast.Call) and len(node.args) > 1:  # patch.object(game, "<name>"), getattr(game, "<name>")
         first, second = node.args[0], node.args[1]  # and the same on a session
         return (((isinstance(first, ast.Name) and first.id in aliases) or _is_session(first, sessions))
@@ -217,6 +264,55 @@ def _attr_reads(tree: ast.Module):
     return lambda alias: None if alias in bare else attrs.get(alias, set())
 
 
+def _from_import_unit(stmt: ast.ImportFrom, alias: ast.alias, names: set[str],
+                      attrs_read: Callable[[str | None], set[str] | None]) -> dict:
+    """The unit of one `from m import x`: a top-level `from game import <name>` touches and runs on import (D-438)."""
+    star = alias.name == "*"
+    direct = stmt.module == "game" and alias.name in names
+    return {"binds": {alias.asname or alias.name} - {"*"}, "run": star or direct, "reads": set(), "import": True,
+            "direct": direct,
+            "refs": [(stmt.module, None if star else alias.name, None if star else attrs_read(alias.asname or alias.name))]}
+
+
+def _plain_import_unit(alias: ast.alias, attrs_read: Callable[[str | None], set[str] | None]) -> dict:
+    """The unit of one `import a.b`: it binds `a`, and the whole module counts."""
+    return {"binds": {alias.asname or alias.name.split(".")[0]}, "run": False, "direct": False,
+            "import": True, "reads": set(), "refs": [(alias.name, None, attrs_read(alias.asname)
+                                                      if alias.asname else None)]}
+
+
+def _import_from_refs(node: ast.ImportFrom, attrs_read: Callable[[str | None], set[str] | None]) -> list:
+    """The (module, name, attrs) of one absolute `from m import x, *`."""
+    return [(node.module, None if a.name == "*" else a.name,
+             None if a.name == "*" else attrs_read(a.asname or a.name)) for a in node.names]
+
+
+def _nested_import_refs(stmt: ast.stmt, attrs_read: Callable[[str | None], set[str] | None]) -> list:
+    """The (module, name, attrs) of every import anywhere inside one top-level statement."""
+    refs: list = []
+    for node in ast.walk(stmt):
+        if isinstance(node, ast.Import):
+            refs += [(a.name, None, None) for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            refs += _import_from_refs(node, attrs_read)
+    return refs
+
+
+def _statement_units(stmt: ast.stmt, aliases: set[str], names: set[str], sessions: set[str],
+                     attrs_read: Callable[[str | None], set[str] | None]) -> list[dict]:
+    """The units of one top-level def, class or other statement; a class body (not its methods) is a unit of its own."""
+    is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
+    units = [{"binds": {stmt.name} if is_def else set(bound_names(stmt)[1]), "run": not is_def,
+              "refs": _nested_import_refs(stmt, attrs_read),
+              "direct": any(_touches(node, aliases, names, sessions) for node in ast.walk(stmt)),
+              "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}}]
+    if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
+        body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
+        units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
+                      "direct": any(_touches(n, aliases, names, sessions) for s in body for n in ast.walk(s))})
+    return units
+
+
 def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
     """One unit per top-level def/class/statement and per imported alias: the names it binds, whether it runs on
     import ("run"), whether it touches a name itself, the bare names it reads and the (module, name, attrs) it
@@ -228,31 +324,13 @@ def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
         if isinstance(stmt, (ast.Import, ast.ImportFrom)) and not getattr(stmt, "level", 0):
             for a in stmt.names:
                 if isinstance(stmt, ast.Import):  # `import a.b` binds `a`: the whole module counts
-                    units.append({"binds": {a.asname or a.name.split(".")[0]}, "run": False, "direct": False,
-                                  "import": True, "reads": set(), "refs": [(a.name, None, _attrs_read(a.asname)
-                                                                            if a.asname else None)]})
+                    units.append(_plain_import_unit(a, _attrs_read))
                 else:
-                    units.append({"binds": {a.asname or a.name} - {"*"}, "run": a.name == "*", "reads": set(),
-                                  "import": True,
-                                  "direct": stmt.module == "game" and a.name in names,
-                                  "refs": [(stmt.module, None if a.name == "*" else a.name,
-                                            None if a.name == "*" else _attrs_read(a.asname or a.name))]})
+                    units.append(_from_import_unit(stmt, a, names, _attrs_read))
             continue
-        refs = []
-        for node in ast.walk(stmt):
-            if isinstance(node, ast.Import):
-                refs += [(a.name, None, None) for a in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
-                refs += [(node.module, None if a.name == "*" else a.name,
-                          None if a.name == "*" else _attrs_read(a.asname or a.name)) for a in node.names]
-        is_def = isinstance(stmt, (*FUNCTION_NODES, ast.ClassDef))
-        units.append({"binds": {stmt.name} if is_def else set(bound_names(stmt)[1]), "run": not is_def, "refs": refs,
-                      "direct": any(_touches(node, aliases, names, sessions) for node in ast.walk(stmt)),
-                      "reads": {n.id for n in ast.walk(stmt) if isinstance(n, ast.Name)}})
-        if isinstance(stmt, ast.ClassDef):  # a class body (not its methods) runs on import
-            body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
-            units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
-                          "direct": any(_touches(n, aliases, names, sessions) for s in body for n in ast.walk(s))})
+        units += _statement_units(stmt, aliases, names, sessions, _attrs_read)
+    if _scans_engine_parts(tree):  # binds and runs nothing: the module itself touches, its importers do not
+        units.append({"binds": set(), "run": False, "refs": [], "reads": set(), "direct": True})
     return units
 
 
@@ -262,7 +340,8 @@ def touching_tests(root: Path, names: set[str]) -> list[str]:
     (`session.<name>`, `getattr(session, "<name>")`, see _is_session; D-446) or hold "game.<name>",
     directly or through a name they import (transitively) from a module under api/tests that does
     (e.g. rule_oracles reads game.SKILLS). Name level: importing an untouched helper of a touching module does
-    not count, unless that module touches while it is imported."""
+    not count, unless that module touches while it is imported. A test that holds the path "game.py", or scans a
+    tree (rglob/glob) while holding a "game_parts" path, counts for every name (it reads the engine source). Import chains of any depth are followed (D-437)."""
     root = Path(root)
     tests = sorted(root.glob("test_*.py")) + sorted((root / "api" / "tests").glob("test_*.py"))
     modules: dict[str, list[dict]] = {}
@@ -429,7 +508,7 @@ def verify_claims(root: Path) -> list[dict]:
 
     named("uuid4( called only in", ["_apply_player_damage", "_resolve_player_death_turn",
                                     "_start_combat_with_initiative", "_down_outside_combat_turn",
-                                    "_migrate_legacy_combat_state", "advance_campaign_time"],
+                                    "advance_campaign_time"],
           _functions_where(tree, lambda n: _is_call_to(n, "uuid4")))
     named("sys.modules[__name__] only in", ["_local_place_turn", "_run_player_turn_internal"],
           _functions_where(tree, _is_sys_modules_name))

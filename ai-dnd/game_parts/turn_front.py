@@ -15,10 +15,12 @@ import re
 import refusals
 import sys
 import timed_gameplay
+import turn_close
 import weapon_attack
 import equipment_economy
 import talk_mode
 import tr_case
+from typing import Any
 from core_resolution import resolution_action_scope
 
 
@@ -109,14 +111,14 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     """
     import town_knowledge
     import world_threads
-    session = game._session()
+    session: Any = game._session()  # the game session: its attributes come from the engine parts and are not typed
     world = session.world_state
     if interaction_mode == "ask_dm" or world_threads.view(world) is None or world.get("combat", {}).get("active"):
         return None
     journey = world.get("journey")
     if journey and journey.get("status") != "ARRIVED":
         return None
-    saved = None
+    saved, session.thread_wrote = None, False
     try:
         person = game._thread_person(player_input, target_id)
         gate = game._job_gate(world, person, player_input)
@@ -134,11 +136,13 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
             return None
         session.require_player_can_act()
         saved = session._capture_runtime_snapshot()
+        session.thread_wrote = gate["decision"] is not None
         return game._carry_out_thread_turn(session, world, gate, person, player_input)
     except game.PlayerCannotAct:
         raise
     except Exception:
         town_knowledge.log_failure()
+        session.thread_wrote = False  # nothing survived: re-ask stands
         if saved is not None:  # D-011: a writer that broke half way leaves no coin, hour or item of it behind
             session._restore_runtime_snapshot(saved)  # in place: the turn above still holds these very dicts
         session._thread_turn = None
@@ -146,7 +150,6 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
 
 def _world_snapshot():
     world_state = game._session().world_state
-    game._normalize_ground_items()
     return {
         "combat": json.dumps(world_state.get("combat", {}), sort_keys=True),
         "player_current_hp": game._session().character["current_hp"],
@@ -154,7 +157,6 @@ def _world_snapshot():
         "player_combat_status": world_state.get("player_combat_status"),
         "location": world_state.get("location"),
         "inventory": tuple(world_state.get("inventory", [])),
-        "ground_items": tuple(world_state.get("ground_items", [])),
         "ground_items_by_location": {k: tuple(v) for k, v in world_state.get("ground_items_by_location", {}).items()},
         "doors": tuple(sorted(
             (door.get("name"), door.get("location"), door.get("open"), door.get("locked"), door.get("broken"))
@@ -181,7 +183,6 @@ def _changed_state_fields(before):
         "player_combat_status": "player.combat_status",
         "location": "player.location",
         "inventory": "player.inventory",
-        "ground_items": "ground_items",
         "ground_items_by_location": "ground_items",
         "doors": "doors",
         "player_hidden": "flags.player_hidden",
@@ -552,22 +553,18 @@ def _adventure_scene_turn(player_input):
 def _adventure_check_reply(session, skill):
     before = copy.deepcopy(session.world_state)
     passed = game._hideout_check(skill, game.DIFFICULTY_DC["medium"])
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_index = turn_close.advance(session.world_state)
     evidence = {
         "action": "skill_check",
         "skill": skill,
         "success": passed,
         "status": "resolved",
-        "action_id": f"adventure-check:{flags['turn_index']}:{skill}",
+        "action_id": f"adventure-check:{turn_index}:{skill}",
         "state_changes": [],
     }
     session.evaluate_quest_events(before, evidence)
     narration = "İncelemen yeni bir izi ortaya çıkardı." if passed else "Bu bakış yeni bir iz çıkarmadı."
-    session.messages.extend([
-        {"role": "user", "content": skill},
-        {"role": "assistant", "content": narration},
-    ])
+    turn_close.record_exchange(session.messages, skill, narration)
     return {
         "messages": session.messages,
         "narration": narration,
@@ -619,7 +616,7 @@ def _everyday_action_turn(player_input):
             plan["cursor"] = 1
             interaction_adventure.validate(state, world)
             pass  # The player remembers their own plan; the game does not read it back.
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(world)
     action_result = {
         "action": "everyday_action",
         "kind": outcome["kind"],
@@ -715,9 +712,7 @@ def _local_place_turn(player_input):
             "source": "player_pursuit",
             "mentioned_by_npc_id": local_places.mentioned_by(world, kind),
         }
-    flags = world.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    if not game.commit_location_change(record["id"], flags["turn_index"]):
+    if not game.commit_location_change(record["id"], turn_close.advance(world)):
         world.clear()
         world.update(before)
         return None
@@ -746,10 +741,7 @@ def _local_place_turn(player_input):
         "direct_response": narration,
     }
     session.evaluate_quest_events(before, action_result)
-    session.messages.extend([
-        {"role": "user", "content": player_input},
-        {"role": "assistant", "content": narration},
-    ])
+    turn_close.record_exchange(session.messages, player_input, narration)
     return {
         "messages": session.messages,
         "narration": narration,
@@ -781,6 +773,7 @@ def _clear_turn_transients(session) -> None:
     session._given_now = None
     session._coin_paid = None
     session._front_coin = 0
+    session._coin_unnamed = False
     session._front_economic_none = False
     session._front_economic_front = None
     session._spoken_coin_proposal = None
@@ -789,6 +782,7 @@ def _clear_turn_transients(session) -> None:
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
+    session.thread_wrote = False  # a thread decision's flag lives for its own turn only
     session._speech_repair_calls = 0  # D-332: the repair call counts into this turn's model calls only; a flag-off turn has no begin()
 
 def _tell_the_coin(result):
@@ -796,7 +790,7 @@ def _tell_the_coin(result):
 
     It writes no coin. The coin in hand and the counter's hold on it end here, whatever the owner did.
     """
-    session = game._session()
+    session: Any = game._session()  # the game session: its attributes come from the engine parts and are not typed
     try:
         pending = getattr(session, "_spoken_coin_proposal", None)
         if pending is not None:
@@ -809,6 +803,7 @@ def _tell_the_coin(result):
         # The person's spoken answer about the coin and the card this turn's decision names (D1) come first: a spoken
         # decline is written per part and closes what it covers, with its own line.
         opened = money_owner.open_card_after_reply(session, result)
+        money_owner.ask_amount_after_reply(session, result)
         if spoken is not None and isinstance(result, dict):
             # The validated gift or tip was put to this person; the card (or the refusal) is the engine's word.
             if not declined:
@@ -830,6 +825,7 @@ def _tell_the_coin(result):
             result["narration"] = f"{result.get('narration') or ''} {note}".strip()
     finally:
         session._asks_for = None
+        session._coin_unnamed = False
         session._coin_rest_hint = ""
         session._coin_paid = None
         session._counter_held = None
@@ -855,7 +851,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             or (walked and (getattr(session, "_front_coin", 0) or getattr(session, "_coin_paid", None)))  # coin read once
             or action_result.get("action") in {"dialogue", "query", "lodging", "shop_inquiry"}  # a room taken has answered its own price
             or action_result.get("status") in {"experimental_attributed_speech", "clarification"}
-            or not ollama_adapter.model_calls_left()):
+            # D-419 (S20 a): the rest may take the third call
+            or not ollama_adapter.model_calls_left(third=True)):
         return result
     own_act = walked or read.get("kind") in game._OWN_ACTS
     hearer = None
@@ -879,7 +876,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
         # whoever stands there; it is read as a line of its own (the turn's second call) and done by its own owner.
         session._front_reply = session._front_read = None
         session._front_ahead = False
-        said = game._dispatch_player_turn(rest, messages, None, None, action_id, session_id, None, None)
+        with ollama_adapter.third_call():
+            said = game._dispatch_player_turn(rest, messages, None, None, action_id, session_id, None, None)
         session._front_rest = ""  # the second part has no second part of its own
     else:
         # A rest that hands coin is read like any say line that names coin (the front step opens its card): the gate
@@ -891,7 +889,8 @@ def _the_rest_of_the_line(result, messages, action_id, session_id, place_before)
             session._front_reply = session._front_read = None  # the walk's reading is spent: the coin line is read afresh
             session._front_ahead = False
         try:
-            said = game._dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
+            with ollama_adapter.third_call():
+                said = game._dispatch_player_turn(rest, messages, hearer["id"], None, action_id, session_id, None, "say")
         finally:
             session._thread_gate_done = False
     import front_proposal
@@ -930,6 +929,7 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     """
     session = game._session()
     text = result.get("narration") if isinstance(result, dict) else None
+    from api import ollama_adapter
     if (not isinstance(text, str) or not game._only_stock(text)
             or session.world_state.get("combat", {}).get("active")):
         return result
@@ -937,14 +937,17 @@ def _person_answers_stock(result, player_input, messages, target_id, interaction
     if hearer is None:
         return result
     action_result = result.get("action_result") if isinstance(result.get("action_result"), dict) else {}
-    from api import ollama_adapter
-    if (snapshot is not None and interaction_mode != "say" and ollama_adapter.model_calls_left()
-            and not action_result.get("state_changes")):
+    if (snapshot is not None and interaction_mode != "say"
+            # D-419 (S20 a): a name nobody here answers to never takes the third call
+            and ollama_adapter.model_calls_left(third=not getattr(session, "_named_word", None))
+            and not action_result.get("state_changes")
+            and not getattr(session, "thread_wrote", False)):
         person = hearer["id"]
         session._restore_runtime_snapshot(snapshot)
         session._thread_gate_done = True
         try:
-            result = game._dispatch_player_turn(player_input, messages, person, None, action_id, session_id, None, "say")
+            with ollama_adapter.third_call():
+                result = game._dispatch_player_turn(player_input, messages, person, None, action_id, session_id, None, "say")
         finally:
             session._thread_gate_done = False
         text = result.get("narration")
@@ -1083,6 +1086,17 @@ def _front_recovery(player_input, listed):
         return {"kind": "go_to", "id": front_proposal.WAY_OUT, "inside": False}
     return None
 
+def _no_list_fallback(player_input, target_id, reads):
+    """No town list: the old chain reads the line; held-out coin is still decided (D-403)."""
+    import front_proposal
+    session = game._session()
+    front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
+    if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
+        session._front_reply = {"intent": "unknown", "classifier_unusable": True}
+        session._front_reply_called = False  # G10: held, but no provider was asked for it
+    empty = {"speaking_with": None, "people": [], "offers": [], "goods": []}
+    game._coin_without_a_reading(player_input, target_id, empty)
+
 def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
     """Roadmap step 5: the model reads a free line once; Python checks its ids. None leaves the old chain."""
     import front_proposal
@@ -1131,11 +1145,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         listed = front_proposal.listing(session)
     except Exception:  # broad: the old classifier chain is a whole fallback, so a broken list never fails the turn
         logging.getLogger("game_parts.turn_front").warning("Front list could not be built; the old chain reads the line", exc_info=True)
-        front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
-        if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
-            session._front_reply = {"intent": "unknown", "classifier_unusable": True}
-            session._front_reply_called = False  # G10: held, but no provider was asked for it
-        return None
+        return game._no_list_fallback(player_input, target_id, reads)
     hint = interaction_adventure.hint(player_input, True)
     addressed = None
     if hint and typed_economic:  # in say mode the line is for the person chosen, whoever its words name
@@ -1157,12 +1167,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                  else "fallback:no_front" if answered else "fallback:failed")
         recovered = (None if fighting or typed_economic or reads or label == "fallback:no_front"
                      else game._front_recovery(player_input, listed))
+        game._coin_without_a_reading(player_input, target_id, listed)  # D-403: recovered turns too
         if recovered is not None:
             front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
             recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
             return recovered
         front_proposal.note(session, label, reached=answered)
-        game._coin_without_a_reading(player_input, target_id, listed)
         return None
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
@@ -1554,9 +1564,11 @@ def _coin_without_a_reading(player_input, target_id, listed):
     import money_owner
     import shop_trade
     import world_reactions
-    session = game._session()
+    session: Any = game._session()  # the game session: its attributes come from the engine parts and are not typed
     amount = front_proposal.coin_in(None, player_input, moves=True)  # `moves`: the words' figure stands with no reading
     if not amount:
+        # D-403: coin with no figure asks how much
+        session._coin_unnamed = front_proposal.names_coin(player_input)
         return
     session._front_coin = amount
     if target_id is not None:
@@ -1766,10 +1778,9 @@ def _front_consume(route, player_input):
     if getattr(session, "_turn_notes", None) is None:
         session._turn_notes = []
     session._turn_notes.append((None, result.note))
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(session.world_state)
     shown = result.note + "."
-    session.messages.extend([{"role": "user", "content": player_input}, {"role": "assistant", "content": shown}])
+    turn_close.record_exchange(session.messages, player_input, shown)
     return {"reply": {"messages": session.messages, "narration": shown, "model_calls": 0,
                       "action_result": {"action": "consume", "status": "consumed", "success": True,
                                         "state_changes": ["inventory"], "direct_response": shown}}}
@@ -1783,7 +1794,7 @@ def _front_wield(route, player_input):
     import equipment_economy
     import gear
     import weapon_attack
-    from api.dnd_2024_rules import SHIELD_ITEM_TOKENS
+    from dnd_2024_rules import SHIELD_ITEM_TOKENS
     from weapon_catalog import lookup
     session = game._session()
     session.require_player_can_act()
@@ -2060,14 +2071,12 @@ def _front_route_turn(front, gate, player_input, interaction_mode, action_id, se
     if front is not None and front["kind"] == "wait" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         passed = timed_gameplay.pass_time(game._session(), player_input)
         if passed is not None:
-            flags = game._session().world_state.setdefault("flags", {})
-            flags["turn_index"] = flags.get("turn_index", 0) + 1
+            turn_close.advance(game._session().world_state)
             return {"messages": game._session().messages, "narration": passed["direct_response"], "model_calls": 0,
                     "action_result": passed}
     if front is not None and front["kind"] == "walk_failed" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         text = game._fallback_for_action_result(player_input, {"action": "travel", "status": "failed"})
-        flags = game._session().world_state.setdefault("flags", {})
-        flags["turn_index"] = flags.get("turn_index", 0) + 1
+        turn_close.advance(game._session().world_state)
         return {"messages": game._session().messages, "narration": text, "model_calls": 1,
                 "action_result": {"action": "travel", "status": "failed", "success": False,
                                   "state_changes": [], "direct_response": text}}
@@ -2081,9 +2090,8 @@ def _front_route_turn(front, gate, player_input, interaction_mode, action_id, se
         outcome = everyday_actions.follow_route(world, front, turn=int(flags.get("turn_index", 0)) + 1)
         if outcome["place_id"]:
             grounded_action.note_last(world, outcome["place_id"])  # "oraya" now means the door the figure went in by
-        flags["turn_index"] = flags.get("turn_index", 0) + 1
-        game._session().messages.extend([{"role": "user", "content": player_input},
-                                         {"role": "assistant", "content": outcome["text"]}])
+        turn_close.advance(world)
+        turn_close.record_exchange(game._session().messages, player_input, outcome["text"])
         return {"messages": game._session().messages, "narration": outcome["text"], "model_calls": 1,
                 "action_result": {"action": "everyday_action", "kind": "follow", "status": "resolved",
                                   "success": True, "state_changes": [], "direct_response": outcome["text"],

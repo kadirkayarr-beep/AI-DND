@@ -18,7 +18,7 @@ LIFECYCLE_VALUES = ("NOT_ASSESSED", "PASS", "FAIL", "UNSUPPORTED")
 STATUSES = ("INVENTORIED", "OPEN_ENUMERATION", "OPEN_TEXT_UNCONFIRMED", "UNSUPPORTED")
 RESOLVER_BASES = ("static_name_match", "none_found")
 CATEGORIES = ("class", "subclass", "species", "background", "feat", "spell", "equipment")
-RESOLVER_FILES = ("ai-dnd/api/dnd_2024_rules.py", "ai-dnd/spell_scope.py")
+RESOLVER_FILES = ("ai-dnd/dnd_2024_rules.py", "ai-dnd/spell_scope.py")
 REQUIRED = ("id", "category", "subcategory", "name", "source_id", "source_version", "source", "rights_ref",
             "status", "resolver", "proposed_owner", "dependencies", "lifecycle", "leaf_task_ids",
             "evidence_ids", "acceptance_id")

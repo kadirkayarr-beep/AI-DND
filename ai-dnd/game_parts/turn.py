@@ -13,6 +13,7 @@ import local_dialogue
 import money_owner
 import re
 import timed_gameplay
+import turn_close
 from typing import Optional, List, Dict, Any
 import held_weapon
 import monster_sense
@@ -614,8 +615,7 @@ def _keep_town_portrait(action_result, narration):
     if not isinstance(record, dict) or record.get("town_portrait") or local_places.settlement_of(world, place) != place:
         return
     # First arrival only: a trip that began inside this settlement (or at an unknown place) is a return, not an arrival.
-    start = action_result.get("previous_location")
-    if not start or local_places.settlement_of(world, start) == place:
+    if local_places.is_return(world, place, action_result.get("previous_location")):
         return
     import town_knowledge
     from arrival_narration import _QUOTES
@@ -703,8 +703,7 @@ def _run_player_turn_internal(
     lore_context = game._prepare_lore_authority_context(injected_lore_context)
     quest_world_before = copy.deepcopy(world_state)
     flags = world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    turn_index = flags["turn_index"]
+    turn_index = turn_close.advance(world_state)
     npc_target = None
     allow_new_npcs = False
     allow_new_features = False
@@ -1603,8 +1602,8 @@ def _run_player_turn_internal(
                         bare = text == interaction_adventure.immersive_unknown(npc_target, player_input)
                         text = f"{living_world.public_npc_name(npc_target)}, “{terms}”" if bare else f"{text} “{terms}”"
                     game._remember_experimental_npc_speech(
-                        npc_target["id"], player_input, text, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True
-                    )
+                        npc_target["id"], player_input, text, voiced=["none"],  # D-336
+                        remember=valid_speech_packet and raw_intent.get("remember_player_line") is True)
                     if settled_money.get("note"):
                         text = f"{text} {settled_money['note']}"
                 game._show_coin_roll(action_result, settled_money.get("check"))  # D-166: the roll shows, reply used or not

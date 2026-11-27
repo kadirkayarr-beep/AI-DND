@@ -23,7 +23,7 @@ ollama_mock = MagicMock()
 input_responses = iter(["2", "TestHero"])
 with patch('builtins.input', lambda prompt='': next(input_responses)):
     import game as engine
-game = engine.create_session()
+game = engine.create_session(seed=11)
 
 def isolated_model(test):
     """Support direct calls, pytest and the retained function-test runner."""
@@ -36,10 +36,8 @@ def isolated_model(test):
             "message": {"content": '{"intent":"narrative","action":"test","target":{"type":"none","reference":""},"completion":"unclear","confidence":0.5}'}
         }
         try:
-            # The terminal test imports ollama again via runpy, so scope both
-            # references. Neither binding nor response/exception state leaks.
-            with patch.object(engine, "ollama", ollama_mock), \
-                 patch.dict(sys.modules, {"ollama": ollama_mock}):
+            # The binding and response/exception state do not leak.
+            with patch.object(engine, "ollama", ollama_mock):
                 return test(*args, **kwargs)
         finally:
             ollama_mock = previous_mock
@@ -53,7 +51,6 @@ def reset_world_state():
     game.world_state["location"] = "tavern"
     game.world_state["npcs"] = []
     game.world_state["inventory"] = ["Macera çantası", "Kılıç"]
-    game.world_state["ground_items"] = []
     game.world_state["ground_items_by_location"] = {}
     game.world_state["doors"] = []
     game.world_state["containers"] = []

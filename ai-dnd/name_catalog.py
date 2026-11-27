@@ -25,15 +25,21 @@ CATALOG_DIR = Path(__file__).resolve().parents[1] / "content" / "world" / "catal
 _LOG = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=4)
+def mapping(directory: Path) -> dict[str, Any]:
+    """mapping.json of a catalog folder, read once per process."""
+    return json.loads((directory / "mapping.json").read_text(encoding="utf-8"))
+
+
 @lru_cache(maxsize=1)
 def _pools() -> dict[str, Any]:
     try:
         pools = json.loads((CATALOG_DIR / "name_pools.json").read_text(encoding="utf-8"))
-        mapping = json.loads((CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        names = mapping(CATALOG_DIR).get("names")
     except (OSError, ValueError):
         _LOG.warning("The name catalog could not be read.")
         return {}
-    return {"pools": pools, "names": mapping.get("names") or {}}
+    return {"pools": pools, "names": names or {}}
 
 
 def adopt(world: dict[str, Any]) -> None:

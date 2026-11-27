@@ -374,10 +374,11 @@ class HarnessIntegrationTests(unittest.TestCase):
                     token = telemetry._REQUEST_TELEMETRY.set([])
                     request = telemetry._REQUEST_DIAGNOSTIC_ID.set(identifier)
                     try:
-                        for _ in range(3):
+                        attempts = telemetry.MAX_MODEL_CALLS_PER_TURN + 1  # one more failed attempt than a turn may make
+                        for _ in range(attempts):
                             with self.assertRaises(TimeoutError):
                                 engine.ollama.chat(messages=[])
-                        self.assertEqual(telemetry._attempt_count(telemetry._telemetry()), 3)
+                        self.assertEqual(telemetry._attempt_count(telemetry._telemetry()), attempts)
                         self.assertGreater(telemetry._attempt_count(telemetry._telemetry()), telemetry.MAX_MODEL_CALLS_PER_TURN)
                     finally:
                         telemetry._REQUEST_DIAGNOSTIC_ID.reset(request)

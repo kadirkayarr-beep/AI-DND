@@ -38,7 +38,7 @@ def source_spell_ids(class_name: str, spell_level: int) -> list[str]:
 
 
 def catalog_ids(class_name: str, field: str) -> list[str]:
-    from api.dnd_2024_rules import SPELLS_CATALOG
+    from dnd_2024_rules import SPELLS_CATALOG
     return [spell["id"] for spell in SPELLS_CATALOG[class_name][field]]
 
 
@@ -59,6 +59,56 @@ class PreparedCaster(ClassProgression):
     subclass: tuple[str, str] = ("", "")
     keeps_spellbook = False
 
+    @property
+    def class_name(self) -> str:
+        return self.name or ""
+
+    def start_level_picks(self) -> dict[int, dict[str, Any]]:
+        """Return each start level's own picks; a level that picks nothing is empty."""
+        return {level: {} for level in range(2, LAST_LEVEL + 1)}
+
+    def _source_backs_every_level(self) -> bool:
+        source = core.table(self.name)
+        rows = source.get("levels", {}) if isinstance(source, dict) else {}
+        levels = range(1, LAST_LEVEL + 1)
+        return core.MAX_SUPPORTED_LEVEL >= LAST_LEVEL and all(
+            isinstance(rows.get(str(level)), dict) for level in levels
+        )
+
+    def starting_creation_options(self) -> dict[str, Any] | None:
+        """Return the HTTP start 1-5 catalog block, or None if the source fails it.
+
+        The subclass, cantrip and ASI picks of levels 3 and 4 and the pending lists
+        are common to Wizard and Cleric, read from the same owners as the level steps.
+        """
+        asi = core.supported_asi_choices()
+        subclasses = self.subclass_options()
+        try:
+            blocks = self.start_level_picks()
+            backed = self._source_backs_every_level()
+        except KeyError:  # a source row without slots cannot back a level
+            return None
+        if not (backed and asi and subclasses):
+            return None
+        levels = range(1, LAST_LEVEL + 1)
+        blocks[SUBCLASS_LEVEL]["subclass_options"] = subclasses
+        blocks[FIRST_ASI_LEVEL] |= {
+            "cantrip_count": 1,
+            "cantrip_ids": catalog_ids(self.class_name, "cantrips"),
+            "supported_asi_choices": asi,
+        }
+        extra = [core.HIGHER_START_EQUIPMENT_PENDING]
+        pending = {
+            str(level): core.progression_effects_pending(self.class_name, level)
+            + (extra if level >= FIRST_ASI_LEVEL else [])
+            for level in levels
+        }
+        return copy.deepcopy({
+            "supported_starting_levels": list(levels),
+            **{f"level_{level}": block for level, block in blocks.items()},
+            "effects_pending_by_level": pending,
+        })
+
     # --- views -------------------------------------------------------------------------------------------------------
     def capacity(self, character):
         level = core.applied_level(character)
@@ -71,8 +121,8 @@ class PreparedCaster(ClassProgression):
         if field != "prepared":
             return set()
         level = min(core.applied_level(character), core.MAX_SUPPORTED_LEVEL)
-        return {identity for spell_level in slot_levels(self.name, level) if spell_level >= 2
-                for identity in source_spell_ids(self.name, spell_level)}
+        return {identity for spell_level in slot_levels(self.class_name, level) if spell_level >= 2
+                for identity in source_spell_ids(self.class_name, spell_level)}
 
     def subclass_options(self) -> list[dict[str, str]]:
         short, key = self.subclass
@@ -165,7 +215,7 @@ class PreparedCaster(ClassProgression):
             options["supported_asi_choices"] = self._asi_options(session)
         known = session.world_state.get("spellcasting_v1", {}).get("cantrips", [])
         if core.row(session.character, target_level)["cantrips"] > core.row(session.character, target_level - 1)["cantrips"]:
-            options["cantrip_ids"] = [identity for identity in catalog_ids(self.name, "cantrips") if identity not in known]
+            options["cantrip_ids"] = [identity for identity in catalog_ids(self.class_name, "cantrips") if identity not in known]
         return options
 
     def check_step(self, session, preview, choices) -> str | None:

@@ -1,4 +1,5 @@
 import local_dialogue
+import talk_front
 import interaction_adventure
 import money_owner
 import living_world
@@ -268,6 +269,8 @@ def _ts_accepted_text(*, accepted_model_speech, action_result, attributed_speech
         if accepted_model_speech:
             if not (game._is_short_followup(player_input) and profile_focus):
                 interaction_adventure.retire_conversation_focus(world_state)
+            talk_front.remember_verified_focus(game._session(), player_input, npc_target, attributed_speech["spoken_text"],
+                                               game.turn_source_key(game._session()))  # D-413, D-414
             text = game._render_experimental_npc_speech(
                 attributed_speech, npc_target
             )

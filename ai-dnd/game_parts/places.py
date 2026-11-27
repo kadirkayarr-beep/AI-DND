@@ -11,6 +11,7 @@ import scheduled_events
 import talk_mode
 import copy
 import timed_gameplay
+import turn_close
 
 
 def _tavern_door_notice(tavern_id):
@@ -98,27 +99,6 @@ def _current_door():
     return chosen or next(iter(here), None) or grounded_action._entry_door_of(
         world_state, world_state.get("location")
     )
-
-def _normalize_ground_items():
-    """Migrate legacy ground_items list to ground_items_by_location dict."""
-    # Ensure ground_items_by_location exists (safe init for legacy state)
-    world_state = game._session().world_state
-    if not isinstance(world_state.get("ground_items_by_location"), dict):
-        world_state["ground_items_by_location"] = {}
-    # If already normalized (dict exists and list is empty), nothing to do
-    if not world_state.get("ground_items"):
-        return
-    # If we have legacy list items but no dict yet, migrate them to current location
-    legacy_items = world_state.get("ground_items", [])
-    if legacy_items:
-        current_loc = world_state.get("location", "tavern")
-        if current_loc not in world_state["ground_items_by_location"]:
-            world_state["ground_items_by_location"][current_loc] = []
-        for item in legacy_items:
-            if item not in world_state["ground_items_by_location"][current_loc]:
-                world_state["ground_items_by_location"][current_loc].append(item)
-        # Clear legacy list
-        world_state["ground_items"] = []
 
 def location_features(location=None):
     world_state = game._session().world_state
@@ -779,9 +759,10 @@ def update_inventory_from_player(player_input):
         equipment = world_state.get("equipment")
         hand = equipment.get("main_hand") if isinstance(equipment, dict) else None
         if sword is not None and hand == held_weapon._identity(sword):
+            if isinstance(sword, dict):
+                return equipment_economy.carry_named(game._session(), "Kılıç", dropping=True, item_id=hand)
             world_state["inventory"].remove(sword)
             held_weapon.release_hand(world_state, sword)
-            game._normalize_ground_items()
             current_loc = world_state.get("location", "tavern")
             loc_items = world_state["ground_items_by_location"].setdefault(current_loc, [])
             if "Kılıç" not in loc_items:
@@ -789,9 +770,8 @@ def update_inventory_from_player(player_input):
             return "Python durumu: Kılıç envanterden yere taşındı."
 
     if any(isinstance(i, dict) for _, items in equipment_economy.containers(world_state) for i in items):
-        return equipment_economy.legacy_sword_move(game._session(), dropping)
+        return equipment_economy.carry_named(game._session(), "Kılıç", dropping=dropping)
 
-    game._normalize_ground_items()
     current_loc = world_state.get("location", "tavern")
     loc_items = world_state["ground_items_by_location"].get(current_loc, [])
 
@@ -894,20 +874,6 @@ def _engine_location_parent(location_id):
     location = world_state.get("locations", {}).get(location_id, {})
     parent = location.get("parent_location_id") if isinstance(location, dict) else None
     return parent if isinstance(parent, str) and parent in world_state.get("locations", {}) else None
-
-def _existing_local_tavern(parent_location_id):
-    locations = game._session().world_state.get("locations", {})
-    if not isinstance(locations, dict):
-        return None
-    return next(
-        (
-            location for location in locations.values()
-            if isinstance(location, dict)
-            and location.get("parent_location_id") == parent_location_id
-            and location.get("scene_kind") == "tavern"
-        ),
-        None,
-    )
 
 def _resolve_explicit_local_scene_parent(
     parent_location_id, player_input, *, fallback_single=True
@@ -1621,14 +1587,10 @@ def _adventure_travel_reply(session, destination):
     before = copy.deepcopy(session.world_state)
     # D-123: the same journey owner as any trip - closed roads, venue doors and road time all apply.
     action_result = timed_gameplay.start_travel(session, destination)
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(session.world_state)
     session.evaluate_quest_events(before, action_result)
     narration = action_result["direct_response"]
-    session.messages.extend([
-        {"role": "user", "content": destination},
-        {"role": "assistant", "content": narration},
-    ])
+    turn_close.record_exchange(session.messages, destination, narration)
     return {
         "messages": session.messages,
         "narration": narration,

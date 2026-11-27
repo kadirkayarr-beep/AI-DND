@@ -105,12 +105,12 @@ class TownPortrait(unittest.IsolatedAsyncioTestCase):
         """Direct on the keeper: the finalizer may not catch every figure, the portrait itself must."""
         import game
         world = self.world
-        result = {"action": "travel", "success": True, "status": "completed", "previous_location": FAR}
+        result = {"action": "travel", "success": True, "status": "completed", "previous_location": HOME}
         with patch.object(game._DEFAULT_SESSION, "world_state", world):
-            world["location"] = HOME
-            world["locations"][HOME].pop("town_portrait", None)
+            world["location"] = FAR  # D-303: the start settlement (HOME) is never arrived at, so the keeper writes FAR
+            world["locations"][FAR].pop("town_portrait", None)
             game._keep_town_portrait(result, f"Kapının üstüne 20 gümüş yazılmış. {FIRST} {SECOND} {THIRD}")
-        self.assertEqual(world["locations"][HOME]["town_portrait"], f"{FIRST} {SECOND}")
+        self.assertEqual(world["locations"][FAR]["town_portrait"], f"{FIRST} {SECOND}")
 
     async def test_guillemet_and_single_quote_speech_is_dropped(self):
         await self.travel(FAR, f"Bir çocuk bağırıyor: «Yeni gelen!» Biri fısıldıyor: ‘Yabancı.’ {FIRST} {SECOND} {THIRD}")

@@ -6,7 +6,6 @@ _locked_door_refusal
 _mark_lock_seen
 _lock_known_to_player
 _current_door
-_normalize_ground_items
 location_features
 feature_descriptions
 active_npcs
@@ -36,7 +35,6 @@ update_inventory_from_player
 apply_check_outcome_to_world_state
 _names_current_local_exit
 _engine_location_parent
-_existing_local_tavern
 _resolve_explicit_local_scene_parent
 _scene_detail_parent
 _anchored_structure_features

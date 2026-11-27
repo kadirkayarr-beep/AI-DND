@@ -27,7 +27,10 @@ ROOT = Path(__file__).resolve().parents[2]
 # file:function for every coin writer in the product source; open paths stay open by the owner's scope.
 WRITERS = frozenset({
     "equipment_economy.py:pay",                  # the one debit/credit primitive the owners call
-    "equipment_economy.py:_apply",               # typed catalog buy, sell and item reward
+    "equipment_ops.py:_buy",                     # typed catalog buy, sell and item reward (D-501)
+    "equipment_ops.py:_sell",
+    "equipment_ops.py:_reward",
+    "game_parts/coin.py:create_shop_from_proposal",  # D-317: a new shop owner's till
     "bold_acts.py:settle_coin_labels",           # gold written in the pack becomes purse copper
     "bold_acts.py:_steal",                       # pickpocketed coin
     "bold_acts.py:_search_body",                 # coin found on a body
@@ -35,7 +38,7 @@ WRITERS = frozenset({
     "adventure/rewards.py:apply_plan",           # quest and delivery pay
     "incidents/rewards.py:_wallet_source",       # the incident's source purse
     "incidents/rewards.py:grant",                # incident coin reward
-    "api/character_creation.py:configure_character",  # the starting purse
+    "api/character_creation.py:_write_world_gear",  # the starting purse
     "economic_actions.py:apply_resolution",      # the one owner of confirmed economic effects
 })
 
@@ -98,7 +101,7 @@ def _writer_on_stack() -> str:
 
 class EachOpenPathMovesCoinOnlyByItsOwnWriter(unittest.TestCase):
     def setUp(self):
-        self.s = game.create_session()
+        self.s = game.create_session(seed=1)
         self.w = self.s.world_state
         self.w["npcs"] = [
             {"id": "barman", "name": "Marek", "role": "Barmen", "location": self.w["location"], "current_hp": 10},

@@ -327,7 +327,8 @@ class CoinLedgerPlay(ThreePlaysTests):
         # 22. Under arrest, 30 copper held out to the guard opens a bribe card (an engine turn, no model).
         self.w["flags"]["deeds"][-1]["hold"] = {"guard": "npc_hale", "place": self.place["id"],
                                                 "turn": self.w["flags"].get("turn_index", 0), "arrest": True}
-        with planted(self.session, _bribe_held_out=30),                 patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+        with planted(self.session, _bribe_held_out=30), \
+                patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
             self.session.run_player_turn("/item list")
         self.save()
         [bribe] = [data for data in self.offers().values() if data["status"] == "prepared"

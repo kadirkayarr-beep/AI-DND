@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 import local_places
+import name_catalog
 import tr_case
 
 CATALOG_DIR = Path(__file__).resolve().parents[1] / "content" / "world" / "catalog"
@@ -140,7 +141,7 @@ def adapt(item: Any, mapping: dict[str, Any]) -> dict[str, Any] | None:
 def load() -> list[dict[str, Any]]:
     """Every usable catalog template; an absent or broken catalog simply adds none."""
     try:
-        mapping = json.loads((CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        mapping = name_catalog.mapping(CATALOG_DIR)
         data = json.loads((CATALOG_DIR / "thread_templates.json").read_text(encoding="utf-8"))
         return [template for item in data.get("items", []) if (template := adapt(item, mapping))]
     except (OSError, ValueError, TypeError, KeyError, AttributeError):

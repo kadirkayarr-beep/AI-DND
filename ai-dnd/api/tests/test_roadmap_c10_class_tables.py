@@ -408,7 +408,7 @@ class NoGameplayChangeTests(unittest.TestCase):
     def test_public_creation_catalog_offers_starting_levels_only_for_the_progressed_classes(self):
         catalog = get_character_creation_catalog()
         self.assertEqual(sorted(k for k in catalog if k.endswith("_starting_creation")),
-                         ["barbarian_starting_creation", "fighter_starting_creation", "monk_starting_creation", "paladin_starting_creation", "rogue_starting_creation", "sorcerer_starting_creation"])
+                         ["barbarian_starting_creation", "cleric_starting_creation", "fighter_starting_creation", "monk_starting_creation", "paladin_starting_creation", "rogue_starting_creation", "sorcerer_starting_creation", "wizard_starting_creation"])
         self.assertEqual(catalog["sorcerer_starting_creation"]["supported_starting_levels"], [1, 2, 3, 4, 5])
         blob = json.dumps(catalog, sort_keys=True)
         self.assertNotIn("class_tables", blob)

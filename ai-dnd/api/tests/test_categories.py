@@ -32,11 +32,6 @@ class CategoryTests(unittest.TestCase):
         self.assertTrue(categories.motif_allowed({}, "b"))
         self.assertTrue(categories.motif_allowed({"emergence_state": {"recent_categories": "bad"}}, "b"))
 
-    def test_combat_bind_needs_creatures_and_a_threat(self):
-        self.assertTrue(categories.combat_bind_allowed({"allowed_creature_ids": ["rat"], "threat_band": "low"}))
-        self.assertFalse(categories.combat_bind_allowed({"allowed_creature_ids": [], "threat_band": "low"}))
-        self.assertFalse(categories.combat_bind_allowed({"allowed_creature_ids": ["rat"], "threat_band": "none"}))
-
 
 if __name__ == "__main__":
     unittest.main()

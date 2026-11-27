@@ -14,6 +14,20 @@ import living_world
 JOIN_LINE = "Yanlarına gidiyorum."
 
 
+def people_or_named_referent(session, people: list, player_input: str) -> list:
+    """D-308: with nobody here to ask, a person only the scene text has shown becomes a person once the line names them."""
+    world = session.world_state
+    turn_index = world["flags"]["turn_index"]
+    found = {"status": "missing"} if people else living_world.resolve_scene_referent(world, str(player_input), turn_index)
+    if found["status"] not in ("found", "promoted"):
+        return people
+    npc = session._promote_scene_referent(found["referent"], world.get("location"))
+    if not npc:
+        return people
+    session._set_scene_active_npc(npc, turn_index)
+    return [npc]
+
+
 def _scene_event(world: dict[str, Any]) -> tuple[dict | None, dict | None, dict | None]:
     """The scene the player stands in, its ambient event and the event's referent (None where missing)."""
     scene_state = world.get("scene_state")

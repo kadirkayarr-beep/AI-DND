@@ -105,6 +105,7 @@ class TurnRun:
         if message is None:
             message = self.main.MODEL_FAILURE_MESSAGE
         self.take_back_opening()
+        front_proposal.log_refused(self.session)  # D-408: a refused line shows in the play measurement
         detail = {"code": code, "message": message, "not_applied": True}
         durable = getattr(self.record, "usable", True) and self.main._store_refusal(
             self.manager, self.record, self.action_id, self.request_hash, 503, detail, what="Model-failure refusal",

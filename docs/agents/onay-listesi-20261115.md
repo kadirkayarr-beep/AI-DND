@@ -655,3 +655,294 @@ Not: `_PREFIX = r'/api(?:/game)?'` ölü seçeneği c06_early/c06_level5/c10_rec
 | test siniflari `TestTheReadingMayNameAWorldCheck`, `TestTheEngineRollsTheWorldTry`, `TestATheftWithWordsAfterItIsStillATry`, `TestEachActInALineHasItsOwnWhen`, `TestVaguePlaces`, `TestRadonRatchet`, `TestTurnLongFunctionsPin`, `TestTurnIndexAndUndoPin` | adlarina `Test` on eki (vulture `unused class` bulgusu: `Test*` siniflari yoksayilir); testler ayni | ad degisikligi |
 | `test_turn_long_functions_pin.py`, `test_compare_baseline.py`, `test_d094_world_rolls.py`, `test_d331_vague_places.py`, `test_d109_timing.py` | ruff B905/SIM117, bandit B404/B603/B101, pyright Optional/attribute hatalari icin test kodu duzeltildi (`zip(strict=True)`, birlesik `with`, `subprocess` yerine ayni islemde `runpy`, `patch.object(create=True)`, `self.fail` ile daraltma); iddialar ayni | eşit sıkılık (zip artik uzunluk farkinda da kirmizi) |
 | `ai-dnd/api/tests/engine_split_locks/patch_census.json` + `docs/engine-split/patch-census.md` | `patch_census.py --write`: yeni `test_dk1a_split_pins.py` 7 yeni yama hedefi ekledi (`_everyday_action_turn`, `_take_names_a_job`, `_spoken_rest_of_turn`, `_scene_observation_proposal_turn`, `_front_offer_gate`, `_front_consume`, `_front_work`); hedefler 107 -> 114 | gevşetme olabilir (yama yuzeyi 7 ad buyudu; yalniz test, motor degismedi) |
+
+
+## G2.1 (borc-sifirlama): bayrak acik test duzeni (D-410, D-415, D-421, D-423, D-428, D-411, D-390, D-389)
+
+Dal `task/borc-g21-20261126`. Yalniz test kodu degisti; motor kodu ayni.
+
+| Test | Degisiklik | Isaret |
+|---|---|---|
+| `test_step4_branches.Branches` (bayrak acik yolu) | Sahte model `ScriptedNpcSpeechClient` yerine `FrontClient`: her satirin okumasi kullanilabilir doner (`reading()` tablosu), her satirdan sonra `watch.unusable() == []`. Eskiden bayrak acikken okuma `fallback:no_front` idi (D-423). Kirma kaniti: istemci eski haline donunce 6 test kirmizi. Bayrak acikken eski zincirin bu testlerdeki karakterizasyonu kalkti | gevşetme olabilir (bayrak acik yolu: okuma yutulmuyor, eski zincir artik bu modulde sinanmiyor) |
+| `test_step4_branches.Branches` `reading()` | "o isi yaparim" satiri okumada `speak_to` (reddedilmis teklif listede yok, okuma teklif adi veremez); test hala `accepted` bekler | eşit sıkılık |
+| `test_step4_branches.Branches.test_a_night_watch_the_town_drew_is_not_worked_by_day_and_pays_at_night` | Adi `test_a_day_job_put_back_as_night_only_is_not_worked_by_day_and_pays_at_night` oldu (kasaba 22'nin kaydini degil, gunluk ise geri konan gece bayragini sinar); ucret defteri iddialari eklendi: 07:00'den sonra `days_worked 0`, `paid_cp 0`, `last_paid_day_index` yok; 21:00'den sonra `days_worked 1`, `paid_cp 12`; `start_second` kaydirmasinin guvenli olma nedeni yorumda (D-390) | ad degisikligi + daha sıkı |
+| `test_step4_branches.Branches.town()` ve yeni `test_the_rebuilt_day_job_keeps_nothing_of_the_job_the_town_drew` | Yeniden kurulan gunluk is kaydinda `fires_at`, `status_lines`, `item_noun` silinir; 4 kasabada sinanir (D-389) | daha sıkı (yeni test) |
+| `test_economic_bribe.AFailedReadingStillDecidesTheCoin.test_a_failed_reading_puts_coin_held_out_to_nobody_to_the_arresting_guard` | `since=ARREST_PATIENCE+3` ve iki iddia: `_force` cagrilmaz, `bribe_card_opened` True (G11 yolunda tirmanma sozlesmesi, D-411). Kirma kaniti: `bribe_card_opened` yazimi kapaninca kirmizi | daha sıkı |
+| `test_campaign_api` `test_invalid_conditional_conversation_rejects_before_interaction_effects` | `conditional_hint` yolunda ilk turdan sonra `client.conversation_replies == []` (D-415). Kirma kaniti: sahte `pop(0)` yerine `[0]` okuyunca kirmizi | daha sıkı |
+| `test_campaign_api.FakeOllamaClient.chat` | Okuma sorulunca `UnscriptedReadingError` (AssertionError alt sinifi, istemci adini soyler); motor yine yutar, davranis ayni; `front_reading.forbid_unscripted(test)` bu yutulan hatayi testte kirmizi yapar (yalniz ikiz testlerde acik, D-410) | eşit sıkılık |
+| `test_experimental_npc_dialogue.UsableReadingTwins` | Rotalar kurulumdan sonra toplanir (`RouteWatch`, `campaign_with_npc` sonunda `reset`), hicbiri `fallback*`/`skipped*` olamaz (eskiden yalniz `no_front`/`unusable` yasak, D-421 madde 7). Kirma kaniti: okuma hata verince 4 ikiz kirmizi | daha sıkı |
+| `test_experimental_npc_dialogue.plain_talk_client` | `**_` kalkti: `operation`, `conversation`, `stage_direction` verilirse `TypeError` (D-421 madde 8) | daha sıkı |
+| `test_experimental_npc_dialogue.call_kinds`, `with_reading`; `test_campaign_api.call_kind`, `read_first`; `test_intent_response_consistency.read_first`; `test_f04_n08_npc_memory.with_reading`; `test_real_death.read_only`; `journeys.runner.call_kind`; `test_ai_freedom_resolution_boundary._intent_packet`, `_reading_only` | Hepsi yeni `api/tests/front_reading.py`'ye tasindi (D-428, D-421 madde 3, 4, 6, 9); eski adlar ayni modullerden hala alinir. `call_kinds` artik `intent`, `steps` seklini `other` degil kendi adiyla soyler ve sema sozluk degilse (`format='json'`) hata vermez | gevşetme olabilir (`call_kinds` etiket kumesi: eski `other` bazi sema turleri artik `intent`/`steps`; bu etiketi `other` diye bekleyen test bulunmadi) |
+| `test_ai_freedom_resolution_boundary.HeldReadingIsToldOnceTests.setUp` | Baska sinifin bagsiz `setUp`'ini cagirmak yerine ortak `boundary_scene(test)` (D-421 madde 5) | eşit sıkılık |
+| `test_economic_bribe.BribeConfirmations.open_bribe`, `test_step0_ledger_play` adim 22 | Tek satira cokmus `with planted(...), patch(...)` ters bolu satir devamina donduruldu (D-421 madde 1) | bicim |
+| Yeni `api.tests.test_front_reading` | Yardimcilarin kendi testleri (call_kind sirasi, with_reading, yuksek sesli sahte, plain_talk_client, RouteWatch) | yeni test |
+| `test_economic_bribe.AFailedReadingStillDecidesTheCoin.test_a_failed_reading_puts_coin_held_out_to_nobody_to_the_arresting_guard` (D-411, duzeltme turu) | Satir `tek _press` istiyordu; ilk kart `_settle_the_law`'da bitip `law_done` dondurdugu icin `_press` o turda hic cagrilmaz (world_reactions.answer). Bu yuzden `_press` listesi `[]` denetlenir (tutma sikismaz), `_force` `[]`, savas yok, `bribe_card_opened` True | eşit sıkılık (iddia kesinlesti) |
+| `test_economic_bribe.Arrest.assert_room_coin_is_only_noted` (D-421 madde 2) | `TheBribeCard.test_coin_to_innkeeper_under_arrest_is_not_bribe` ile `AFailedReadingStillDecidesTheCoin.test_a_failed_reading_still_gives_coin_to_the_innkeeper_...` ayni 8 iddiayi kopyalıyordu; tek yardimciya tasindi, iki test de cagirir. Basarisiz okuma testi artik `COIN_NOT_TENDERED` yok iddiasini da tasir | eşit sıkılık (biri biraz daha sıkı) |
+| `test_intent_response_consistency.NoNarrationClient.chat` (D-410 madde 2) | Bayrak acikken okuma cagrisina eskiden `AssertionError` donuyordu (okuma dusuyor, kapi/yer/kimlik testleri bayrak acik eski zinciri kosuyordu); simdi kullanilabilir `unclear` okuma doner (`front_reading.front_reply`), `turn()` bu istemci okudugunda `fallback*` rotasi olmadigini denetler. Kirma kaniti: istemci okumada `RuntimeError` verince `g21-red2-fon` kirmizi | daha sıkı |
+| `test_public_door_focus.test_http_followup_topic_end_rollback_cold_replay_with_a_usable_reading`, `test_f04_creation_authority.SearchTransactionTests.test_search_save_failure_restores_rng_event_history_and_no_receipt_with_a_usable_reading` (D-410 madde 3) | Kayit hatasi/geri alma/yeniden oynatma sozlesmeleri bayrak acik kullanilabilir okumayla da kosar (govde ortak yardimciya `followup_rollback_cold_replay`, `search_save_failure_contract` tasindi; ilk testler ayni isimle ayni iddialari cagirir); okuma rotalari `fallback*` olmaz | yeni test (daha sıkı) |
+| `test_explicit_shop_creation.one_line_calls`, `call_kind` (D-428, duzeltme turu) | `with_reading` ve `front_reading.call_kind` kullanir (kopya ve `journeys.runner` yeniden disa aktarmasi kalkti). `test_npc_initiative.call_kinds` (sistem istemine gore) ve `test_f04_n08_npc_memory.request_kinds/call_kinds` (`speech_double.request_kind` ile) ayri kalir: baska bir sey siniflar (istem metni; yapay konusma kipinin kendi turleri), ortak yardimciya tasimak iddialari degistirirdi | eşit sıkılık |
+| Yeni `api.tests.test_free_talk_focus` (`FreeTalkFocusTests.test_free_person_line_answers_purpose`, `test_inn_question_gives_locked_inn_answer`, `PersonReadingClient`; `test_campaign_api` boyut kilidi dolu oldugu icin yeni dosya); `test_talk_asks_for.test_room_deal_in_talk_mode_has_speech_call` (G2.2, D-413, D-414, D-425) | Bayrak acik ve kapali: serbest kisi cumlesi amaci cevaplar ve `reason_for_being_here` odagini yazar; han sorusu `venue-door:<han>` odagini (`owner_verified`) yazar; konusma kipinde oda isteginde hanci bir konusma cagrisiyla konusur, kart cevaptan sonra acilir. Eski test degismedi. Davranis notu: bayrak acik, parasiz oda istegi artik once konusma cagrisi (`money_owner.room_by_speech`), kart `ask_after_reply` ile cevaptan sonra; bugun reddedilmis oda artik karti sessizce acmaz (bayrak kapali yolla ayni) | yeni test |
+
+## G2.3 (borc-sifirlama): model cagri tavani ve kullanim defteri
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_front_proposal.py` `test_an_outage_in_the_reading_asks_to_try_again_and_the_next_line_plays` | "reddedilen satir rota satiri yazmadi" (`rows + 1`) -> reddedilen satir artik bir `refused` satiri yazar (D-408), yeniden deneme bir satir daha: `rows + 2`, `routes()[-2]["status"] == "refused"` | gevşetme olabilir (rota gunlugu sozlesmesi degisti: reddedilen satir artik gorunur; kendi karari Kadir S/D-408, plan G2.3) |
+| `ai-dnd/api/tests/test_model_chain.py` `test_spend_warning_reads_the_ledger_and_is_none_without_one`, `test_the_spend_warning_is_logged_once_a_day` | `/health` harcama uyarisi 5 sn tutuluyor (D-496); iki test sahte saati her okumadan once 5 sn'den fazla ilerletiyor, iddialar ayni | gevşetme olabilir (onbellek suresi sinir tanimi; iddialar ayni siklikta, yalniz saat ilerliyor) |
+| `ai-dnd/api/tests/test_smoke_turn_diagnostics.py` `test_failed_calls_count_and_requests_have_distinct_safe_correlation` | sabit `3` basarisiz deneme -> `MAX_MODEL_CALLS_PER_TURN + 1` (tavan artik adaptorden okunur ve 3; test "tavandan bir fazla deneme" demek istiyordu) | gevşetme olabilir (sabit sayi turetilmis sayi oldu; ayni iddia: deneme sayisi tavani asar) |
+| `ai-dnd/api/tests/live_*_smoke.py`, `playable_living_world_v1_review.py` | `MAX_MODEL_CALLS_PER_TURN = 2` kopyalari kalkti; sinir `turn_call_cap((), most=True)` (= 3) (D-417). Canli betikler artik 3 cagrili turu kabul eder (bayrak acik, tanikli yarali kesif turu) | gevşetme olabilir (canli duman tur basina cagri siniri 2 -> 3; adaptorun gercek tavani) |
+| yeni testler | `ai-dnd/api/tests/test_g23_model_cap.py` (21 test: D-150 bilinmeyen kullanim en yuksek maliyetle, 4xx faturalanmaz; D-416; D-419; D-417 statik; D-494; D-496; D-418; D-405; D-408) | ekleme |
+
+## G2.4 (borc-sifirlama): zar ve anlati celiskisi
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/game_parts/narration_safety.py` `_narration_safety_decision` (D-012, Kadir S21 a) | Modelin, bu turda Python'un kaydettigi gercek deneyim odulunu ayni tutarla kendi cumlesiyle soylemesi (`25 deneyim puani kazandin`) artik `CANONICAL_XP_CONTRADICTION` ile reddedilmez; baska tutar ve tutarsiz `deneyim puani kazandin` hala reddedilir | gevşetme olabilir (guvenlik denetimi bilincli olarak gevsedi: yalniz kayitli tutarla birebir ayni sayi gecer) |
+| `ai-dnd/api/tests/engine_split_locks/surface.json` | Yeni adlar `_YIELDS`, `_nsd_text_without_awarded_xp`; `_nsd_outcome_failure_critical` imzasina `action_result` eklendi (altin dosya canli yuzeye esitlendi) | ekleme |
+| `ai-dnd/api/tests/test_d251_bold_line_variety.py` | `bold_acts._fresh` -> `bold_acts.fresh_line` (adi acik oldu, baska modulden de cagriliyor); iddialar ayni | eşit sıkılıkta yeniden yazım |
+| yeni test | `ai-dnd/api/tests/test_d226_roll_before_speech.py` (D-226, D-241, D-242, D-251, D-012) | ekleme |
+
+## G2.10 (borc-sifirlama): karakter olusturma ve kucuk API guvenligi
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/test_coin_writers.py` `WRITERS` | `api/character_creation.py:configure_character` -> `api/character_creation.py:_write_world_gear` (D-540: `configure_character` kucuk parcalara bolundu; baslangic cebini yazan islev artik `_write_world_gear`) | gevşetme olabilir (sabitlenen islev adi degisti; yazici sayisi ayni, yine tek yazici) |
+| yeni testler | `ai-dnd/api/tests/test_g210_creation_hardening.py` ve `g210_creation_golden.json` (50 vakalik davranis kaydi, D-540; D-319, D-313, D-539, D-314, D-385, D-316) | ekleme |
+
+## G2.11 (borc-sifirlama): katman dongusu ve motor -> api kenarlari
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/engine_split_locks/allowed_imports.json`, `surface.json` | `api.dnd_2024_rules` motora indi (`ai-dnd/dnd_2024_rules.py`); izin listesinde ad degisti, `get_expertise_choice_count` yuzey satirinin `module` alani `dnd_2024_rules` oldu. Eski yol ayni modul nesnesi olarak kalir (`sys.modules` takma adi), yama hedefleri calisir | ad guncellemesi, gevsetme degil |
+| `content/manifest/phb2024.json`, `legacy-compatibility.json`, `docs/acceptance/content-task-index.json`, `tools/content/check_manifest.py` `RESOLVER_FILES`, `ai-dnd/api/tests/test_roadmap_b04.py` | `existing_owner` ve cozucu dosya yolu `ai-dnd/api/dnd_2024_rules.py` -> `ai-dnd/dnd_2024_rules.py` (dosya tasindi; iddialar ayni, satir numaralari ayni) | yol guncellemesi |
+| `docs/agents/kalite-taramasi-20261125/importlinter.ini` | "Engine packages do not import api" sozlesmesine `ignore_imports` listesi (21 dogrudan kenar: lore_authority, ollama_adapter, opening_narrative, world_metadata). Sozlesme artik gecer; liste yalniz kucullur, `api/tests/test_layering.py` listeyi eşit tutar. **gevsetme olabilir**: sozlesme "kirik" yerine "listeli istisnalarla gecer" oldu | gevsetme olabilir |
+| kalan 6 duz motor -> api kenari (`arrival_narration`, `front_proposal` -> `api.ollama_adapter`; `character_progression` -> `api.character_creation`; `live_integration_test`, `live_phase_c_narrative_smoke` x2) | Kaldirilamadi: model kullanim sayaci ve karakter olusturma icin port katmani gerekir (D-583 satiri `kismen` kalir); canli betikler api'yi bilerek surer. `test_layering.FLAT_EDGES_LEFT` listeler, kaldirilan kenar listeden cikmali | kismen (R-D583) |
+| yeni test | `ai-dnd/api/tests/test_layering.py` (routes bagimsizligi, motor -> api kenar listeleri, eski yol ayni modul) | ekleme |
+
+## G2.5 (borc-sifirlama): yolculuk ve varis anlatisi
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/game_parts/turn_exits.py` `_tx_timed_sequence` + `ai-dnd/timed_gameplay.py` `told_arrival` (D-301, Kadir K29) | "X'a gidiyorum" ile biten tamamlanmis yolculuk artik Python'un "X konumuna vardin." satiriyla kapanmaz; anlatici bir cagri daha yapar (varis turu bir model cagrisi daha harcar). Ara durumlar (`started`, `blocked` vb.) hala deterministik | davranis degisikligi (kendi karari Kadir K29) |
+| `ai-dnd/api/tests/test_f04_frozen_narrator_faults.py` `test_D04_location_contradiction_cannot_relocate_player` | zamanli varis artik anlaticiya gidiyor: saglayici dizisi `read + [narration(bad), narration(bad)]`, cagri turleri `['front']*n+['narration']` ve sonra `['front']*n+['narration']*2`; kotu metin yanitta yok iddiasi eklendi | gevşetme olabilir (cagri sayisi sozlesmesi degisti: varis anlaticidan geciyor; reddedilen konum iddiasi ayni siklikta) |
+| `ai-dnd/api/tests/test_f04_frozen_narrator_faults.py` `test_D04_a_go_to_reading_of_a_timed_route_still_walks` | saglayici `reading(...) + [narration('Ormanin kenarina geliyorsun.')]`, `kinds == ['front','narration']` | gevşetme olabilir (ayni neden: varis turu anlaticiya gidiyor; oyuncu yine yuruyor) |
+| `ai-dnd/api/tests/test_town_portrait.py` `test_money_sentence_is_not_in_the_portrait` | `previous_location` HOME, hedef FAR; portre FAR'da denetleniyor. Baslangic yerlesimi (HOME) artik doner donmez portre almaz (D-303) | gevşetme olabilir (portre yazilan yer degisti: baslangic yerlesimi disi; para cumlesi portrede olmasin iddiasi ayni) |
+| yeni test | `ai-dnd/api/tests/test_g25_arrival_story.py` (8 test: D-301, D-309 x2, D-498 x2, D-338, D-296, D-303) | ekleme |
+
+## G2.24 (borc-sifirlama): kayit deposu (D-495, D-536, D-305)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/persistence/campaign_store.py` `compact_receipts`, `ai-dnd/api/persistence/receipt_archive.py` `tombstone_from_row`, `has_open_reaction` | Silindi (Kadir S26: b; uretimde hic cagrilmiyordu). Arsiv tablosunu OKUYAN kod (`get_turn_action`, `get_campaign`, acik niyet sorgusu) oldugu gibi kaldi | olu kod silme |
+| `ai-dnd/api/tests/test_roadmap_r08.py`: `test_an_open_reaction_keeps_its_full_receipt`, `test_compaction_is_idempotent_and_never_touches_newer_revisions`, `test_measure_growth_at_10_100_1000_10000_synthetic_actions`, `test_the_newest_receipt_keeps_its_full_reply_by_default` | Silindi: yalniz silinen sikistirma islevini sinayan testler. **gevsetme olabilir**: acik tepki korumasi, buyume olcumu ve "en yeni makbuz tam kalir" artik hicbir testte yok (islev yok) | silme |
+| `test_roadmap_r08.py` `test_archived_receipt_never_reexecutes_old_action`, `test_an_unverifiable_archive_blocks_the_retry_instead_of_running_it`; `test_d139_skill_card_row_identity.py` `test_the_card_stays_on_its_row_after_the_receipt_archive`; `test_dilim0_undo_text.py` `test_archiving_the_target_shows_the_undo_as_unverifiable` | Ayni iddialar, esit siki: arsiv satirlari artik `api/tests/receipt_archive_fixture.py` ile dogrudan SQL'le yazilir (eskiden silinen islevle). Yalniz `revision head degismez` iddiasi dustu (o sikistirma islevinin ozelligiydi) | yeniden yazim, gevsetme degil |
+| yeni test dosyalari | `api/tests/receipt_archive_fixture.py`, `api/tests/claim_race.py` (yaris yardimcisi; `test_persistence_idempotency.py` boyut kilidi artmasin diye ayri dosya), `api/tests/test_history_paged_read.py` (10 000 satir sayfali okunur, ayni veri, story tablolarinda `fetchall` yok) | ekleme |
+| `test_persistence_idempotency.py` `test_concurrent_different_actions_serialize_without_lost_time` | Yaris artik belirleyici: ikinci istek istegi gec talep eder, birinci acik talebini ikincisi cevaplanana dek tutar (`threading.Barrier`). Beklenen sonuc `[200, 409]` ayni; eskisi CI'da zamanlamaya bagliydi ([200, 200] flake) | belirleyicilestirme, gevsetme degil |
+
+## G2.6 (borc-sifirlama): eski kayit dallari A (kayit, savas, buyu, diyalog)
+
+Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz, yalniz yeni kayitlar onemli. Silinen ya da yeniden yazilan testlerin hepsi eski bir kayit sekli ya da gocu sinayan testlerdir; yeni kampanyanin tam turu `test_new_campaign_full_round_trip` ile korunur.
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/game_parts/savefile.py` `_SUPPORTED_SAVE_VERSIONS` (D-525) | (1..6) -> (4, 5, 6); v1-v3 kayit "Bu kayit surumu desteklenmiyor" hatasiyla reddedilir; `version >= 2/3/4` ve `not in (4, 5, 6)` dallari silindi; `_validate_player_weapon_proficiencies` ve `_validate_saved_character` `version` almaz | gevşetme olabilir (kabul edilen kayit kumesi daraldi; gerekçe: eski kayit kurali) |
+| `ai-dnd/game_parts/combat_flow.py` `ensure_combat_state` (D-524) | `_migrate_legacy_combat_state` silindi; schema_version 3 olmayan savas sozlugu "Unsupported combat save version." ile reddedilir (bos/kismi sozluk dahil); `None` hala varsayilan savas olur | gevşetme olabilir (kabul edilen savas sekli daraldi) |
+| `ai-dnd/spell_scope.py` `upgrade`, `spell_preparation.py` `choose_spellbook`/`_book_options`/`_book_suggestion`, `api/routes_spells_write.py` kitap secimi dali (D-576, D-538) | surum-1 Wizard/Cleric durumu goc etmez; kitapsiz Wizard "spellbook_missing" ile reddedilir (secenek ve oneri bos); `migration` pencere nedeni gecersiz; kitap gonderen istek 409 (`prepare_spellbook_missing` ya da `prepare_spellbook_not_missing`) | gevşetme olabilir (eski kayit Wizard'in kitap secme yolu kapandi) |
+| `ai-dnd/dialogue_runtime.py` `initialize_new_campaign` (D-505) | `legacy` ve bos mod reddedilir; yalniz ayarsiz ya da `free_v1` | gevşetme olabilir (kabul edilen mod kumesi daraldi) |
+| `ai-dnd/api/tests/test_d039_spellbook_choice.py` (silindi) + `api/tests/fixtures/f3_wizard_save.json` (silindi) | kitap secme yolu kalkti | silinen test |
+| `ai-dnd/api/tests/test_d258_real_format3_save.py` (silindi) | gercek format-3 kaydin yuklenmesi artik reddedilir (yeni test pin'ler) | silinen test |
+| `ai-dnd/test_combat_v2_authoritative.py` sekiz `test_V3_*legacy*` testi (silindi) -> tek `test_V3_legacy_combat_shapes_are_refused_and_roll_back_load`; `test_L_empty_partial_invalid_state` | V1/V2 savas goc testleri kalkti; eski sekil ve surumler reddedilir, red yuklemeyi geri alir (referanslar, rng, durum); bos/kismi savas sozlugu artik sifirlanmaz, reddedilir | gevşetme olabilir (`{}` ve kismi savas icin eski "sifirla" iddiasi "reddet" oldu) |
+| `ai-dnd/test_combat_v2.py` `test_combat_state_legacy` -> `test_combat_state_legacy_is_refused` | v2 dosya yuklenip goc ediliyordu; artik reddedilir | gevşetme olabilir |
+| `ai-dnd/api/tests/test_spell_preparation_4c2.py` `OldSaveMigration` (5 test silindi, 2 kaldi) + `test_store_resume_of_a_version_one_wizard_campaign_is_not_migrated` + `test_combat_start_keeps_a_creation_or_level_up_window` | sürüm-1 durumu goc edilmez; migration nedeni listeden cikti | gevşetme olabilir |
+| `ai-dnd/api/tests/test_quest_outcomes.py`, `test_roadmap_c06_level5.py`, `test_spells_v1.py` (iki dosya), `test_xp_v1.py`, `test_save_migration.py` | `(1, 2, 3)` dongulari kalkti: v1-v3 yukleme reddedilir ya da format 4'e cevrildi; `test_v3_projection_reads_live_spell_fields_only` ve `test_legacy_format_may_not_silently_drop_present_capability` silindi (yalniz format-3 oturum durumunu sinayan testler; v4 esdegerleri duruyor) | gevşetme olabilir (format 1-3 kapsami cikti) |
+| `ai-dnd/api/tests/test_dilim4b_legacy_level_five.py`, `test_dilim4c_b1_lockout.py`, `test_d061_unrecorded_xp_line.py` | `legacy_save(1..3)` -> `legacy_save(4)`: 5. seviye gecisi ayni iddialarla format 4 kaydi uzerinde sinaniyor | gevşetme olabilir (alt test sayisi 3 -> 1) |
+| `ai-dnd/scripts/development_checks.json`, `api/tests/test_development_tooling.py`, `api/tests/engine_split_locks/*.json`, `scripts/engine_split/{inventory,sensitivity}.py`, `test_engine_sensitivity.py`, `scripts/quality_gate/baselines/radon.json` | silinen ad ve imzalar listelerden cikti; radon tabani yalniz kuculdu | kilit kuculmesi |
+| yeni test | `ai-dnd/api/tests/test_g26_old_save_branches.py` (D-525, D-524, D-576, D-538, D-505, tam tur) | ekleme |
+| `ai-dnd/action_economy.py` `ensure`/`validate_saved` + yeni `begin_combat` (D-028) | etkin savasta `turn_resources` yoksa artik kayit yuklenirken reddedilir; `ensure` onu sessizce kurmaz; yeni savas `begin_combat` ile kurar | gevşetme olabilir (kabul edilen savas kaydi sekli daraldi) |
+| `ai-dnd/test_combat_v2_authoritative.py` `test_V3_pre_resource_save_reconstructs_spending_from_markers` -> `test_V3_pre_resource_save_is_refused_not_rebuilt` | eski sekil yeniden kuruluyordu; artik yukleme reddedilir ve durum geri sarilir | gevşetme olabilir (eski sekil testi reddetme testine cevrildi) |
+| `api/schemas.py` + `lib/api-spec/openapi.yaml` + uretilen istemciler + `main_openapi_golden.json` (D-538) | istek alani `spellbook`, gorunum alanlari `spellbook_options`/`suggested_spellbook`, `reason` degeri `migration`, sonuc durumu `spellbook_saved` ve hata kodu `prepare_spellbook_not_missing` kalkti | gevşetme olabilir (sema daraldi) |
+| `artifacts/ai-dnd-experience/tests/spell-preparation.test.mjs` uc `D-039` testi (silindi) + `migration` satirlari (D-576) | kitap secme ekrani ve `migration` metinleri kalkti; geri kalan testler ayni siklikta | silinen test |
+| `api/tests/test_spell_preparation_4c2.py` `test_view_lists_candidates_and_limit` | tam sozluk esitligi ayni; yalniz kalkan iki alan cikti | ekleme/esit |
+
+## G2.7 (borc-sifirlama): eski kayit dallari B (envanter, yer esyasi, inisiyatif)
+
+Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic birak/al, kaydet, yukle, Geri Al turu `api/tests/test_g27_old_inventory_branches.py` ile korunur.
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/equipment_economy.py` `legacy_sword_move` -> `carry_named` (D-504) | kilic birakma/alma `/item drop\|take` ile ayni `_apply` hareketini kullanir; esya kimligi korunur (eskiden elde tutulan kimlikli kilic yere duz "Kilic" yazisi olarak dusuyordu); iki kilic ve eldekini bilmeyen durum degismeden reddedilir | ekleme/esit (kimlik kaybi duzeldi) |
+| `ai-dnd/game.py` `ground_items` alani, `game_parts/places.py` `_normalize_ground_items`, `equipment_economy.py` `containers` `legacy_ground` ve `materialize` goc blogu, `savefile.py`, `turn_front.py`, `text_rules_b.py`, `intent.py`, `narration.py` (D-526) | eski ust duzey `ground_items` listesi ve iki gocu ile okuyuculari kalkti; yeni dunya ve kayitta alan yok; `intent.py` ve `narration.py`'deki hep bos listeyi okuyan iki dal (kilic yerde iletisi) silindi, `intent.py` stok kontrolu yalniz envanteri okur | gevşetme olabilir (eski listeyi okuyan dallar kalkti; davranis ayni, cunku liste hep bostu) |
+| `ai-dnd/initiative.py` `validate_saved`, `join`, `leave` (D-518) | `initiative_results` olmayan etkin savas kayit yuklerken reddedilir; `legacy_preserved` toplami gecersiz; `join` eski toplamlardan sonuc uretmez; `leave` sartsiz | gevşetme olabilir (kabul edilen savas kaydi sekli daraldi) |
+| `ai-dnd/test_migration.py`, `test_migration_harden.py` (silindi) + `run_tests.py`, `test_runner_inventory.py`, `api/tests/test_legacy_script_isolation.py`, `TESTING_CHECKPOINT.md` listeleri | eski `ground_items` listesinin gocunu sinayan iki betik silindi | silinen test |
+| `ai-dnd/api/tests/test_initiative.py` `test_legacy_integer_totals_allow_join_without_invented_dice` (silindi) | eski toplamlardan katilimci ekleme kalkti; yerine `test_g27` iki red testi | silinen test (gevşetme olabilir) |
+| `ai-dnd/test_combat_v2_authoritative.py` `test_X_inventory_parser_no_op` | eski `ground_items` listesi besleyen alt testler kalkti; ayni iddialar ayni sekilde | ekleme/esit |
+| `ai-dnd/api/tests/engine_split_locks/surface.json`, `scripts/engine_split/batches/places-1.txt`, `scripts/quality_gate/baselines/ruff.json` | silinen ad ve iki betik girdisi cikti | kilit kuculmesi |
+| yeni test | `ai-dnd/api/tests/test_g27_old_inventory_branches.py` (D-504, D-526, D-518, tam tur) | ekleme |
+
+## G2.12 (borc-sifirlama): buyu satirlari ve Wizard/Cleric baslangic 2-5 (D-057, D-280, D-040)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_roadmap_c10_class_tables.py` `test_public_creation_catalog_offers_starting_levels_only_for_the_progressed_classes` | Beklenen `*_starting_creation` anahtar listesine `cleric_starting_creation` ve `wizard_starting_creation` eklendi (siralama alfabetik, ayni siki esitlik). Katalog siniri degisti: iki sinif daha baslangic seviyesi sunuyor | yeniden yazim, **gevsetme olabilir** (sinir tanimi degisti) |
+| `ai-dnd/api/tests/main_openapi_golden.json` | Yalniz ekleme (295 satir): Wizard/Cleric baslangic ve secim modelleri, `CharacterCreateInput.level_choices` birligine iki model, katalog yanitina iki alan | ekleme |
+| `artifacts/ai-dnd-experience/tests/roadmap-c06-barbarian-start2-ui.test.mjs`, `roadmap-c06-barbarian-start45-ui.test.mjs`, `roadmap-c14-fighter-ui.test.mjs`, `roadmap-c15-monk-ui.test.mjs` | Ekranin yeni serbest degiskenleri (`casterStarting`, `isCasterStartClass`, `casterOptions`) vm ortamina eklendi; hicbir iddia degismedi | yeniden yazim, gevsetme degil |
+| `ai-dnd/api/schemas.py` `CharacterCreateInput.fields_must_match_creation_mode` | Barbarian/Fighter/Paladin/Rogue/Monk dallari tek tabloya (`_START_BUNDLES`) toplandi, Wizard ve Cleric tabloya eklendi. Ayni hata iletileri ("... exact level2 to level5 choice bundle ..." sozu geri konuldu, yeni siniflar da ayni soz; testle sabit), ayni sinif/model eslesmesi, ayni "{2: {}} paylasimi" (Fighter, Rogue, Monk, Cleric). Gereksiz `starting_level in (2,3,4,5)` kontrolu kalkti (alan zaten 1-5 ile sinirli, ve `> 1` dalinda). Karmasiklik 43 -> 27 | yeniden duzenleme, davranis ayni (komsu setler yesil) |
+| yeni testler | `test_g212_spell_rows.py` (D-057 x2, D-280 x1), `test_g212_wizard_cleric_start_http.py` (4 test), `artifacts/ai-dnd-experience/tests/prepared-caster-starting.test.mjs` (6 test; `test:standard` listesine eklendi) | ekleme |
+| `ai-dnd/api/tests/test_full_python_suite.py` `test_every_test_module_is_listed_by_dotted_name`, `test_only_test_files_directly_in_api_tests_count` (artik `..._in_the_two_folders_count`) | Kesif artik `ai-dnd/test_*.py` kok testlerini de listeler (`test_regression` betik oldugu icin `SCRIPT_MODULES` ile haric, kendi CI adiminda kosar). Beklenen liste: api.tests adlari + kok adlari; ayni siki esitlik. Kesif siniri degisti (D-218, D-329) | yeniden yazim, **gevsetme olabilir** (sinir tanimi degisti) |
+| `ai-dnd/api/tests/test_model_isolation.py` `test_legacy_mock_is_fresh_and_restores_both_bindings` | `test_regression.isolated_model` artik `sys.modules["ollama"]` yamalamiyor (D-340; ikinci ollama kopyasi yok); test yalniz `game.ollama` baglantisini ve taze sahte nesneyi sinar, `sys.modules` iddialari kalkti | yeniden yazim, **gevsetme olabilir** (iki bagdan biri artik yok) |
+| `ai-dnd/api/tests/test_quality_flip.py` `test_size_lock_shrink_step_in_python_gate` | `python-gate` iscisinde artik iki `size_lock_shrink` adimi var (size_lock.json ve size_budget.json, D-553); test `size_lock.json` adimini adiyla secer, ayni dort iddia | yeniden yazim, gevsetme degil |
+| `ai-dnd/test_narrative_rebalance.py` `test_proposal_turn_preserves_final_action_fallback` | Yol yok yedek satiri artik doner (D-251, G2.4, 2a66f2ff): ikinci cagri baska satir secebilir, bu yuzden tam esitlik koku bozuktu (kok testler ilk kez CI'da kosunca ortaya cikti). Test simdi anlatimin `interaction_adventure.TRAVEL_NO_ROAD` uc sabit satirindan biri oldugunu sinar | yeniden yazim, **gevsetme olabilir** (tam esitlik yerine sabit kume uyeligi) |
+| `ai-dnd/api/tests/test_engine_hash_parts.py` `test_product_and_test_helper_list_the_same_files` | `_engine_files` artik `engine_digest.engine_files` (ayni islev, yeni yer, D-346); ayni iddia | yeniden yazim, gevsetme degil |
+| `ai-dnd/scripts/quality_gate/size_lock.json` | Dort dosya icin girdi eklendi: `action_economy.py` 1171, `bold_acts.py` 1543, `economic_actions.py` 1973, `equipment_economy.py` 1159 (D-500; gercek boyutlar). Girdi yoksa dosya 2500 satira kadar sessizce buyuyebiliyordu; girdi varsa buyume kapiyi kirar | sikilastirma (yeni girdi part_max altinda, `size_lock_shrink` buyume saymaz) |
+| yeni testler ve araclar | `test_ci_discovery_guards.py` (D-342, D-340, D-341, D-500, D-553, D-346, D-467), `scripts/protected_tests_run.py`, `engine_digest.py` (saklanan motor ozetiyle ayni islev, ozet degeri degismedi: 871fec55...) | ekleme |
+
+## G2.18 (borc-sifirlama): inventory ve probe araclari (D-451, D-461, D-452, D-437, D-438, D-362, D-365)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/scripts/engine_split/inventory.py` `touching_tests` | Liste yalniz buyur (guvenli yon): `"game.py"` yol dizesi tutan test her ad icin sayilir (D-461), yardimcidan donen oturum bicimleri (`session(..)`, `make_session(..)`, yerel yardimci, `or`/`if-else`) izlenir (D-452), ust duzey `from game import X` birimi ice aktarmada calisir (D-438). Gercek agacta `create_npc_from_ai` icin 383 -> 415 modul; hic ad olmadan 0 -> 38 (yol okuyan testler). D-451 (S24 a) kabul edildi, kod yok | davranis genislemesi, gevsetme degil |
+| `ai-dnd/scripts/engine_split/outside_probe.py` `_run` | Asili alt surec `PROBE FAIL <adim>` verir (rc 124), traceback degil | duzeltme |
+| yeni testler | `test_engine_split_inventory.py` (4 test: D-437, D-438, D-461, D-452), `test_engine_probe_tools.py` `LineProbe` (D-362 yeniden kurulum, D-365 4 test) | ekleme |
+| `ai-dnd/scripts/engine_split/inventory.py` `_scans_engine_parts` | Liste yalniz buyur (guvenli yon): agaci tarayan (`rglob`/`glob`/`iterdir`/`walk`) ve `game_parts` yolu tutan test her ad icin sayilir (D-461; `test_talk_mode_writers`, `test_layering`) | ekleme |
+
+## G2.19 (borc-sifirlama): tasima, kapsam, defter ve sayim araclari (D-349, D-468, D-431, D-432, D-433, D-436, D-435, D-363, D-427, D-475, D-434, D-359)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_engine_probe_tools.py` `test_collect_refuses_shards_on_different_trees` (N7 collect) | Iki farkli agactan gelen parcalar artik `MIXED TREE` yazar ve cikis kodu 1 olur (once `TREES_DIFFER`, kod 2); N4 defter toplayicisiyla ayni sozler (D-436). Cikti dosyasinin yazilmadigi da sinanir. `--diff` tabanlari uyusmazsa `TREES_DIFFER` ve kod 2 ayni kaldi | gevsetme olabilir (sinir yeniden tanimlandi: kod 2 -> 1; reddetme yine var, dosya yine yazilmiyor) |
+| `ai-dnd/api/tests/test_engine_move_check.py` WRONG ROOT beklentisi | Mesajin sonuna "or add the missing names to --moved" eklendi (D-433); ayni durum, daha yol gosterici metin | yeniden yazim, gevsetme degil |
+| `ai-dnd/api/tests/test_engine_move_tool.py` `test_two_blocks_one_import_line_at_the_first_position` | Tasinan iki blok arasinda, biri def ya da sinifsa, iki bos satir (E302) beklenir; once bir (D-475 d). Yalniz iki sabit duz atama arasinda tek bos satir kalir ve sinanir | yeniden yazim (yeni biçim ruff E302 ile uyumlu), gevsetme degil |
+| `ai-dnd/scripts/engine_split/move_check.py` `--manual` girdileri | Girdi artik kendi satiri kotuyse (D-431, satir basina) ya da baska bir parcada tabana gore degisen bir satiri adlandiriyorsa sayilir (D-432). Eski davranis daha gevsekti (grup ya da dosya duzeyi); yeni davranis daha siki | siklastirma |
+| `ai-dnd/scripts/engine_split/move_block.py` | Bos ya da bozuk `identity_allowlist.json` artik `REFUSED identity allowlist ...` ve cikis 2 verir (traceback degil); `sys` takma adi, `game.sys.modules`, bos `locals`/`globals`/`vars` kullanimi reddedilir; ayni adli yerel degisken reddedilmez (D-475) | siklastirma |
+| `ai-dnd/api/tests/gate_boot.py` `boot` | Bitisik belirteç (`p2g0fon`, `fon_a`, `n7x`) artik ValueError verir; once sessizce bayraksiz kosuya dusuyordu (D-359) | siklastirma |
+| `ai-dnd/api/tests/test_engine_gate_boot.py` `_engine_import` | `import_module("game")` bos ad ve `builtins.__import__("game")` de gorulur (D-434) | siklastirma |
+| `docs/engine-split/patch-census.md` | Yeniden uretildi (test dosyalari degisti); kilit `patch_census.json` icerigi ayni. Yeni test rapor ile taze taramayi karsilastirir (D-427; yuvada docs yok, orada atlanir) | ekleme |
+| yeni testler | `test_engine_routing.py` (D-349 kabul edilen kor noktalar), `test_engine_move_check.py` (D-431, D-432), `test_engine_move_tool.py` (D-475 a, b, c, d), `test_engine_probe_tools.py` (D-363, D-435), `test_engine_patch_census.py` (D-427), `test_engine_gate_boot.py` (D-359, D-434) | ekleme |
+
+## G2.9 (borc-sifirlama): ekonomi cekirdegi (D-317, D-403, D-501)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_d170_purse.py` `test_an_uncounted_shopkeeper_has_the_shops_cash`, `ai-dnd/api/tests/test_d207_written_purse.py` `test_a_shopkeeper_opens_with_the_till` | Sinir yeniden tanimlandi (D-317): 1000 bakir kasa artik yalniz `world["shops"]` icinde `shopkeeper_id` olan kisiye; rolu yalniz "Shopkeeper" yazan, dukkani olmayan kisi 5-40 bakir. Test dukkan kaydini kurup 1000'i ayni siklikla sinar, rol-tek durumu 5-40 olarak ekler | yeniden yazim, **gevsetme olabilir** (esik rolden dukkan kaydina tasindi) |
+| `ai-dnd/api/tests/test_coin_writers.py` `WRITERS` | `equipment_economy.py:_apply` yerine `equipment_ops.py:_buy`, `_sell`, `_reward` (D-501 bolme, ayni yazicilar) ve yeni `game_parts/coin.py:create_shop_from_proposal` (D-317: yeni dukkan sahibinin kasasi) | yeniden adlandirma + bir yeni para yazici girdisi, gevsetme degil |
+| `ai-dnd/scripts/quality_gate/size_lock.json`, `baselines/radon.json`, `api/tests/engine_split_locks/size_budget.json` | `equipment_economy.py` 1159 -> 933 ve `::_apply` 230 girdisi silindi; radon `_apply` 119 girdisi silindi, `_front_step` 155 -> 154; `_front_step` uzun islev siniri 235 -> 229. Yalniz kuculdu | sikilastirma |
+| `ai-dnd/api/tests/engine_split_locks/surface.json`, `sensitive.json` | Yeni `game._no_list_fallback` (D-403: liste kurulamayan okuma da paranin kararini verir) kayit altina alindi | ekleme |
+| yeni testler | `test_d317_shopkeeper_purse.py` (D-317, D-403), `test_equipment_apply_pin.py` (D-501 karakterizasyon: her islem icin altin, esya, makbuz metni, Geri Al'da dunyanin degismemesi, kollarin arguman sayisi), `test_front_failed_fallback.py` yeni walk-out ve evet+bozuk-okuma testleri, `test_d317_shopkeeper_purse.py` tek-sefer-sorma testi | ekleme |
+
+## G2.21 (borc-sifirlama): arayuz kucukleri (D-153, D-235, D-563, D-282)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `artifacts/ai-dnd-experience/tests/combat-panel.test.mjs` `skill result cards render canonical values...` ve `advantage rolls and explicit modes...`, `tests/play-viewport.test.mjs` `transcript keeps player then narration order...` | "DC hicbir yerde gorunmez" beklentisi D-282 (Kadir, 2026-11-16) ile yeniden tanimlandi: Zorluk satiri "Zor, DC 18" gibi etiket ve sayiyi birlikte yazar; DC kartin baska hicbir yerinde (ozet, erisilebilir ad) gorunmez (Zorluk satiri cikarilinca yine DC aranir). Sinir degisti | gevsetme olabilir |
+| `ai-dnd/api/tests/test_public_inventory_shield.py` | Kusanilmis esya etiketi artik el adini da yazar: `(kusanilmis) (ana el)` / `(ikinci el)`; yaratim kalkani ikinci elde sayilir. Beklenen metinler eslesecek sekilde yeniden yazildi, ikinci el icin ek dogrulama eklendi | yeniden yazim, siki |
+| `artifacts/ai-dnd-experience/tests/roadmap-c06-level4-ui.test.mjs`, `tests/roadmap-c06-nondex-asi-ui.test.mjs` | Sinif adi olmayan (`class_name` yok) onizleme artik Sorcerer denetimi cizmez (D-563); iki test onizlemesine `class_name: 'Sorcerer'` eklendi, sunucu bunu her zaman yollar | yeniden yazim, siki |
+| `artifacts/ai-dnd-experience/tests/character-identity-panel.test.mjs` | `LeftColumn` kaynak denetimi yeni `inventory` ozelligini bekler (D-235) | yeniden yazim, siki |
+| `artifacts/ai-dnd-experience/tests/play-screen-ui-regression.test.mjs` (acik beceri karti) | Acik kartta "DC yok" beklentisi D-282 ile yeniden yazildi: Zorluk satiri "Orta, DC 15" okunur, bu satir cikarilinca kartta baska DC aranmaz. Sinir degisti | gevsetme olabilir |
+| `artifacts/ai-dnd-experience/tests/c06-level4-fixture/main.tsx` (`preview()`, `roadmap-c06-level4-browser.test.mjs` tarayici fiksturu) | Seviye 4 onizlemesine `class_name: 'Sorcerer'` eklendi (D-563 sonrasi sinifsiz onizleme "henuz desteklenmiyor" der); yeni `g221-ui-small` testi her seviye atlama fiksturunun sinif adi yazdigini denetler. Tarayici testi kosulmadi, Kod-1 kosusu gerekir | yeniden yazim, siki |
+| yeni test | `tests/g221-ui-small.test.mjs` (D-153 erisilebilir adlar, D-235 eller, D-563, D-282); `package.json` `test:standard` listesine eklendi | ekleme |
+| `ai-dnd/api/tests/engine_split_locks/allowed_imports.json` | G2.8 (D-581, D-502): motorun izinli dis iceri aktarimlari listesine yeni kok modul `turn_close` eklendi (tur sayaci ve gecmis ciftini yazan tek yardimci; game'i iceri aktarmaz). Liste buyudu | gevsetme olabilir |
+| `ai-dnd/api/tests/engine_split_locks/patch_census.json`, `docs/engine-split/patch-census.md` | G2.8: `patch_census.py --write` ile yeniden uretildi; `_carry_out_thread_turn` hedefi G2.21 REDFIX (d0c70ec0, `test_thread_errand.py`) ile eklenmisti ama kilit guncellenmemisti; yalnizca bu satir eklendi | yeniden uretim |
+| yeni test | `api/tests/test_turn_rollback_sites.py`: `test_every_turn_end_increments_once_and_undo_restores_it`, `test_no_hand_written_turn_index_increment`, `test_advance_and_record_exchange` | ekleme |
+
+## G2.20 (borc-sifirlama): kasaba tohumu ve yolculuk testleri (D-383, D-384, D-554, D-085, D-480, D-292, D-393)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_journey_runner.py` `test_each_new_campaign_of_one_seeded_setup_in_a_test_takes_the_next_seed` | Ayni depoda ayni tohumlu kurulumun tekrarlari artik tohum +1 degil tohum + 100000·n alir (000000002711, 000000102711, 000000202711); +1 kardes senaryonun tohumuna denk geliyordu (D-384). Yeni test `test_a_repeat_never_takes_a_sibling_scenarios_seed`: 09a iki kez sonra 09b ayni depoda calisir ve hicbir senaryo tohumu 100000'e ulasmaz | gevsetme olabilir (sinir yeniden tanimlandi: tekrar tohumu bicimi); ayni siki: tekrar yine sabit ve tekrarlanabilir, simdi cakisma da yok |
+| `ai-dnd/api/tests/test_exits.py` `test_each_scene_plays_the_next_pinned_town` | Beklenen kasaba kimlikleri tohum +1, +2 yerine tohum + 100000·n (ayni D-384 kurali, bu test kosucunun tekrar tohumunu da sabitliyordu); ayni siki: ilk TOWN_SEED, sonrakiler sabit ve ayri | gevsetme olabilir (sinir yeniden tanimlandi: tekrar tohumu bicimi) |
+| `ai-dnd/api/tests/town_seed.py` `campaign_seeded` | Kasaba sabitleyici (`_campaign_seeded`) kosucunun ozel isleviyken `town_seed.py`ye tasindi; `fixed_town` artik kosucuyu ice aktarmaz (D-554). Kosucu ayni adla (`_campaign_seeded`) geri alir; davranis ayni | yeniden yazim, gevsetme degil |
+| `ai-dnd/api/tests/test_three_plays.py` `FightBackTests` | Zar `session.rng.seed(1776)` ile sabit (D-480). Test govdesi ortak yardimciya tasindi, ayni 12 vurus ve ayni onerme; yeni `test_the_fight_back_dice_are_pinned` (iki kosu ayni anlatimi verir) | siklastirma |
+| 13 test modulu (`test_campaign_time`, `test_campaign_time_edges`, `test_coin_writers`, `test_counter_tip`, `test_d199_counted_bundle_sale`, `test_equipment_economy`, `test_equipment_native`, `test_f10_source_corrections`, `test_money_routes`, `test_review_display`, `test_shop_trade`, `test_small_polish`, `test_startup_safety`) | 25 `game.create_session()` cagrisi `game.create_session(seed=1)` oldu (D-393): oturum zari artik sabit. Onermeler ayni; bazilari para yolu testleri | gevsetme olabilir (zar rastgele iken sabit; sabit zar bir testin hic gormedigi bir zari gizleyebilir); ayni siki: hicbir onerme degismedi |
+| yeni testler | `test_g220_journey_towns.py` (D-383: 36_messenger_chain kasaba 10'a baglidir, kasaba 11'de limanda duyulan ilan ve gec gelen ulaklar), `test_no_real_ollama.py` (D-292: gercek Ollama istegi test surecinde hata verir), `test_unseeded_sessions.py` (D-393: tohumsuz `create_session()` taramasi), `test_town_seed.py` `FixedTownNeedsNoRunner` (D-554), `test_local_person_replay_review.py` iki kisili sahne testi (D-085) | ekleme |
+
+## G2.22 (borc-sifirlama): shadcn ve toast temizligi (D-557, D-570, D-558, D-572, D-567, D-566, D-579)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_quality_ratchet.py` `UiGateBaselineTests.test_ui_baselines_exist_and_are_counts` | Taban dosyasi alt siniri knip 100 -> 50, fallow 110 -> 80 indi (taban 114 -> 62 ve 128 -> 89 satira kuculdu; alt sinir bozuk/kesik tabani yakalamak icindi). Sinir yeniden tanimlandi | gevsetme olabilir |
+| `artifacts/ai-dnd-experience/tests/shop-panel.test.mjs`, `tests/economic-card.test.mjs` | `shopReasonText`, `shopOutcomeStep`, `createConfirmGate`, `createOfferCardController`, `prepareProposal`, `createPrepareController` artik `src/lib/shop-controllers.ts` modulunden yuklenir (D-566: kod tasindi, gövde ayni, ayni onermeler); `ShopCounterCard`, `economicTurnRequest`, `economicResolutionNotice`, `walletAfterResolution` hala `shop-panel.tsx` | yeniden yazim, siki |
+| `ai-dnd/scripts/quality_gate/baselines/knip.json`, `fallow.json`, `docs/acceptance/source-baseline.json` | Silinen dosya ve paketlerin taban satirlari cikti (yalniz kuculme); kilit dosyasi ozeti yeni kilide guncellendi | kuculme |
+| yeni test | `tests/g222-shadcn-cleanup.test.mjs` (ui dosyalari ulasilabilir, Radix paketleri kullanilir, toast sistemi yok, galeri yalniz DEV, kontrolculer lib'de); `package.json` `test:standard` listesine eklendi | ekleme |
+| G2.23 `ai-dnd/api/tests/test_roadmap_b04.py` | Yeni sinif `PythonDependencyDeclarationTests` (6 test): ruff PT009 127 -> 136 (unittest tarzi assert; duz assert S101 verirdi, dosya duzeni ayni). Sinif kok pyproject/uv.lock/package.json okur, slotta kosmaz, yalniz worktree/CI | ekleme |
+| G2.14 `ai-dnd/api/tests/test_lr00_everyday_actions.py` `test_following_a_visible_person_or_losing_an_unknown_one` | D-243: kisi bulunamayan 'takip ediyorum' artik sabit 'izini kaybediyorsun' satirina gitmez; eski iddia (satir cikar) tersine cevrildi: satir cikmaz, `resolve` None doner (esit siki; sahte model okuma vermedigi icin durust 503 de kabul). Sinir yeniden tanimlandi | gevsetme olabilir |
+| yeni testler | G2.14: `test_exploration_package` `test_entering_with_one_visible_named_door_goes_to_that_door` (D-244), `test_natural_addressing` `test_a_scene_only_person_asked_a_world_question_is_promoted_and_answers` (D-308) | ekleme |
+
+## G2.25 (borc-sifirlama): game.py basligi ve olu kod tablosu (D-445, D-490, D-492, D-555, D-507, D-523)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/game.py` | 15 bos bolum basligi (`IRK OZELLIKLERI` ... `AC`, sondaki `MACERA`) kaldirildi; `SECURITY LLM01/LLM07` yorum blogu `game_parts/text_rules_a.py` icinde `_untrusted_player_block` ustune tasindi (8 satir, ayni metin). Yorum sayisi azaldi, `ast.dump` ayni (yalniz silinen ice aktarmalar disinda); `game.py` ve `text_rules_a.py` icin elle karsilastirildi | yorum sayisi degisti |
+| `ai-dnd/api/tests/engine_split_locks/size_budget.json` | `game.py` 1148 -> 1100 (yalniz kuculme) | kuculme |
+| `ai-dnd/api/tests/engine_split_locks/surface.json`, `scripts/engine_split/batches/{lore,places-1}.txt`, `vulture_whitelist.py` | `_filter_unsupported_lore_paragraphs` ve `_existing_local_tavern` silindi (S28 a, Kadir 2026-11-22 "10. sil"): islevler, yuzey girdileri, parti satirlari, iki beyaz liste satiri | kuculme |
+| `ai-dnd/api/tests/engine_split_locks/patch_census.json`, `docs/engine-split/patch-census.md` | `python scripts/engine_split/patch_census.py --write`: `d0c70ec0` (REDFIX) `test_thread_errand.py` icine `game._carry_out_thread_turn` yamasi koymus ama kilit yenilenmemisti; kilit ve rapor taze taramaya esitlendi (+1 hedef) | yenileme (bayat kilit) |
+| `ai-dnd/api/tests/test_bounded_encounter.py` `test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources` | Kurulum satiri `action_economy.use_species_bonus(...)` yerine `ensure(session)["player"]["bonus_action_spent"] = True`: ortak Bonus Action'i tuketme ayni, sinanan davranis ve assert'ler ayni; silinen islev yalniz bu satirdan cagriliyordu | kurulum degisti, esit siki |
+| `ai-dnd/api/tests/test_roadmap_c03.py` yardimci `eligible` (51 kullanim) | `feat in eligible_feats(...)` yerine `feat in catalog() and feat_status(...)["eligible"]`: ayni sonuc (silinen islev tam bunu yapiyordu) | yardimci degisti, esit siki |
+| `ai-dnd/api/tests/test_roadmap_c01.py` `test_a_registered_resolver_runs_only_for_a_complete_entry` | `register_resolver(...)` yerine `_RESOLVERS[...] = ...` (testin kendi `finally` bolumu zaten `_RESOLVERS.pop` kullaniyordu) | kurulum degisti, esit siki |
+| `ai-dnd/api/tests/test_game_header_f401_gate.py` | yeni (5 test): `game.py` kullanilmayan ice aktarmalari yuzey kaydinda olmali, `game_parts` hicbir kullanilmayan ice aktarma tasimaz (yalniz `import game` muaf), bos bolum basligi yok, SECURITY notu `_untrusted_player_block` ustunde | ekleme |
+
+## G2.26 (borc-sifirlama): diger olu kod (D-512, D-544, D-509, D-513, D-580, D-595, D-601)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_roadmap_w09.py` (tum dosya) + `ai-dnd/intent_contract.py` | modul ve onu tek basina sinayan test dosyasi silindi (D-509; uretimde cagiran yok, gercek kapi `game._has_explicit_attack_verb`; Kadir "olu kod sil"). Silinen testler yalniz `intent_contract` icin yazilmisti | silinen test, kapsam kaybi yok (olu kodun testi) |
+| `ai-dnd/api/tests/test_categories.py` `test_combat_bind_needs_creatures_and_a_threat` | `combat_bind_allowed` silindi (D-544, S29 b); testi de silindi | silinen test |
+| `ai-dnd/api/tests/test_lore_1501_admission_boundary.py` `test_public_batch_rejects_a_forged_projection`, `test_structure_comes_from_the_pinned_record` | `admit_public_batch` ve `projection_is_transform_ready` ile zincirleme olu kalan `TrustedBatch`, `TrustedProjection` ve `ProjectionStructure` silindi (`canonical_proposal` kaldi, baska test kullaniyor) (D-580, R-D580); yalniz onlari sinayan iki test silindi. Kalan 3 test (pinned snapshot, indirgenmis pin, cift JSON anahtari) aynen | silinen test |
+| `ai-dnd/api/tests/test_g226_dead_code.py` | yeni (3 test): silinen adlar ve `intent_contract` modulu geri gelmez; `COMBAT` ve `GAMBLING` kalir | ekleme |
+| `ai-dnd/scripts/quality_gate/baselines/ruff.json`, `radon.json`, `size_lock.json` | tasinan kanit betiklerinin 22 girdisi, `dialogue_jobs.destination`, `lore_authority/__init__` iki F401 girdisi silindi (yalniz kuculme) | kuculme |
+| `ai-dnd/docs/evidence/**/*.py` (14 betik) | `git mv` ile `docs/arsiv-kanit-betikleri/` altina (ayni goreli yol); veri dosyalari yerinde kaldi (testler okuyor) (D-595, R-D595) | tasima |
+
+## G2.13 (borc-sifirlama): iz ve is defteri (D-336, D-337)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/journeys/scenarios/29_trail_follow_on.json`, `36_messenger_chain.json`, `41_is_haberi_sokakta.json` | D-337: teklif edilmis (henuz cevaplanmamis) is artik izlerde gorunur (`duyulan`, `izlendi`), bu yuzden kurulumda teklifte duran isler olan adimlarda `iz_sayisi` ve `sifir_tolerans` sayilari yeni degerle yeniden yazildi (29: adim 1-2 -> 1, adim 3 -> 2, adim 1 `iz` listesi bos yerine tek `duyulan` iz; 36: adim 1-4 -> 2,1,1,2; 41: adim 3,5,6 -> 1). Sayilar kesin esitlik olarak kaldi; sinir yeniden tanimlandi | gevsetme olabilir |
+| `ai-dnd/api/tests/test_trails.py` `test_an_unread_letter_is_no_trail` | `trails == []` yerine `trails == [teklifte duran islerin kendi satirlari]`: okunmamis mektup hala iz eklemez, ama teklif edilmis baska is artik iz | gevsetme olabilir |
+| `ai-dnd/api/tests/test_real_lead_fallback.py` `test_a_live_armorer_workshop_lead_survives_the_empty_speech_reply` | D-336: yedek satir iz yazmaz kontrolu eklendi (var olan assert'ler ayni) | ekleme |
+| yeni testler | `test_quest_log_trails_g213`: sahibin izinde `who`, ayni soz bir iz, teklif edilmis is ucret ve gunle gorunur | ekleme |
+
+## G2.15 (D-516, D-549, D-552)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/scripts/quality_gate/size_lock.json` | `living_world.py::ensure_scene_state`, `weapon_attack.py::prepare` ve `weapon_attack.py::_resolve` satirlari silindi (islevler 151 satirin altina indi); hicbir sayi yukselmedi | kucultme |
+| yeni testler | `test_g215_long_function_split`: sahne durumu dogrulayicisi (45 durum) ve silah saldirisi hazirla/coz (50 durum) bolmeden once alinmis sha256 ile ayni; `test_g215_shrink_rows`: `size_budget.json` her kilitli dev islev icin belgede kucultme satiri | ekleme |
+| `docs/agents/kalite-taramasi-20261124.md` | D-552 kucultme plani tablosu eklendi (14 motor kilidi satiri) | ekleme |
+
+## REDFIX2 (borc-sifirlama): kirmizi dalga testleri
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/engine_split_locks/patch_census.json` (D-638) | Degisiklik yok: kilit G2.8 (a6dce579) ile zaten tazelenmisti, `test_the_lock_equals_a_fresh_scan` dalga ucunda yesil (rf2-red) | kilit tazelendi, hala tam |
+| `ai-dnd/api/tests/test_spoken_promises.py` `CheckIsNotSpeech` | `test_a_stock_check_line_swapped_for_their_words_is_not_said_twice` -> `test_a_lost_persuasion_is_told_in_their_own_outcome_line_once`. Kok neden G2.4 (2a66f2ff, D-226): kaybedilen ikna denemesinde reddedilen model cevabinin yerine artik kisinin kendi sonuc cumlesi (`interaction_adventure.social_outcome_line`) gosteriliyor; eski "genel kontrol cumlesi stok kuralla degisir, is yedek cumlesi bir kez" yolu Persuasion/Intimidation/Deception icin artik ulasilamaz. Yeni test zari 1'e sabitleyip anlatimin tam olarak o cumle oldugunu, is yedeginin ve reddedilen sozlerin eklenmedigini iddia eder | gevşetme olabilir (stok-degisim kuralinin (`_speech_after_check` stock_swapped) uctan uca korumasi bu testten ayrildi; baska beceriler icin ulasilabilir mi dogrulanmadi) |
+
+## DK2.A (borc-sifirlama): kapi buyumesi, A seridi
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `test_d317_shopkeeper_purse.py` | Sinif adlari `Test` oneki aldi: `AShopkeeperOnlyBecauseOfARole`, `CoinWithNoFigureAsksTheAmount`, `TheAskIsSaidOnce`, `ACoinLineWhoseListCouldNotBeBuilt` (vulture "kullanilmayan sinif" bulgusu bitsin diye); test govdeleri ayni | yeniden adlandirma, iddia ayni |
+| `test_quest_log_trails_g213.py` | `TrailWhoAndTwice` -> `TestTrailWhoAndTwice`, `OfferedJobShows` -> `TestOfferedJobShows`; govdeler ayni | yeniden adlandirma, iddia ayni |
+| `test_equipment_apply_pin.py` | `EquipmentApplyPin` -> `TestEquipmentApplyPin`; oturum artik `game.create_session(seed=20261711)` ile aciliyor (tohumsuz oturum bekcisi `test_unseeded_sessions` icin); iddialar ayni | yeniden adlandirma + tohum, iddia ayni |
+| `test_start_options_models.py` | Yeni: Wizard/Cleric baslangic secenekleri ve seviye paketleri model alanlarindan okunur, bilinmeyen anahtar reddedilir | ekleme |
+
+## DK2.B (borc-sifirlama): kapi buyumesi, B seridi ve K5 kirmizilari
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `test_g220_journey_towns.py` `MessengerChainIsBoundToItsTown` (iki test) | Kok neden G2.13 (D-337): teklif edilen is izi (mühürlü mektup) her kasabada varista duyuluyor. Eski: liman ilani olmayan kasabada varista duyulan satirlar tam `[]`; liman kasabasinda tam `[liman ilani]`. Yeni: ayni iki iddia tam liste olarak, ama `[OFFERED_LETTER]` ve `[liman ilani, OFFERED_LETTER]` (ayni siki `assertEqual`, sira dahil). `world_threads` baglantilarini okuyan "arayanlar" kodu `_callers_in_town` yardimcisina tasindi (kosullar ve secim ayni; eksik dunya/konum/baglanti artik `self.fail`) | gevşetme olabilir (beklenen "varista duyulan" kumesinin siniri degisti: bos liste artik sabit mektup satirini icerir; mektup metni sabit `OFFERED_LETTER` olarak tek yerde) |
+| `test_g220_journey_towns.py` | Sinif `MessengerChainIsBoundToItsTown` -> `MessengerChainIsBoundToItsTownTests` | yeniden adlandirma, iddia ayni |
+| `test_g212_spell_rows.py` | `RunningSpellReachesNextTurn` -> `...Tests`, `EightSpellsReadByTurkishName` -> `...Tests`; `game.build_world_context(session=s)` cagrilari yerel `world_context` takma adina (tur notu ile) tasindi; ayni islev, ayni iddialar | yeniden adlandirma + tip duzeltmesi, iddia ayni |
+| `test_town_seed.py` | `FixedTownNeedsNoRunner` -> `FixedTownNeedsNoRunnerTests` | yeniden adlandirma, iddia ayni |
+| `test_unseeded_sessions.py` | `UnseededSessions` -> `UnseededSessionsTests`; yardimci `_is_unseeded_session` donus tipi `TypeGuard[ast.Call]` | yeniden adlandirma + tip, iddia ayni |
+| `test_no_real_ollama.py` | Sinif `RealOllamaIsRefused` -> `RealOllamaIsRefusedTests`. Bekci kurulumu `patch.object(...).start()` yerine `setattr` dongusu (baska testin `patch.stopall()` bekciyi siliyordu, D-292); yeniden iceri alinca cift sarmaz. Yeni test `test_the_guard_survives_a_patch_stopall_from_another_module` | bekci guclendi, zayiflamadi; ekleme |
+| `test_ci_discovery_guards.py` | `assert match, name` -> `AssertionError` firlatan `if`; `[test.id() for test in loaded]` -> ic ice suite'leri duzlestiren `_case_ids(loaded)`; sahte sonuc nesnesi `types.SimpleNamespace` -> gercek `unittest.TestResult` (ayni alanlar). Ayni korunan-testler-kosuyor iddiasi | tip/bandit duzeltmesi, iddia ayni (duzlestirme, ic ice suite'te de kimlik listesini tam ister) |
+| `test_engine_routing.py` | `routing_audit.__doc__` iddiasi `sys.modules[audit.__module__].__doc__` ustunden; ayni "Known blind spots" ve her kor nokta metni | tip duzeltmesi, iddia ayni |
+| `test_g210_creation_hardening.py`, `test_g212_wizard_cleric_start_http.py`, `test_history_paged_read.py`, `test_engine_move_tool.py`, `test_engine_probe_tools.py`, `claim_race.py`, `receipt_archive_fixture.py` | Sinif duzeyi/yerel tip bildirimleri; `test_history_paged_read.py` `SpyCursor` artik `sqlite3.Cursor` alt sinifi (sarmalayici yerine); kaydettigi `fetchall` sorgu listesi ayni | tip duzeltmesi, iddia ayni |
+| `test_dk2b_rules_split.py` | Yeni: oyun kurali iletilerinin metni ve bolunen yardimcilarin davranisi `dnd_2024_rules` icin sabitlendi (11 test; "must" -> "MUST" kirma denemesinde kirmizi) | ekleme |
+
+## DK2.D (borc-sifirlama): CI certifi aktarimi
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `test_roadmap_b04.py` `PythonDependencyDeclarationTests` | `test_locked_certifi_is_past_pysec_2026_4320` degismedi (uv.lock surumunu okur). Yeni: `test_no_unpinned_constraint_reaches_the_hash_pinned_export` (pyproject `[tool.uv] constraint-dependencies` ve uv.lock `[manifest]` olmamali; `--require-hashes` aktarimi bozulmasin) | ekleme |
+
+Not: `test_roadmap_b04` slot 2'de 5 ortam hatasi veriyor (kok dosyalar slota tasinmiyor); kod bozulmasi degil, kok dosyali makinede dogrulanmadi.

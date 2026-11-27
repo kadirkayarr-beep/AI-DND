@@ -1,6 +1,5 @@
 """Offline model-binding ownership checks; no model requests or HTTP acceptance."""
 
-import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -64,7 +63,6 @@ class ModelIsolationTests(unittest.TestCase):
 
     def test_legacy_mock_is_fresh_and_restores_both_bindings(self):
         previous_mock = legacy.ollama_mock
-        previous_module = sys.modules.get("ollama")
         target = MagicMock()
         mocks = []
 
@@ -73,7 +71,6 @@ class ModelIsolationTests(unittest.TestCase):
             model = legacy.ollama_mock
             mocks.append(model)
             self.assertIs(game.ollama, model)
-            self.assertIs(sys.modules["ollama"], model)
             self.assertIsNone(model.chat.side_effect)
             self.assertEqual(model.chat.call_count, 0)
             model.chat.side_effect = RuntimeError("unavailable")
@@ -84,7 +81,6 @@ class ModelIsolationTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "body failed"):
                     probe()
                 self.assertIs(game.ollama, target)
-                self.assertIs(sys.modules.get("ollama"), previous_module)
                 self.assertIs(legacy.ollama_mock, previous_mock)
         self.assertIsNot(mocks[0], mocks[1])
 

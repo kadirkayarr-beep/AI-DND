@@ -14,7 +14,6 @@ _finalize_player_death
 _apply_player_damage
 _combat_defaults
 _combat_record_for_actor
-_migrate_legacy_combat_state
 _sync_combat_participant_records
 ensure_combat_state
 person_fight_kind

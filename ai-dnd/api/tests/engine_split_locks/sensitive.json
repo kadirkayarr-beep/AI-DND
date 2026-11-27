@@ -123,9 +123,6 @@
     "_mark_combat_action_used": [
       "save"
     ],
-    "_migrate_legacy_combat_state": [
-      "save"
-    ],
     "_names_no_parcel": [
       "money"
     ],
@@ -136,6 +133,9 @@
       "money"
     ],
     "_narrator_shop_record": [
+      "money"
+    ],
+    "_no_list_fallback": [
       "money"
     ],
     "_npc_answers_to": [

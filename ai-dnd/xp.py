@@ -60,7 +60,7 @@ _DEFEATED = frozenset({"unconscious", "defeated", "dead"})
 
 def proficiency_bonus_for(level: int) -> int:
     """The one Proficiency Bonus resolver (K07 leaf): kept here as a name for the XP/level code."""
-    from api.dnd_2024_rules import proficiency_bonus_for_level
+    from dnd_2024_rules import proficiency_bonus_for_level
     return proficiency_bonus_for_level(level)
 
 
@@ -143,7 +143,7 @@ def _apply_numeric_level(character: dict[str, Any], target: int) -> dict[str, in
     old_pb = proficiency_bonus_for(min(stored_level, 20))
     new_pb = proficiency_bonus_for(level)
     if new_pb != old_pb:
-        from api.dnd_2024_rules import CLASS_DEFINITIONS
+        from dnd_2024_rules import CLASS_DEFINITIONS
         definition = CLASS_DEFINITIONS.get(character.get("class"), {})
         saves = character.get("saving_throw_mods")
         if isinstance(saves, dict):

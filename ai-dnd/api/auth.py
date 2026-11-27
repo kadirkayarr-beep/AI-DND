@@ -13,6 +13,7 @@ import hmac
 import json
 import os
 import time
+from collections.abc import Callable
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
@@ -136,6 +137,23 @@ def loopback_allowed(environ: Mapping[str, str] | None = None, listen_host: str 
     return False
 
 
+AuthenticatorFactory = Callable[[Mapping[str, str], str | None], Authenticator]
+
+
+def _fail_closed(environ: Mapping[str, str], listen_host: str | None) -> Authenticator:
+    del environ, listen_host
+    return FailClosedAuthenticator()
+
+
+# api.local_play swaps the closed default in; this module never imports it (D-590).
+_FACTORIES: dict[str, AuthenticatorFactory] = {"local": _fail_closed}
+
+
+def register_local_authenticator(factory: AuthenticatorFactory) -> None:
+    """Hand over the local play verifier factory."""
+    _FACTORIES["local"] = factory
+
+
 def select_authenticator(
     environ: Mapping[str, str] | None = None,
     listen_host: str | None = None,
@@ -150,9 +168,7 @@ def select_authenticator(
     source = os.environ if environ is None else environ
     mode = source.get("AI_DND_AUTH_MODE")
     if mode == "local":
-        from api.local_play import local_authenticator_from_environ
-
-        return local_authenticator_from_environ(source, listen_host)
+        return _FACTORIES["local"](source, listen_host)
     if mode == "loopback":
         return FailClosedAuthenticator()
     if mode == "clerk":
