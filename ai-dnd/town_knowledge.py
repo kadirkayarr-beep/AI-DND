@@ -448,7 +448,7 @@ def _job_note(world, npc, decision):
 @lru_cache(maxsize=1)
 def _role_profiles() -> tuple[dict[str, Any], dict[str, Any]]:
     try:
-        mapping = json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8"))
+        mapping = name_catalog.mapping(name_catalog.CATALOG_DIR)
         roles = json.loads((name_catalog.CATALOG_DIR / "npc_roles.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         _LOG.warning("The role profiles could not be read.")

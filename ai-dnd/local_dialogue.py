@@ -9,7 +9,6 @@ from __future__ import annotations
 import difflib
 import hashlib
 import re
-import unicodedata
 from typing import Any
 
 import living_world
@@ -66,13 +65,7 @@ def remember_native_reply(world, action_result, player_text, narration):
     remember_speech_exchange(world, npc_id, player_text, narration)
 
 
-def normalize_text(value: Any) -> str:
-    if not isinstance(value, str):
-        return ""
-    text = value.casefold().replace("ı", "i")
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(char for char in text if not unicodedata.combining(char))
-    return re.sub(r"[^\w]+", " ", text, flags=re.UNICODE).strip()
+normalize_text = living_world.normalize_text
 
 
 _PROFILE_BANKS: dict[str, tuple[dict[str, str], ...]] = {

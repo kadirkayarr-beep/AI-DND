@@ -328,7 +328,7 @@ def want_table() -> dict[str, Any]:
     """The things a character can be after; the only ids a reading can name."""
     import name_catalog
     try:
-        return json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8")).get("player_wants") or {}
+        return name_catalog.mapping(name_catalog.CATALOG_DIR).get("player_wants") or {}
     except (OSError, ValueError):
         _LOG.warning("The list of what a character can be after could not be read.")
         return {}

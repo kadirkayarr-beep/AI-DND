@@ -8,20 +8,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from spells import fold_text as _fold
+
 
 SWORD = "Kılıç"
-_FOLD = str.maketrans({
-    "ı": "i", "İ": "i", "I": "i", "ş": "s", "Ş": "s", "ğ": "g", "Ğ": "g",
-    "ü": "u", "Ü": "u", "ö": "o", "Ö": "o", "ç": "c", "Ç": "c",
-})
 SWORD_ALIASES = frozenset({
     "kilic", "kilici", "kilicimla", "uzun kilic", "uzun kilici",
     "longsword", "long sword",
 })
-
-
-def _fold(value: str) -> str:
-    return value.casefold().replace("\u0307", "").translate(_FOLD)
 
 
 def _labels(item: Any) -> list[str]:
