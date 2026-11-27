@@ -629,19 +629,6 @@ def perspective(world, npc):
     }
 
 
-def bind_deadline(world, thread_id, scheduled_event_id):
-    """Consume a registered schedule boundary; never invent/advance time here."""
-    state = get(world)
-    thread = _thread(state, thread_id)
-    event = next((e for e in world.get("scheduled_events", [])
-                  if e.get("event_id") == scheduled_event_id), None)
-    if not thread or not event or type(event.get("window_end")) is not int:
-        raise ValueError("Deadline needs an existing authoritative schedule.")
-    thread["deadline"] = event["window_end"]
-    validate(state, {**world, KEY: state})
-    world[KEY] = state
-
-
 def public(world):
     state = get(world)
     threads = copy.deepcopy(state["threads"])

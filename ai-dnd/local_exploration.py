@@ -49,7 +49,6 @@ DISCOVERIES = {
 }
 TRAPS = {"trap_wire": {"location": ENTRY, "name": "Gerili Tel", "damage": 2}}
 HAZARDS = {"hazard_rubble": {"location": HALL, "name": "Gevşek Moloz"}}
-LEVER = {"id": "lever", "location": HALL, "hazard_id": "hazard_rubble", "name": "Taş Kaldıraç"}
 TRAP_STATES = frozenset({"hidden", "detected", "disarmed", "triggered"})
 HAZARD_STATES = frozenset({"active", "neutralized"})
 

@@ -252,7 +252,7 @@ def _move_parcel(session,thread,npc,to_player,text='',own_turn=True):
     item_id='parcel:'+q['quest_id']
     equipment_economy.materialize(world)
     source=npc.get('inventory',[]) if to_player else world.get('inventory',[])
-    destination=world.setdefault('inventory',[]) if to_player else npc.setdefault('inventory',[])
+    (world if to_player else npc).setdefault('inventory',[])
     item=next((i for i in source if isinstance(i,dict) and i.get('item_id')==item_id),None)
     if item is None: return False
     if not to_player and q.get('status')=='ACTIVE':  # someone reached the door without the journal seeing the walk

@@ -355,8 +355,8 @@ to the verified implementation revision above, not arbitrary later source.
   off-screen propagation and broad novelty/adventure generation remain deferred.
   The implemented generator is limited to local procedural actors and bounded
   talk/visit candidates with structural novelty and pacing checks.
-- `record_witness()` and `bind_deadline()` are later-owner interfaces, not
-  integrated native producers. Existing deadline consumption and local
+- There are no native deadline or witness producers (the unused `record_witness()`
+  and `bind_deadline()` were removed). Existing deadline consumption and local
   commitment reminders are implemented; native deadline/witness/rumor/belief
   generation acceptance and interactive browser journal acceptance remain
   **NOT RUN**. Declared `discovered`/`failed` statuses and `legacy_quest` origin

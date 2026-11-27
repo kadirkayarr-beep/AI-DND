@@ -877,3 +877,14 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/api/tests/test_roadmap_c03.py` yardimci `eligible` (51 kullanim) | `feat in eligible_feats(...)` yerine `feat in catalog() and feat_status(...)["eligible"]`: ayni sonuc (silinen islev tam bunu yapiyordu) | yardimci degisti, esit siki |
 | `ai-dnd/api/tests/test_roadmap_c01.py` `test_a_registered_resolver_runs_only_for_a_complete_entry` | `register_resolver(...)` yerine `_RESOLVERS[...] = ...` (testin kendi `finally` bolumu zaten `_RESOLVERS.pop` kullaniyordu) | kurulum degisti, esit siki |
 | `ai-dnd/api/tests/test_game_header_f401_gate.py` | yeni (5 test): `game.py` kullanilmayan ice aktarmalari yuzey kaydinda olmali, `game_parts` hicbir kullanilmayan ice aktarma tasimaz (yalniz `import game` muaf), bos bolum basligi yok, SECURITY notu `_untrusted_player_block` ustunde | ekleme |
+
+## G2.26 (borc-sifirlama): diger olu kod (D-512, D-544, D-509, D-513, D-580, D-595, D-601)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_roadmap_w09.py` (tum dosya) + `ai-dnd/intent_contract.py` | modul ve onu tek basina sinayan test dosyasi silindi (D-509; uretimde cagiran yok, gercek kapi `game._has_explicit_attack_verb`; Kadir "olu kod sil"). Silinen testler yalniz `intent_contract` icin yazilmisti | silinen test, kapsam kaybi yok (olu kodun testi) |
+| `ai-dnd/api/tests/test_categories.py` `test_combat_bind_needs_creatures_and_a_threat` | `combat_bind_allowed` silindi (D-544, S29 b); testi de silindi | silinen test |
+| `ai-dnd/api/tests/test_lore_1501_admission_boundary.py` `test_public_batch_rejects_a_forged_projection`, `test_structure_comes_from_the_pinned_record` | `admit_public_batch` ve `projection_is_transform_ready` ile zincirleme olu kalan `TrustedBatch`, `TrustedProjection` ve `ProjectionStructure` silindi (`canonical_proposal` kaldi, baska test kullaniyor) (D-580, R-D580); yalniz onlari sinayan iki test silindi. Kalan 3 test (pinned snapshot, indirgenmis pin, cift JSON anahtari) aynen | silinen test |
+| `ai-dnd/api/tests/test_g226_dead_code.py` | yeni (3 test): silinen adlar ve `intent_contract` modulu geri gelmez; `COMBAT` ve `GAMBLING` kalir | ekleme |
+| `ai-dnd/scripts/quality_gate/baselines/ruff.json`, `radon.json`, `size_lock.json` | tasinan kanit betiklerinin 22 girdisi, `dialogue_jobs.destination`, `lore_authority/__init__` iki F401 girdisi silindi (yalniz kuculme) | kuculme |
+| `ai-dnd/docs/evidence/**/*.py` (14 betik) | `git mv` ile `docs/arsiv-kanit-betikleri/` altina (ayni goreli yol); veri dosyalari yerinde kaldi (testler okuyor) (D-595, R-D595) | tasima |
