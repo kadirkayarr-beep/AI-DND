@@ -780,6 +780,7 @@ def _clear_turn_transients(session) -> None:
     session._given_now = None
     session._coin_paid = None
     session._front_coin = 0
+    session._coin_unnamed = False
     session._front_economic_none = False
     session._front_economic_front = None
     session._spoken_coin_proposal = None
@@ -809,6 +810,7 @@ def _tell_the_coin(result):
         # The person's spoken answer about the coin and the card this turn's decision names (D1) come first: a spoken
         # decline is written per part and closes what it covers, with its own line.
         opened = money_owner.open_card_after_reply(session, result)
+        money_owner.ask_amount_after_reply(session, result)
         if spoken is not None and isinstance(result, dict):
             # The validated gift or tip was put to this person; the card (or the refusal) is the engine's word.
             if not declined:
@@ -830,6 +832,7 @@ def _tell_the_coin(result):
             result["narration"] = f"{result.get('narration') or ''} {note}".strip()
     finally:
         session._asks_for = None
+        session._coin_unnamed = False
         session._coin_rest_hint = ""
         session._coin_paid = None
         session._counter_held = None
@@ -1090,6 +1093,17 @@ def _front_recovery(player_input, listed):
         return {"kind": "go_to", "id": front_proposal.WAY_OUT, "inside": False}
     return None
 
+def _no_list_fallback(player_input, target_id, reads):
+    """The town's list could not be built: the old chain reads the line, and coin the words hold out is still decided (G11, D-403)."""
+    import front_proposal
+    session = game._session()
+    front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
+    if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
+        session._front_reply = {"intent": "unknown", "classifier_unusable": True}
+        session._front_reply_called = False  # G10: held, but no provider was asked for it
+    game._coin_without_a_reading(player_input, target_id, {"speaking_with": None, "people": [], "offers": [], "goods": []})
+    return None
+
 def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
     """Roadmap step 5: the model reads a free line once; Python checks its ids. None leaves the old chain."""
     import front_proposal
@@ -1138,11 +1152,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
         listed = front_proposal.listing(session)
     except Exception:  # broad: the old classifier chain is a whole fallback, so a broken list never fails the turn
         logging.getLogger("game_parts.turn_front").warning("Front list could not be built; the old chain reads the line", exc_info=True)
-        front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
-        if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
-            session._front_reply = {"intent": "unknown", "classifier_unusable": True}
-            session._front_reply_called = False  # G10: held, but no provider was asked for it
-        return None
+        return game._no_list_fallback(player_input, target_id, reads)
     hint = interaction_adventure.hint(player_input, True)
     addressed = None
     if hint and typed_economic:  # in say mode the line is for the person chosen, whoever its words name
@@ -1164,12 +1174,12 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                  else "fallback:no_front" if answered else "fallback:failed")
         recovered = (None if fighting or typed_economic or reads or label == "fallback:no_front"
                      else game._front_recovery(player_input, listed))
+        game._coin_without_a_reading(player_input, target_id, listed)  # D-403: a recovered yes or walk-out decides the coin too
         if recovered is not None:
             front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
             recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
             return recovered
         front_proposal.note(session, label, reached=answered)
-        game._coin_without_a_reading(player_input, target_id, listed)
         return None
     raw_front = reply.get("front")
     session._front_kind = raw_front.get("kind") if isinstance(raw_front, dict) else None  # D-094: speech stays speech
@@ -1564,6 +1574,7 @@ def _coin_without_a_reading(player_input, target_id, listed):
     session = game._session()
     amount = front_proposal.coin_in(None, player_input, moves=True)  # `moves`: the words' figure stands with no reading
     if not amount:
+        session._coin_unnamed = front_proposal.names_coin(player_input)  # D-403: coin with no figure asks how much
         return
     session._front_coin = amount
     if target_id is not None:

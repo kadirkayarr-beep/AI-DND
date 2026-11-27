@@ -1,3 +1,4 @@
+import equipment_economy
 import game
 import money_owner
 import re
@@ -206,6 +207,7 @@ def create_shop_from_proposal(proposal):
     if not validated:
         return None
 
+    known = {npc.get("id") for npc in world_state["npcs"]}
     shopkeeper = game.create_npc_from_ai({
         **validated["shopkeeper"],
         "role": "Shopkeeper",
@@ -227,6 +229,8 @@ def create_shop_from_proposal(proposal):
     shopkeeper["tags"] = ["campaign_local", "shopkeeper", f"shop:{shop_id}"]
     shopkeeper["shop_id"] = shop_id
     world_state["shops"].append(shop)
+    if shopkeeper["id"] not in known:  # D-317: only the owner of a shop opens with the till; a person already here keeps their purse
+        world_state["currency"][shopkeeper["id"]] = equipment_economy.person_purse(world_state, shopkeeper)
     return {"shop": shop, "shopkeeper": shopkeeper}
 
 COIN_LEFT_BEHIND = money_owner.COIN_LEFT_BEHIND

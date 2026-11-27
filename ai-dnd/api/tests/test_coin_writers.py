@@ -27,7 +27,10 @@ ROOT = Path(__file__).resolve().parents[2]
 # file:function for every coin writer in the product source; open paths stay open by the owner's scope.
 WRITERS = frozenset({
     "equipment_economy.py:pay",                  # the one debit/credit primitive the owners call
-    "equipment_economy.py:_apply",               # typed catalog buy, sell and item reward
+    "equipment_ops.py:_buy",                     # typed catalog buy, sell and item reward (D-501: split out of _apply)
+    "equipment_ops.py:_sell",
+    "equipment_ops.py:_reward",
+    "game_parts/coin.py:create_shop_from_proposal",  # D-317: the till of a new shop's owner
     "bold_acts.py:settle_coin_labels",           # gold written in the pack becomes purse copper
     "bold_acts.py:_steal",                       # pickpocketed coin
     "bold_acts.py:_search_body",                 # coin found on a body

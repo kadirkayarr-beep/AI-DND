@@ -229,6 +229,14 @@ def _tell(result: dict[str, Any], text: str) -> None:
     result["narration"] = f"{result.get('narration') or ''} {text}".strip()
 
 
+def ask_amount_after_reply(session: Any, result: dict[str, Any]) -> None:
+    """D-403 (owner answer S23: b): coin the words hold out with no figure ("biraz para") has no amount to decide, so the
+    player is asked how much. Nothing moves."""
+    if getattr(session, "_coin_unnamed", False) and isinstance(result, dict):
+        import economic_actions
+        _tell(result, economic_actions._CLARIFY["amount_required"])
+
+
 def _note(session: Any, npc_id: str | None, text: str) -> None:
     """A note for this turn only, as an (npc_id | None, text) pair: the person's view reads its own (D28)."""
     notes = getattr(session, "_turn_notes", None)

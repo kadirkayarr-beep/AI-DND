@@ -6,10 +6,12 @@ from __future__ import annotations
 import json
 import unittest
 import uuid
+from unittest.mock import patch
 
 import front_proposal
 import grounded_action
 import local_places
+import money_owner
 import world_threads
 from api.tests import test_front_proposal as front_tests
 from api.tests.town_seed import fixed_town
@@ -106,6 +108,20 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
                 self.lose_the_reading()
                 await self.line(line)
                 self.assertEqual(self.status(), "accepted")
+
+    async def test_a_coin_held_out_in_a_recovered_walk_out_is_still_decided_and_moves_nothing(self):
+        # D-403 (2): the recovery path used to leave the coin in the words with no decision and no note.
+        await self.begin()
+        self.lose_the_reading()
+        before = self.world["location"]
+        purse = self.world.get("currency", {}).get("player")  # the walk meets new people, who carry purses of their own
+        made, real = [], money_owner.decide
+        with patch.object(money_owner, "decide", side_effect=lambda *a, **k: (made.append(real(*a, **k)), made[-1])[1]):
+            await self.line("5 bakır bırakıp şehrin dışına gidiyorum")
+        self.assertEqual(self.routes()[-1]["route"], "fallback:unusable:go_to")
+        self.assertNotEqual(self.world["location"], before)
+        self.assertEqual([(d.amount_cp, d.source) for d in made], [(5, "structural")])
+        self.assertEqual(self.world.get("currency", {}).get("player"), purse)
 
     async def test_a_yes_with_no_open_offer_accepts_nothing(self):
         await self.begin()

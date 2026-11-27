@@ -2517,6 +2517,12 @@
   "session_bound": true,
   "signature": "(species, proficiency_bonus)"
  },
+ "_no_list_fallback": {
+  "kind": "function",
+  "module": "game_parts.turn_front",
+  "session_bound": true,
+  "signature": "(player_input, target_id, reads)"
+ },
  "_nobody_here": {
   "kind": "function",
   "module": "game_parts.dialogue",

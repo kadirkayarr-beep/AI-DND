@@ -21,6 +21,6 @@
     "game_parts/turn.py::_dispatch_player_turn": 238,
     "game_parts/turn.py::_run_player_turn_internal": 1154,
     "game_parts/turn_front.py::_execute_intent_internal": 308,
-    "game_parts/turn_front.py::_front_step": 235
+    "game_parts/turn_front.py::_front_step": 229
   }
 }
