@@ -95,3 +95,4 @@ REDFIX2 (D-638, D-654, D-657 closed; origin of spoken_promises red = G2.4 2a66f2
 - Ruling: DK2 gate started (weekly 82% < 86%) — wf_429e4c03-993, outputs AI-DND-TOOLS/gate-20261127-dalga2.
 - Ruling: wave 2 rebuilt as borc/dalga-2b-20261127 without gitleaks false-positive commit 8849fedc (golden case names renamed); borc/dalga-2-20261126 kept as record — CI full-history scan cannot pass otherwise and the baseline may only shrink — cost if wrong: a rebuilt local branch, old one intact.
 Task DK2.B: complete (branch task/borc-dk2b-20261127, head 7edbf454e95f92b5dea30c0e94f8bd0b938d8a16, merge 536ea2f8adb4a7aa3eabd2a23e93540e0717adbb)
+Task DK2.A: complete (branch task/borc-dk2a-20261127, head 638fde479100f93647c22e8bf109bc88e5d5fc74, merge d9886067814a7bd8c82f98f92ff0bd2af1bb392f)
