@@ -140,7 +140,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
         raise
     except Exception:
         town_knowledge.log_failure()
-        session.thread_wrote = False  # the gate wrote nothing that survives, so a stock line is still re-asked
+        session.thread_wrote = False  # nothing survived: re-ask stands
         if saved is not None:  # D-011: a writer that broke half way leaves no coin, hour or item of it behind
             session._restore_runtime_snapshot(saved)  # in place: the turn above still holds these very dicts
         session._thread_turn = None
