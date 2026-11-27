@@ -1,6 +1,7 @@
-"""D-218: run every Python test module (api/tests/test_*.py) in CI, optionally as one shard of N.
+"""D-218: run every Python test module (api/tests/test_*.py and ai-dnd/test_*.py) in CI, optionally as one shard of N.
 
 api/tests has no __init__.py, so `unittest discover` cannot start there; modules are passed by dotted name instead.
+test_regression.py is a script, not a unittest module (D-342): CI runs it as `python test_regression.py` in its own step.
 Usage (from ai-dnd/): python scripts/full_python_suite.py --shard 2 --of 4
 """
 import argparse
@@ -9,8 +10,13 @@ import subprocess  # nosec B404 - subprocess with fixed argv lists only, no shel
 import sys
 
 
+SCRIPT_MODULES = {"test_regression"}
+
+
 def modules(root: Path) -> list[str]:
-    return sorted("api.tests." + path.stem for path in (root / "api" / "tests").glob("test_*.py"))
+    api = ["api.tests." + path.stem for path in (root / "api" / "tests").glob("test_*.py")]
+    top = [path.stem for path in root.glob("test_*.py") if path.stem not in SCRIPT_MODULES]
+    return sorted(api + top)
 
 
 def shard(names: list[str], index: int, count: int) -> list[str]:

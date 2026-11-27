@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import engine_digest
 from api.persistence import campaign_store
 from api.tests.engine_sources import ENGINE_ROOT, engine_source_files
 
@@ -52,7 +53,7 @@ class EngineHashPartsTests(unittest.TestCase):
         self.assertEqual(self._digest(), self._digest())
 
     def test_product_and_test_helper_list_the_same_files(self):
-        files = campaign_store._engine_files(ENGINE_ROOT / "game.py")
+        files = engine_digest.engine_files(ENGINE_ROOT / "game.py")
         self.assertEqual(files, engine_source_files())
         self.assertGreater(len(files), 1)   # game_parts must be present
 
