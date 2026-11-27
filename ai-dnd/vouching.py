@@ -9,7 +9,6 @@ nobody could give one keeps its door as it always was.
 
 from __future__ import annotations
 
-import json
 import logging
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
@@ -30,7 +29,7 @@ _LOG = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def _table() -> dict[str, Any]:
     try:
-        return json.loads((name_catalog.CATALOG_DIR / "mapping.json").read_text(encoding="utf-8")).get("vouch_from") or {}
+        return name_catalog.mapping(name_catalog.CATALOG_DIR).get("vouch_from") or {}
     except (OSError, ValueError):
         _LOG.warning("The vouching table could not be read.")
         return {}

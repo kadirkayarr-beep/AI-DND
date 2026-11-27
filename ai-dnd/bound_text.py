@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import living_world
+import name_catalog
 import turn_close
 
 KEY = "bound_text_v1"
@@ -48,7 +49,7 @@ def rules() -> dict[str, Any]:
     global _rules_cache
     if _rules_cache is None:
         try:
-            _rules_cache = json.loads((_DIR / "catalog" / "mapping.json").read_text(encoding="utf-8"))["bound_text"]
+            _rules_cache = name_catalog.mapping(_DIR / "catalog")["bound_text"]
         except (OSError, ValueError, KeyError, TypeError):
             _LOG.warning("The text binding table could not be read.")
             _rules_cache = {}

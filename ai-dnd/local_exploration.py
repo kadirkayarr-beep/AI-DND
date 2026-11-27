@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from spells import fold_text as _fold
+
 
 CATALOG_ID = "patika_v1"
 KEY = "local_exploration_v1"
@@ -463,16 +465,6 @@ def _begin(session: Any) -> dict[str, Any]:
     _publish_door(world, "door_vault")
     validate(world)
     return _reply("Taş patikanın kampına geçtin. İleriye tek bir patika görünüyor.", "exploration")
-
-
-_FOLD = str.maketrans({
-    "ı": "i", "İ": "i", "I": "i", "ş": "s", "Ş": "s", "ğ": "g", "Ğ": "g",
-    "ü": "u", "Ü": "u", "ö": "o", "Ö": "o", "ç": "c", "Ç": "c",
-})
-
-
-def _fold(value: str) -> str:
-    return value.casefold().replace("\u0307", "").translate(_FOLD)
 
 
 def _natural_door(session: Any, message: str) -> dict[str, Any] | None:
