@@ -1,21 +1,16 @@
-"""R08: receipt growth is bounded without ever letting an old action run twice.
+"""R08: an archived receipt never lets an old action run twice.
 
-Old receipts are compacted into verified idempotency tombstones (action id, request hash, result digest, revision) in
-the SAME campaign store; the full reply is dropped. A retry of an archived id is refused (it was applied; its result was
-archived), never re-executed and never treated as new. There is no blind TTL deletion. Real FastAPI app, real
-SessionManager and CampaignStore; only the model boundary is the FakeOllamaClient.
+An archived id keeps verified idempotency data (action id, request hash, result digest, revision) in the SAME campaign
+store. A retry of it is refused (it was applied; its result was archived), never re-executed and never treated as new.
+Nothing in the game writes the archive any more (D-536), so the rows are put there by the test fixture. Real FastAPI
+app, real SessionManager and CampaignStore; only the model boundary is the FakeOllamaClient.
 """
 from __future__ import annotations
 
 from contextlib import closing
-import hashlib
-import json
-import os
 from pathlib import Path
 import sqlite3
 import tempfile
-import time
-import tracemalloc
 import unittest
 import uuid
 
@@ -28,13 +23,14 @@ from api.persistence.campaign_models import CampaignError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.receipt_archive_fixture import archive_receipts
 from api.tests.test_campaign_api import FakeOllamaClient
 from api.tests.town_seed import default_town
 
 TOWN_SEED = 8610
 
 
-class CompactionTests(unittest.IsolatedAsyncioTestCase):
+class ArchivedReceiptTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temporary_directory.name) / "campaigns.sqlite3"
@@ -75,9 +71,6 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
     def post(self, action_id, message="Kapıyı dinliyorum."):
         return self.http.post(f"/api/game/sessions/{self.sid}/turn", json={"message": message, "action_id": action_id})
 
-    def revision(self):
-        return self.store.get_campaign(self.cid).metadata["revision"]
-
     def rows(self, table):
         with closing(sqlite3.connect(self.db_path)) as db:
             return db.execute(f"SELECT COUNT(*) FROM {table} WHERE campaign_id = ?", (self.cid,)).fetchone()[0]
@@ -90,15 +83,12 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
             ids.append(action_id)
         return ids
 
-    async def test_compaction_never_reexecutes_old_action(self):
+    async def test_archived_receipt_never_reexecutes_old_action(self):
         oldest, *_ = await self.play(3)
         hp = self.session.character["current_hp"]
-        revision_before = self.revision()
-        outcome = self.store.compact_receipts(self.cid, before_revision=self.revision() + 1, keep_latest=0)
-        self.assertEqual(outcome["archived"], 3)
+        self.assertEqual(archive_receipts(self.db_path, self.cid), 3)
         self.assertEqual(self.rows("campaign_turn_actions"), 0)
         self.assertEqual(self.rows("campaign_turn_actions_archive"), 3)
-        self.assertEqual(self.revision(), revision_before, "compaction is not a state change: the revision head is kept")
         calls = self.calls
 
         # The oldest id, retried unchanged: refused as already applied, never re-run, never a new spend.
@@ -122,7 +112,7 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
         restarted = await self.post(oldest, "Hamle 0")
         self.assertEqual(restarted.status_code, 409, restarted.text)
         self.assertEqual(restarted.json()["detail"]["code"], "action_archived")
-        self.assertEqual(self.calls, 0, "after compaction + reload + restart the oldest id produced no new spend")
+        self.assertEqual(self.calls, 0, "after archiving + reload + restart the oldest id produced no new spend")
 
         # A genuinely new action is unaffected and spends exactly once.
         self.assertEqual((await self.post(str(uuid.uuid4()), "Yeni hamle")).status_code, 200)
@@ -138,7 +128,7 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_an_unverifiable_archive_blocks_the_retry_instead_of_running_it(self):
         oldest, *_ = await self.play(2)
-        self.store.compact_receipts(self.cid, before_revision=self.revision() + 1)
+        archive_receipts(self.db_path, self.cid, keep_latest=1)
         with closing(sqlite3.connect(self.db_path)) as db:
             db.execute("UPDATE campaign_turn_actions_archive SET result_digest = 'not-a-digest' WHERE action_id = ?", (oldest,))
             db.commit()
@@ -146,93 +136,6 @@ class CompactionTests(unittest.IsolatedAsyncioTestCase):
         blocked = await self.post(oldest, "Hamle 0")
         self.assertNotEqual(blocked.status_code, 200, blocked.text)
         self.assertEqual(self.calls, calls, "an old result that cannot be verified is never silently treated as a new action")
-
-    async def test_an_open_reaction_keeps_its_full_receipt(self):
-        await self.play(2)
-        self.session.world_state.setdefault("combat", {})["pending_reaction"] = {"actor_id": "npc-1", "kind": "opportunity_attack"}
-        self.manager.save_campaign(self.cid)
-        outcome = self.store.compact_receipts(self.cid, before_revision=self.revision() + 1)
-        self.assertGreaterEqual(outcome["protected"], 1)
-        self.assertGreaterEqual(self.rows("campaign_turn_actions"), 1, "the receipt of the turn that opened the reaction is kept whole")
-
-    async def test_compaction_is_idempotent_and_never_touches_newer_revisions(self):
-        ids = await self.play(3)
-        head = self.revision()
-        first = self.store.compact_receipts(self.cid, before_revision=head)  # strictly older than the head only
-        second = self.store.compact_receipts(self.cid, before_revision=head)
-        self.assertEqual(second["archived"], 0)
-        self.assertEqual(self.rows("campaign_turn_actions") + self.rows("campaign_turn_actions_archive"), 3)
-        self.assertEqual(self.rows("campaign_turn_actions_archive"), first["archived"])
-        newest = ids[-1]
-        self.assertEqual((await self.post(newest, "Hamle 2")).status_code, 200, "the newest receipt still replays its full reply")
-
-    async def test_measure_growth_at_10_100_1000_10000_synthetic_actions(self):
-        reply = {"session_id": "s", "narration": "x" * 1500, "state": {"character": {"current_hp": 10}}}
-        measurements = []
-        for count in (10, 100, 1000, 10000):
-            with self.subTest(actions=count):
-                with default_town(self, TOWN_SEED):
-                    created = await self.http.post("/api/game/campaigns", json={})
-                cid = created.json()["campaign_id"]
-                self.insert_synthetic(cid, count, reply)
-                size_before = self.vacuumed_size()
-                tracemalloc.start()
-                started = time.perf_counter()
-                outcome = self.store.compact_receipts(cid, before_revision=count + 1, keep_latest=0)
-                elapsed = time.perf_counter() - started
-                _current, peak = tracemalloc.get_traced_memory()
-                tracemalloc.stop()
-                size_after = self.vacuumed_size()
-                oldest = self.synthetic_id(0)
-                looked = time.perf_counter()
-                stored = self.store.get_turn_action(cid, oldest)
-                lookup_ms = (time.perf_counter() - looked) * 1000
-                self.assertEqual(outcome["archived"], count)
-                self.assertTrue(stored["archived"])
-                measurements.append({"actions": count, "bytes_before": size_before, "bytes_after": size_after,
-                                     "compaction_s": round(elapsed, 3), "peak_ram_kib": peak // 1024, "lookup_ms": round(lookup_ms, 2)})
-                if count >= 100:
-                    self.assertLess(size_after, size_before, "the archive is smaller than the full replies it replaced")
-                self.assertLess(peak, 64 * 1024 * 1024, "compaction streams in batches; it does not load every reply at once")
-                self.assertLess(lookup_ms, 250, "an archived id is still looked up by primary key")
-        print("R08 measurements:", json.dumps(measurements))
-
-    # -- helpers -----------------------------------------------------------------------------------------------
-    @staticmethod
-    def synthetic_id(index):
-        return str(uuid.UUID(int=index + 1, version=4))
-
-    def insert_synthetic(self, cid, count, reply):
-        with closing(sqlite3.connect(self.db_path)) as db:
-            db.execute("PRAGMA foreign_keys = ON")
-            rows = []
-            for index in range(count):
-                action_id = self.synthetic_id(index)
-                body = dict(reply, action_id=action_id)
-                text = json.dumps(body, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
-                rows.append((cid, action_id, hashlib.sha256(action_id.encode()).hexdigest(), text,
-                             "2026-10-27T00:00:00Z", index, index + 1, hashlib.sha256(text.encode("utf-8")).hexdigest()))
-            db.executemany(
-                "INSERT INTO campaign_turn_actions (campaign_id, action_id, request_hash, response_json, created_at, "
-                "base_revision, committed_revision, result_digest) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
-            db.commit()
-
-    def vacuumed_size(self):
-        with closing(sqlite3.connect(self.db_path)) as db:
-            db.execute("VACUUM")
-        return os.path.getsize(self.db_path)
-
-
-    async def test_the_newest_receipt_keeps_its_full_reply_by_default(self):
-        # A client that lost the reply to its LAST action must still be able to get that result back.
-        *_older, newest = await self.play(3)
-        outcome = self.store.compact_receipts(self.cid, before_revision=self.revision() + 1)
-        self.assertEqual(outcome["archived"], 2, "only receipts older than the newest are archived")
-        self.assertEqual(self.rows("campaign_turn_actions"), 1)
-        calls = self.calls
-        replay = await self.post(newest, "Hamle 2")
-        self.assertEqual(replay.status_code, 200, replay.text)
-        self.assertEqual(self.calls, calls, "replayed from the stored reply, not re-run")
 
 
 if __name__ == "__main__":

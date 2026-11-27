@@ -15,6 +15,7 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
+from api.tests.receipt_archive_fixture import archive_receipts
 from api.tests.test_campaign_api import FakeOllamaClient
 from api.tests.test_economic_action_http import TIP, EconomicHttpFixture
 
@@ -185,20 +186,19 @@ class UndoOverHttp(EconomicHttpFixture):
         self.assertNotIn("undo_target_unknown", history[-1])
 
     async def test_archiving_the_target_shows_the_undo_as_unverifiable(self):
-        # decision 37: before and after the receipt archive (compact_receipts is called only by tests today)
+        # decision 37: before and after the receipt archive (nothing in the game archives receipts, D-536: the fixture does)
         campaign_id = self.campaign["campaign_id"]
         url = f"/api/game/campaigns/{campaign_id}"
         turn_id, _ = await self.real_turn()
         self.assertEqual((await self.undo(turn_id)).status_code, 200)
         before = (await self.http.get(url)).json()["history"]
         self.assertEqual(sum(1 for h in before if h.get("undone")), 1)
-        revision = self.store.get_campaign(campaign_id).metadata["revision"]
-        self.store.compact_receipts(campaign_id, before_revision=revision + 1)  # keep_latest=1: the undo receipt stays
+        archive_receipts(self.store.path, campaign_id, keep_latest=1)  # the undo receipt stays
         kept = (await self.http.get(url)).json()["history"]
         self.assertEqual([h for h in kept if h.get("undone")], [])
         self.assertIs(kept[-1]["undo_note"], True)
         self.assertIs(kept[-1]["undo_target_unknown"], True)
-        self.store.compact_receipts(campaign_id, before_revision=revision + 1, keep_latest=0)  # the undo receipt too
+        archive_receipts(self.store.path, campaign_id)  # the undo receipt too
         bare = (await self.http.get(url)).json()["history"]
         self.assertEqual(bare[-1]["player_message"], UNDO_HISTORY_MARKER)
         self.assertFalse({"undone", "undo_note", "undo_target_unknown"} & set(bare[-1]), bare[-1])
