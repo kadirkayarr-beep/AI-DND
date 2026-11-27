@@ -1349,7 +1349,10 @@ class CharacterCreateInput(BaseModel):
                     own, shares_start_two = _START_BUNDLES[self.character_class]
                     shared_start_two = shares_start_two and self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
                     if not (shared_start_two or isinstance(self.level_choices, own)):
-                        message = f"{self.character_class} supports only the exact level2 to level5 bundle for its starting level."
+                        message = (
+                            f"{self.character_class} supports only the exact level2 to level5 "
+                            "choice bundle for its starting level."
+                        )
                         raise ValueError(message)
                 elif self.character_class == "Sorcerer":
                     if not isinstance(self.level_choices, SorcererLevelChoices):

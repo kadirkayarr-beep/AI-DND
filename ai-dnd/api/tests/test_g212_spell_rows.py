@@ -29,6 +29,14 @@ class RunningSpellReachesNextTurn(unittest.TestCase):
         context = game.build_world_context(session=s)
         self.assertIn("Büyücü Eli", json.dumps(context, ensure_ascii=False))
 
+    def test_a_spell_cast_elsewhere_is_not_in_this_scene(self) -> None:
+        """After travel the narrator hears nothing of a spell left behind."""
+        s = wizard()
+        spell_effects.resolve(s, ("narrative", "Mage Hand"))
+        self.assertIn("active_spell_effects", game.build_world_context(session=s))
+        s.world_state["location"] = "somewhere_else"
+        self.assertNotIn("active_spell_effects", game.build_world_context(session=s))
+
     def test_a_finished_spell_is_not_in_the_context(self) -> None:
         """A spell past its end leaves no trace in the context."""
         s = wizard()

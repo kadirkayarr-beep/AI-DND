@@ -228,9 +228,12 @@ def active(world: dict[str, Any]) -> list[dict[str, Any]]:
 def scene_view(world: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     """Return the scene context of the spells still running (D-057).
 
-    The next turn's narrator may tell about them; the result is empty when none runs.
+    The next turn's narrator may tell about them; the result is empty when none runs
+    in the scene where the player now stands.
     """
     now, facts = _running(world)
+    here = str(world.get("location") or "unknown")
+    facts = [fact for fact in facts if fact["location_id"] == here]
     view = [
         {
             "spell": fact["spell_id"],

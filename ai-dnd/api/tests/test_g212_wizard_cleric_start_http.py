@@ -1,6 +1,8 @@
-"""G2.12 / D-040: Wizard and Cleric start at level 2-5 over HTTP, with a catalog block each."""
+"""G2.12 / D-040: Wizard and Cleric start at level 2-5 over HTTP, with a catalog."""
 import copy
+import sqlite3
 import unittest
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +38,7 @@ class WizardClericStartHttpTests(unittest.IsolatedAsyncioTestCase):
 
     def rows(self) -> list[tuple]:
         """Return every saved campaign row."""
-        with self.store._connect() as connection:
+        with closing(sqlite3.connect(self.store.path)) as connection:
             query = "SELECT * FROM campaigns ORDER BY campaign_id"
             return [tuple(row) for row in connection.execute(query)]
 
@@ -90,6 +92,20 @@ class WizardClericStartHttpTests(unittest.IsolatedAsyncioTestCase):
             response = await self.post(value)
             self.assertEqual(response.status_code, 422, response.text)
             self.assertEqual(self.rows(), before)
+
+    async def test_a_wrong_bundle_message_names_the_choice_bundle(self) -> None:
+        """Old and new classes share one refusal wording."""
+        for cls in ("Fighter", "Wizard"):
+            value = request("Wizard", 3)
+            value["class"] = cls
+            value["level_choices"] = bundle("Cleric", 3)
+            response = await self.post(value)
+            self.assertEqual(response.status_code, 422, response.text)
+            wording = (
+                f"{cls} supports only the exact level2 to level5 choice bundle "
+                "for its starting level."
+            )
+            self.assertIn(wording, response.text)
 
     async def test_the_catalog_offers_each_start_with_its_own_choices(self) -> None:
         """Each class block lists its levels, subclass, cantrip and spell choices."""
