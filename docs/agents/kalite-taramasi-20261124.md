@@ -124,3 +124,24 @@ Not: 'DÜZELTME' yazan yerlerde Opus doğrulaması ilk taramanın iddiasını da
 | D-577 | dead-code | src/lib/: account-session::clearAccountStorage, contrast::relativeLuminance, action-reconciliation::actionFingerprint, spell-preparation PREPARING_CLASSES/errorStatus, xp-progress XP_THRESHOLDS, state-envelope::StateEnvelope ve diğer 17 unused_exports | Çoğu ölü değil gereksiz export; 6 ad test kullanıyor (actionFingerprint, XP_THRESHOLDS, clearAccountStorage, IDENTITY_FIELDS vb.). | Çok küçük. | Düşük. | Yalnız hiçbir yerde (test dahil) kullanılmayanlarda `export`'u kaldır; fallow baseline'ı düşür; tek PR. | DÜŞÜK |
 | D-578 | tech-debt | lib/character-catalog-defaults.ts (639 satır DEFAULT_CATALOG), spell-names.ts, tr-names.ts | Sunucu kataloğunun elle tutulan istemci kopyası; sapma riski. '2014 legacy' girişleri (Half-Elf, Half-Orc) sunucuda da bilerek var, silme ürün kararı. tr_names.json yolu repo içinde, uyarı yalnız fallow'dan. | Yaratım ekranı yanlış sınıf bilgisi gösterebilir. | Orta: yaratım ekranı kayıt alanlarını bu katalogdan üretir. | Önce istemci kopyasını sunucu cevabıyla karşılaştıran test ekle; sonra '2014 legacy' girişlerine karar; en sonda katalogu sunucudan üretilen JSON'a bağla. | DÜŞÜK |
 | D-579 | duplicate-logic | ai-dnd-web, mockup-sandbox ve experience'ta use-toast.ts ve components/ui/* üç kopya | Replit şablonu üç pakete kopyalanmış; mockup-sandbox, ai-dnd-web ve experience ui bulguları uygulanınca kendiliğinden kapanır. Ayrı iş değil. | ~15 bin satır kopya. | Düşük. | Ayrı iş açma; ilgili PR tanımlarında bu kopyaların kalktığını belirt. | DÜŞÜK |
+
+## Küçültme planı (D-552)
+
+`size_budget.json` içindeki her kilitli dev işlev için bir satır. Kilit yalnız küçülür (`test_engine_size_budget`); bir işlev bölününce kilit satırı kaldırılır ya da düşürülür. Her satırın adımı aynıdır: önce karakterizasyon testi (aynı girdide aynı çıktı, hata ve durum değişikliği; sabit tohum), sonra aşama aşama bölme, her aşama için önce kırmızı. Para, kayıt ve Geri Al'a dokunan işlevler Opus incelemesi ister. `size_lock.json` içindeki işlevler (ör. `weapon_attack.py::prepare`, `living_world.py::ensure_scene_state`) aynı kuralla ayrı kilitte küçültülür; bu tablo yalnız motor kilidini kapsar.
+
+| işlev | satır | küçültme planı | sıra ve inceleme |
+|---|---|---|---|
+| `game_parts/combat_flow.py::resolve_species_trait_action` | 361 | Tür özelliği başına bir işleyici; ortak doğrulama ve sonuç kurma ayrı yardımcı | Dilim sonrası ayrı bölme görevi; Sonnet |
+| `game_parts/living_world_turn.py::plan_living_world_turn` | 308 | Planlama aşamaları (bağlam, aday, seçim, kayıt) ayrı işlevler; kayıt aşaması tek yerde kalır | Ayrı bölme görevi; kayıt yazdığı için Opus |
+| `game_parts/lore.py::_player_question_has_unverified_lore_claim` | 196 | Soru türüne göre kontrol tablosu ve küçük sınayıcılar | Ayrı bölme görevi; Sonnet |
+| `game_parts/lore.py::_supported_lore_question_response` | 479 | Cevap türü başına bir kurucu; ortak kaynak seçimi ayrı | Ayrı bölme görevi; Sonnet |
+| `game_parts/narration.py::ask_dungeon_master` | 282 | İstem kurma, model çağrısı, yanıt ayrıştırma, onarım aşamaları ayrı | Ayrı bölme görevi; Opus (model hattı) |
+| `game_parts/narration.py::validate_world_updates` | 155 | Güncelleme türü başına doğrulayıcı | Ayrı bölme görevi; Opus (kayıt güncellemesi) |
+| `game_parts/narration_safety.py::_narration_safety_decision` | 748 | Karar kuralları kural başına işleve; sıra tablosu tek yerde | Ayrı bölme görevi (en büyük); Opus |
+| `game_parts/new_game.py::initialize_game` | 197 | Karakter, dünya, kasaba, açılış aşamaları ayrı | Ayrı bölme görevi; Opus (kayıt) |
+| `game_parts/savefile.py::load_game` | 186 | Okuma, doğrulama, kurma aşamaları ayrı; doğrulama sırası korunur | Ayrı bölme görevi; Opus (kayıt) |
+| `game_parts/terminal.py::run` | 184 | Komut dağıtım tablosu; yalnız terminal kullanır | Ayrı bölme görevi; Sonnet |
+| `game_parts/turn.py::_dispatch_player_turn` | 238 | Hamle türü başına yönlendirici; tur indeksi tek kez artar | D-345 ile birlikte; Opus (Geri Al) |
+| `game_parts/turn.py::_run_player_turn_internal` | 1154 | Tur aşamaları ayrı işlevler (D-345, D-470 planı); makbuz ve Geri Al sırası korunur | D-345/D-470 görevinde; Opus (para, kayıt, Geri Al) |
+| `game_parts/turn_front.py::_execute_intent_internal` | 308 | Niyet türü başına işleyici | Ayrı bölme görevi; Opus (kayıt) |
+| `game_parts/turn_front.py::_front_step` | 229 | Adım aşamaları (ayrıştır, doğrula, uygula) ayrı | Ayrı bölme görevi; Opus (kayıt) |

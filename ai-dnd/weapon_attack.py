@@ -5,6 +5,8 @@ Spatial facts and feature grants are engine-only data, never narration-derived.
 """
 import copy
 import re
+from dataclasses import dataclass, field
+from typing import Any
 from math import isfinite
 from contextlib import nullcontext
 from uuid import uuid4
@@ -22,6 +24,9 @@ import spatial_rules
 from combat_lifecycle import CombatRequestError
 from core_resolution import resolve_attack_roll, resolve_saving_throw, resolution_identity, resolution_action_scope
 from weapon_catalog import lookup
+
+Session = Any  # the game session: its attributes come from the engine parts and are not typed
+Data = dict[str, Any]
 
 DAMAGE_TYPES = frozenset("acid bludgeoning cold fire force lightning necrotic piercing poison psychic radiant slashing thunder".split())
 MASTERY = frozenset("cleave graze nick push sap slow topple vex".split())
@@ -398,325 +403,833 @@ def reckless_state(session, actor="player"):
     return {"available": reason is None, "active": active, "reason": reason}
 
 
-def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="action", profile=None):
-    choice = copy.deepcopy(choice or {})
+@dataclass
+class _Request:
+    """What one attack asks for, plus the facts gathered while it is checked."""
+
+    session: Session
+    actor: str
+    target: str
+    weapon_id: str | None
+    choice: Data
+    origin: str
+    profile: Data | None
+    attacker: Data
+    defender: Data
+    combat: Data = field(default_factory=dict)
+    aconditions: set[str] = field(default_factory=set)
+    tconditions: set[str] = field(default_factory=set)
+    spatial: Data = field(default_factory=dict)
+
+
+def _check_choice(choice: Data) -> None:
     if set(choice) - CHOICES:
-        fail("invalid_attack_choice", "Only player choices, never mechanical numbers, are accepted.")
+        fail(
+            "invalid_attack_choice",
+            "Only player choices, never mechanical numbers, are accepted.",
+        )
     if "knock_out" in choice and type(choice["knock_out"]) is not bool:
         fail("invalid_attack_choice", "Knocking out requires an explicit boolean.")
     if "reckless_attack" in choice and type(choice["reckless_attack"]) is not bool:
         fail("invalid_attack_choice", "Reckless Attack requires an explicit boolean.")
-    attacker, defender = actor_data(session, actor), actor_data(session, target)
-    combat = session.world_state.get("combat", {})
+
+
+def _check_combat_origin(req: _Request) -> None:
+    session, actor, origin = req.session, req.actor, req.origin
+    if origin == "action":
+        economy.attack_permission(session, actor)
+    elif origin in {
+        "continuation",
+        "light",
+        "nick",
+        "cleave",
+        "martial_arts",
+        "flurry",
+    }:
+        economy.validate_actor(
+            session,
+            actor,
+            reaction=economy._execution.get()
+            == (id(session), "monster_capability", actor),
+        )
+    elif origin == "reaction":
+        if economy._execution.get() != (id(session), "reaction", actor):
+            fail("invalid_reaction_trigger", "No authorized Reaction context.")
+        economy.attack_permission(session, actor)
+    else:
+        fail("invalid_attack_origin", "Unknown authoritative attack origin.")
+
+
+def _check_combat(req: _Request) -> None:
+    combat = req.combat = req.session.world_state.get("combat", {})
     if combat.get("combat_id") and not combat["active"]:
         fail("combat_closed", "Combat is closed.")
     if combat["active"]:
-        if actor not in combat["participants"] or target not in combat["participants"] or actor == target:
-            fail("invalid_combat_target", "Attack identities must be distinct participants.")
-        if origin == "action":
-            economy.attack_permission(session, actor)
-        elif origin in {"continuation", "light", "nick", "cleave", "martial_arts", "flurry"}:
-            economy.validate_actor(session, actor, reaction=
-                                   economy._execution.get() == (id(session), "monster_capability", actor))
-        elif origin == "reaction":
-            if economy._execution.get() != (id(session), "reaction", actor):
-                fail("invalid_reaction_trigger", "No authorized Reaction context.")
-            economy.attack_permission(session, actor)
-        else:
-            fail("invalid_attack_origin", "Unknown authoritative attack origin.")
-    aconditions = conditions(session, actor, attacker)
-    tconditions = conditions(session, target, defender)
-    if aconditions & {"unconscious", "incapacitated", "paralyzed", "stunned", "dead", "petrified"}:
+        if (
+            req.actor not in combat["participants"]
+            or req.target not in combat["participants"]
+            or req.actor == req.target
+        ):
+            fail(
+                "invalid_combat_target",
+                "Attack identities must be distinct participants.",
+            )
+        _check_combat_origin(req)
+
+
+def _check_conditions(req: _Request) -> None:
+    session = req.session
+    aconditions = req.aconditions = conditions(session, req.actor, req.attacker)
+    tconditions = req.tconditions = conditions(session, req.target, req.defender)
+    if aconditions & {
+        "unconscious",
+        "incapacitated",
+        "paralyzed",
+        "stunned",
+        "dead",
+        "petrified",
+    }:
         fail("actor_cannot_act", "Authoritative conditions prohibit this attack.")
     if "dead" in tconditions:
         fail("invalid_combat_target", "Dead creatures cannot be attacked.")
-    if "charmed" in aconditions and attacker.get("charmed_by") == target:
-        fail("charmed_target_forbidden", "Charmed creatures cannot attack their known charmer.")
-    spatial = pair(session, actor, target)
-    distance = spatial["distance_ft"]
-    unarmed = weapon_id == "unarmed"
-    if profile is not None:
-        weapon = copy.deepcopy(profile)
-    elif unarmed:
-        weapon = {"weapon_id": "unarmed", "name": "Unarmed Strike", "kind": "melee",
-                  "category": None, "properties": [], "mastery": None, "damage_die": 0,
-                  "damage_dice": 0, "fixed_damage": 1, "damage_type": "bludgeoning",
-                  "magic_attack_bonus": 0, "magic_damage_bonus": 0}
-    else:
-        weapon = copy.deepcopy(lookup(weapon_id))
-        if not weapon:
-            fail("no_weapon", "Unknown catalog weapon.")
-        hands = copy.deepcopy(equipment(session, actor, attacker))
-        requested_instance = choice.get("weapon_instance_id")
-        if requested_instance is None and origin in {"light", "nick"}:
-            previous = sequence_snapshot(session, actor)["light_weapon_ids"]
-            for held_value in hands.values():
-                try:
-                    candidate = item_for(session, actor, attacker, weapon, held_value)
-                except CombatRequestError:
-                    continue
-                candidate_ref = candidate.get("item_id", weapon["weapon_id"]) if isinstance(candidate, dict) else weapon["weapon_id"]
-                if candidate_ref not in previous:
-                    requested_instance = candidate_ref
-                    break
-        item = item_for(session, actor, attacker, weapon, requested_instance)
-        weapon["instance_id"] = item.get("item_id", weapon["weapon_id"]) if isinstance(item, dict) else weapon["weapon_id"]
-        if isinstance(item, dict):
-            for name in ("magic_attack_bonus", "magic_damage_bonus"):
-                weapon[name] = integer(item.get(name, 0), name)
-        held = [held_identity(session, actor, attacker, value) for value in hands.values()]
-        if choice.get("unequip"):
-            old = choice["unequip"]
-            matches = [hand for hand, value in hands.items() if value == old]
-            if len(matches) != 1 or origin not in {"action", "continuation"}:
-                fail("invalid_equipment_change", "Unequip needs one held weapon and an Attack Action.")
-            hands[matches[0]] = None
-            held = [held_identity(session, actor, attacker, value) for value in hands.values()]
-        # D-116: a creation shield has no hand entry; while it is in use (in the bag, not put down) and its share is in
-        # the Armor Class, it holds a hand: no second weapon is drawn into that hand, and no two-handed grip.
-        shield_on = False
-        if actor == "player" and character_progression.shield_share(session.character) > 0:
-            import equipment_economy
-            shield = equipment_economy._shield_in_hand(session.world_state, hands)
-            shield_on = shield is not None and shield["item_id"] not in hands.values()
-            if shield is None and "shield_down" not in session.world_state:
-                # A new character's bag is plain text until the lazy materialize runs; its "Kalkan" line is that shield.
-                from dnd_2024_rules import SHIELD_ITEM_TOKENS
-                shield_on = any(isinstance(item, str) and any(token in item.casefold() for token in SHIELD_ITEM_TOKENS)
-                                for item in session.world_state.get("inventory", []))
-        if weapon["instance_id"] not in held:
-            if choice.get("draw") and (origin in {"action", "continuation"} or "thrown" in weapon["properties"]):
-                # A hand naming a catalog weapon the bag does not own (a new world's default "longsword" kept for a
-                # Cleric or Druid) holds nothing; the draw takes that hand first, so the shield keeps the other.
-                open_hands = [hand for hand, value in hands.items()
-                              if value is not None and _names_no_owned_weapon(session, actor, attacker, value)]
-                open_hands += [hand for hand, value in hands.items() if value is None]
-                free = open_hands[0] if open_hands else None
-                if free is None or len(open_hands) - shield_on < 1:
-                    fail("invalid_hands", "No hand is available to draw the weapon.")
-                hands[free] = weapon["instance_id"]
-            else:
-                fail("weapon_not_held", "Requested weapon is not held.")
-        grip = choice.get("grip", 2 if "two-handed" in weapon["properties"] else 1)
-        if grip not in (1, 2) or (grip == 2 and not ({"two-handed", "versatile"} & set(weapon["properties"]))):
-            fail("invalid_grip", "Invalid weapon grip.")
-        free_hands = sum(value is None for value in hands.values())
-        two_required = "two-handed" in weapon["properties"]
-        if (two_required and grip != 2) or (grip == 2 and free_hands - shield_on < 1):
-            fail("invalid_hands", "Two-handed attack needs both hands.")
-        if "ammunition" in weapon["properties"] and grip == 1 and free_hands - shield_on < 1:
-            fail("invalid_hands", "A one-handed ammunition weapon requires a free loading hand.")
-        weapon["grip"] = grip
-        weapon["equipment_after"] = hands
-    props = set(weapon["properties"])
-    mode = choice.get("mode", weapon["kind"])
-    if mode not in {"melee", "ranged", "thrown"} or (
-        mode == "thrown" and "thrown" not in props
-    ) or (mode == "melee" and weapon["kind"] != "melee") or (
-        mode == "ranged" and weapon["kind"] != "ranged"
+    if "charmed" in aconditions and req.attacker.get("charmed_by") == req.target:
+        fail(
+            "charmed_target_forbidden",
+            "Charmed creatures cannot attack their known charmer.",
+        )
+
+
+def _requested_instance(req: _Request, weapon: Data, hands: Data) -> str | None:
+    requested_instance = req.choice.get("weapon_instance_id")
+    if requested_instance is None and req.origin in {"light", "nick"}:
+        previous = sequence_snapshot(req.session, req.actor)["light_weapon_ids"]
+        for held_value in hands.values():
+            try:
+                candidate = item_for(
+                    req.session,
+                    req.actor,
+                    req.attacker,
+                    weapon,
+                    held_value,
+                )
+            except CombatRequestError:
+                continue
+            candidate_ref = (
+                candidate.get("item_id", weapon["weapon_id"])
+                if isinstance(candidate, dict)
+                else weapon["weapon_id"]
+            )
+            if candidate_ref not in previous:
+                requested_instance = candidate_ref
+                break
+    return requested_instance
+
+
+def _held_after_unequip(req: _Request, hands: Data) -> list[Any]:
+    old = req.choice["unequip"]
+    matches = [hand for hand, value in hands.items() if value == old]
+    if len(matches) != 1 or req.origin not in {"action", "continuation"}:
+        fail(
+            "invalid_equipment_change",
+            "Unequip needs one held weapon and an Attack Action.",
+        )
+    hands[matches[0]] = None
+    return [
+        held_identity(req.session, req.actor, req.attacker, value)
+        for value in hands.values()
+    ]
+
+
+def _shield_holds_hand(req: _Request, hands: Data) -> bool:
+    # D-116: a creation shield has no hand entry; while it is in use (in the bag, not put down) and its share is in
+    # the Armor Class, it holds a hand: no second weapon is drawn into that hand, and no two-handed grip.
+    session = req.session
+    shield_on = False
+    if (
+        req.actor == "player"
+        and character_progression.shield_share(session.character) > 0
     ):
-        fail("invalid_weapon_mode", "Weapon does not support the requested attack mode.")
+        import equipment_economy
+
+        shield = equipment_economy._shield_in_hand(session.world_state, hands)
+        shield_on = shield is not None and shield["item_id"] not in hands.values()
+        if shield is None and "shield_down" not in session.world_state:
+            # A new character's bag is plain text until the lazy materialize runs; its "Kalkan" line is that shield.
+            from dnd_2024_rules import SHIELD_ITEM_TOKENS
+
+            shield_on = any(
+                isinstance(item, str)
+                and any(token in item.casefold() for token in SHIELD_ITEM_TOKENS)
+                for item in session.world_state.get("inventory", [])
+            )
+    return shield_on
+
+
+def _draw_into_free_hand(
+    req: _Request,
+    weapon: Data,
+    hands: Data,
+    *,
+    shield_on: bool,
+) -> None:
+    # A hand naming a catalog weapon the bag does not own (a new world's default "longsword" kept for a
+    # Cleric or Druid) holds nothing; the draw takes that hand first, so the shield keeps the other.
+    open_hands = [
+        hand
+        for hand, value in hands.items()
+        if value is not None
+        and _names_no_owned_weapon(req.session, req.actor, req.attacker, value)
+    ]
+    open_hands += [hand for hand, value in hands.items() if value is None]
+    free = open_hands[0] if open_hands else None
+    if free is None or len(open_hands) - shield_on < 1:
+        fail("invalid_hands", "No hand is available to draw the weapon.")
+    hands[free] = weapon["instance_id"]
+
+
+def _chosen_grip(req: _Request, weapon: Data) -> int:
+    grip = req.choice.get("grip", 2 if "two-handed" in weapon["properties"] else 1)
+    if grip not in (1, 2) or (
+        grip == 2 and not ({"two-handed", "versatile"} & set(weapon["properties"]))
+    ):
+        fail("invalid_grip", "Invalid weapon grip.")
+    return grip
+
+
+def _check_grip(req: _Request, weapon: Data, hands: Data, *, shield_on: bool) -> None:
+    grip = _chosen_grip(req, weapon)
+    free_hands = sum(value is None for value in hands.values())
+    two_required = "two-handed" in weapon["properties"]
+    if (two_required and grip != 2) or (grip == 2 and free_hands - shield_on < 1):
+        fail("invalid_hands", "Two-handed attack needs both hands.")
+    if (
+        "ammunition" in weapon["properties"]
+        and grip == 1
+        and free_hands - shield_on < 1
+    ):
+        fail(
+            "invalid_hands",
+            "A one-handed ammunition weapon requires a free loading hand.",
+        )
+    weapon["grip"] = grip
+    weapon["equipment_after"] = hands
+
+
+def _set_instance(weapon: Data, item: object) -> None:
+    weapon["instance_id"] = (
+        item.get("item_id", weapon["weapon_id"])
+        if isinstance(item, dict)
+        else weapon["weapon_id"]
+    )
+    if isinstance(item, dict):
+        for name in ("magic_attack_bonus", "magic_damage_bonus"):
+            weapon[name] = integer(item.get(name, 0), name)
+
+
+def _catalog_weapon(req: _Request) -> Data:
+    session, actor, attacker = req.session, req.actor, req.attacker
+    weapon = copy.deepcopy(lookup(req.weapon_id))
+    if not weapon:
+        fail("no_weapon", "Unknown catalog weapon.")
+    hands = copy.deepcopy(equipment(session, actor, attacker))
+    item = item_for(
+        session,
+        actor,
+        attacker,
+        weapon,
+        _requested_instance(req, weapon, hands),
+    )
+    _set_instance(weapon, item)
+    held = [held_identity(session, actor, attacker, value) for value in hands.values()]
+    if req.choice.get("unequip"):
+        held = _held_after_unequip(req, hands)
+    shield_on = _shield_holds_hand(req, hands)
+    if weapon["instance_id"] not in held:
+        if not (
+            req.choice.get("draw")
+            and (
+                req.origin in {"action", "continuation"}
+                or "thrown" in weapon["properties"]
+            )
+        ):
+            fail("weapon_not_held", "Requested weapon is not held.")
+        _draw_into_free_hand(req, weapon, hands, shield_on=shield_on)
+    _check_grip(req, weapon, hands, shield_on=shield_on)
+    return weapon
+
+
+def _attack_weapon(req: _Request) -> Data:
+    if req.profile is not None:
+        return copy.deepcopy(req.profile)
+    if req.weapon_id == "unarmed":
+        return {
+            "weapon_id": "unarmed",
+            "name": "Unarmed Strike",
+            "kind": "melee",
+            "category": None,
+            "properties": [],
+            "mastery": None,
+            "damage_die": 0,
+            "damage_dice": 0,
+            "fixed_damage": 1,
+            "damage_type": "bludgeoning",
+            "magic_attack_bonus": 0,
+            "magic_damage_bonus": 0,
+        }
+    return _catalog_weapon(req)
+
+
+def _check_reach(weapon: Data, mode: str, distance: int) -> None:
     if mode == "melee":
-        if distance > (10 if "reach" in props else 5):
+        if distance > (10 if "reach" in weapon["properties"] else 5):
             fail("out_of_range", "Target is outside authoritative melee reach.")
     elif distance > weapon["long_range"]:
         fail("out_of_range", "Target is beyond the weapon's long range.")
+
+
+def _check_mode(weapon: Data, choice: Data, distance: int) -> str:
+    props = set(weapon["properties"])
+    mode = choice.get("mode", weapon["kind"])
+    if (
+        mode not in {"melee", "ranged", "thrown"}
+        or (mode == "thrown" and "thrown" not in props)
+        or (mode == "melee" and weapon["kind"] != "melee")
+        or (mode == "ranged" and weapon["kind"] != "ranged")
+    ):
+        fail(
+            "invalid_weapon_mode",
+            "Weapon does not support the requested attack mode.",
+        )
+    _check_reach(weapon, mode, distance)
+    return mode
+
+
+def _cover_of(spatial: Data) -> str:
     covers = spatial.get("cover", [])
     covers = [covers] if isinstance(covers, str) else covers
-    if not isinstance(covers, list) or set(covers) - {"none", "half", "three_quarters", "total"}:
+    if not isinstance(covers, list) or set(covers) - {
+        "none",
+        "half",
+        "three_quarters",
+        "total",
+    }:
         fail("invalid_attack_state", "Unknown authoritative cover.")
     cover = max(covers or ["none"], key=lambda c: spatial_rules.COVER_RANK[c])
     if cover == "total":
         fail("total_cover", "Total Cover prevents direct targeting.")
+    return cover
+
+
+def _attack_rules(req: _Request, weapon: Data) -> Data:
+    session, actor, attacker = req.session, req.actor, req.attacker
     rules = rules_for(session, actor, attacker, weapon)
     if actor == "player":
-        for key, values in paladin_features.attack_rules(session, attacker, weapon, choice, origin).items():
+        for key, values in paladin_features.attack_rules(
+            session,
+            attacker,
+            weapon,
+            req.choice,
+            req.origin,
+        ).items():
             rules.setdefault(key, []).extend(values)
-        if choice.get("radiant_damage"):
+        if req.choice.get("radiant_damage"):
             weapon["damage_type"] = "radiant"
-    ability = rules.get("ability", "strength" if weapon["kind"] == "melee" else "dexterity")
+    return rules
+
+
+def _attack_ability(weapon: Data, choice: Data, rules: Data) -> str:
+    props = set(weapon["properties"])
+    ability = rules.get(
+        "ability",
+        "strength" if weapon["kind"] == "melee" else "dexterity",
+    )
     requested_ability = choice.get("ability")
     if requested_ability:
-        if requested_ability not in ({"strength", "dexterity"} if "finesse" in props or rules.get("dexterous_attacks") else {ability}):
-            fail("invalid_attack_ability", "The weapon/feature does not permit that ability.")
+        if requested_ability not in (
+            {"strength", "dexterity"}
+            if "finesse" in props or rules.get("dexterous_attacks")
+            else {ability}
+        ):
+            fail(
+                "invalid_attack_ability",
+                "The weapon/feature does not permit that ability.",
+            )
         ability = requested_ability
-    if ability not in {"strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"}:
+    if ability not in {
+        "strength",
+        "dexterity",
+        "constitution",
+        "intelligence",
+        "wisdom",
+        "charisma",
+    }:
         fail("invalid_attack_state", "Unknown authoritative attack ability.")
+    return ability
+
+
+def _attack_numbers(req: _Request, weapon: Data, rules: Data, ability: str) -> Data:
+    """Return the ability, its modifier, proficiency and the attack bonus before exhaustion."""
+    actor, attacker, profile = req.actor, req.attacker, req.profile
     ability_mod = integer(attacker.get(f"{ability}_mod", 0), "ability modifier")
     pb = integer(attacker.get("proficiency_bonus", 0), "proficiency bonus", 0)
     proficiency = proficiencies(actor, attacker)
-    proficient = unarmed or weapon["weapon_id"] in proficiency or weapon["category"] in proficiency
+    proficient = (
+        req.weapon_id == "unarmed"
+        or weapon["weapon_id"] in proficiency
+        or weapon["category"] in proficiency
+    )
     attack_modifiers = copy.deepcopy(rules.get("attack_modifiers", []))
     damage_modifiers = copy.deepcopy(rules.get("damage_modifiers", []))
     attack_adjustment = modifiers(attack_modifiers, "attack modifiers")
     damage_adjustment = modifiers(damage_modifiers, "damage modifiers")
-    if any(m["source"] in {"ability", "proficiency", "magic_weapon"} for m in attack_modifiers + damage_modifiers):
+    if any(
+        m["source"] in {"ability", "proficiency", "magic_weapon"}
+        for m in attack_modifiers + damage_modifiers
+    ):
         fail("invalid_attack_state", "Base sources cannot be applied twice.")
     if profile:
         ability_mod = integer(profile["damage_modifier"], "stat-block damage modifier")
         ability = "stat_block"
         proficient, pb = False, 0
-        bonus = integer(profile["attack_bonus"], "stat-block attack bonus") + attack_adjustment
+        bonus = (
+            integer(profile["attack_bonus"], "stat-block attack bonus")
+            + attack_adjustment
+        )
     else:
-        bonus = ability_mod + (pb if proficient else 0) + weapon["magic_attack_bonus"] + attack_adjustment
+        bonus = (
+            ability_mod
+            + (pb if proficient else 0)
+            + weapon["magic_attack_bonus"]
+            + attack_adjustment
+        )
+    return {
+        "ability": ability,
+        "ability_modifier": ability_mod,
+        "proficient": proficient,
+        "proficiency_bonus": pb,
+        "attack_bonus": bonus,
+        "attack_modifiers": attack_modifiers,
+        "damage_modifiers": damage_modifiers,
+        "damage_adjustment": damage_adjustment,
+    }
+
+
+def _base_roll_sources(req: _Request, rules: Data) -> tuple[list[str], list[str]]:
     advantage = list(rules.get("advantage_sources", []))
     disadvantage = list(rules.get("disadvantage_sources", []))
-    if actor == "player":
-        advantage.extend(rogue_features.attack_advantage(session, target))
-    rogue_features.check_choice(session, actor, choice, defender)
+    if req.actor == "player":
+        advantage.extend(rogue_features.attack_advantage(req.session, req.target))
+    rogue_features.check_choice(req.session, req.actor, req.choice, req.defender)
     for names in (advantage, disadvantage):
         if any(not isinstance(source, str) or not source for source in names):
             fail("invalid_attack_state", "Attack advantage sources require provenance.")
+    return advantage, disadvantage
+
+
+def _attacker_condition_sources(
+    req: _Request,
+    advantage: list[str],
+    disadvantage: list[str],
+) -> None:
+    aconditions = req.aconditions
     if aconditions & {"blinded", "poisoned", "prone", "restrained"}:
-        disadvantage.extend(sorted(aconditions & {"blinded", "poisoned", "prone", "restrained"}))
-    if "grappled" in aconditions and attacker.get("grappled_by") != target:
+        disadvantage.extend(
+            sorted(aconditions & {"blinded", "poisoned", "prone", "restrained"}),
+        )
+    if "grappled" in aconditions and req.attacker.get("grappled_by") != req.target:
         disadvantage.append("grappled_other_target")
-    if tconditions & {"blinded", "restrained", "stunned", "unconscious", "paralyzed", "petrified"}:
-        advantage.extend("target_" + name for name in sorted(
-            tconditions & {"blinded", "restrained", "stunned", "unconscious", "paralyzed", "petrified"}))
-    if "prone" in tconditions:
-        (advantage if distance <= 5 else disadvantage).append("target_prone")
-    if "invisible" in aconditions and spatial.get("target_sees_attacker") is not True:
+    if (
+        "invisible" in aconditions
+        and req.spatial.get("target_sees_attacker") is not True
+    ):
         advantage.append("invisible_attacker")
+
+
+def _target_condition_sources(
+    req: _Request,
+    advantage: list[str],
+    disadvantage: list[str],
+) -> None:
+    tconditions, spatial = req.tconditions, req.spatial
+    if tconditions & {
+        "blinded",
+        "restrained",
+        "stunned",
+        "unconscious",
+        "paralyzed",
+        "petrified",
+    }:
+        advantage.extend(
+            "target_" + name
+            for name in sorted(
+                tconditions
+                & {
+                    "blinded",
+                    "restrained",
+                    "stunned",
+                    "unconscious",
+                    "paralyzed",
+                    "petrified",
+                },
+            )
+        )
+    if "prone" in tconditions:
+        (advantage if spatial["distance_ft"] <= 5 else disadvantage).append(
+            "target_prone",
+        )
     if "invisible" in tconditions and spatial.get("attacker_sees_target") is not True:
         disadvantage.append("invisible_target")
     if spatial.get("attacker_sees_target") is False:
         disadvantage.append("unseen_target")
     if spatial.get("target_sees_attacker") is False:
         advantage.append("unseen_attacker")
+
+
+def _dodge_and_heavy_sources(
+    req: _Request,
+    weapon: Data,
+    disadvantage: list[str],
+) -> None:
+    session, actor, target = req.session, req.actor, req.target
     # Dodge is owned by #04; #06 only consumes its verified attack modifier.
-    defending = combat.get("turn_resources", {}).get(target, {})
-    if (defending.get("dodging") is True and economy.can_act(session, target)
-            and economy.speed(session, target) > 0 and target_sees_attacker(session, actor, target) is True):
+    defending = req.combat.get("turn_resources", {}).get(target, {})
+    if (
+        defending.get("dodging") is True
+        and economy.can_act(session, target)
+        and economy.speed(session, target) > 0
+        and target_sees_attacker(session, actor, target) is True
+    ):
         disadvantage.append("target_dodging")
-    if "heavy" in props:
+    if "heavy" in weapon["properties"]:
         score = "strength" if weapon["kind"] == "melee" else "dexterity"
-        if integer(attacker.get(score), "Heavy ability score", 1) < 13:
+        if integer(req.attacker.get(score), "Heavy ability score", 1) < 13:
             disadvantage.append("heavy")
-    auto_miss = spatial.get("guessed_location_correct") is False
-    underwater = session.world_state.get("attack_environment", {}).get("underwater") is True
+
+
+def _close_combat_sources(req: _Request, disadvantage: list[str]) -> None:
+    session, actor = req.session, req.actor
+    for enemy in req.combat.get("participants", []):
+        if enemy == actor:
+            continue
+        enemy_data = actor_data(session, enemy)
+        same_side = (enemy == "player") == (actor == "player")
+        if same_side or conditions(session, enemy, enemy_data) & {
+            "incapacitated",
+            "unconscious",
+            "stunned",
+            "paralyzed",
+            "dead",
+            "petrified",
+        }:
+            continue
+        nearby = pair(session, actor, enemy)
+        if (
+            nearby["distance_ft"] <= 5
+            and nearby.get("target_sees_attacker", True)
+            and "blinded" not in conditions(session, enemy, enemy_data)
+        ):
+            disadvantage.append("ranged_in_close_combat")
+
+
+def _range_sources(
+    req: _Request,
+    weapon: Data,
+    mode: str,
+    disadvantage: list[str],
+) -> bool:
+    """Add the range and water sources; return whether the attack misses outright."""
+    distance = req.spatial["distance_ft"]
+    auto_miss = req.spatial.get("guessed_location_correct") is False
+    underwater = (
+        req.session.world_state.get("attack_environment", {}).get("underwater") is True
+    )
     if mode != "melee":
         if distance > weapon["normal_range"]:
             disadvantage.append("long_range")
         if underwater:
             auto_miss |= distance > weapon["normal_range"]
             disadvantage.append("underwater")
-        for enemy in combat.get("participants", []):
-            if enemy == actor:
-                continue
-            enemy_data = actor_data(session, enemy)
-            same_side = (enemy == "player") == (actor == "player")
-            if same_side or conditions(session, enemy, enemy_data) & {
-                "incapacitated", "unconscious", "stunned", "paralyzed", "dead", "petrified"
-            }:
-                continue
-            nearby = pair(session, actor, enemy)
-            if nearby["distance_ft"] <= 5 and nearby.get("target_sees_attacker", True) and "blinded" not in conditions(session, enemy, enemy_data):
-                disadvantage.append("ranged_in_close_combat")
-    elif underwater and not unarmed and attacker.get("swim_speed_ft", 0) <= 0 and weapon["damage_type"] != "piercing":
+        _close_combat_sources(req, disadvantage)
+    elif (
+        underwater
+        and req.weapon_id != "unarmed"
+        and req.attacker.get("swim_speed_ft", 0) <= 0
+        and weapon["damage_type"] != "piercing"
+    ):
         disadvantage.append("underwater")
+    return auto_miss
+
+
+def _fear_source(req: _Request, disadvantage: list[str]) -> None:
+    attacker, aconditions = req.attacker, req.aconditions
     frightened = attacker.get("frightened_until_player_turn")
     if "frightened" in aconditions:
-        fear_visible = (attacker.get("frightened_by") == target
-                        and spatial.get("attacker_sees_target") is True
-                        and "blinded" not in aconditions and "invisible" not in tconditions
-                        and not defender.get("hidden", False))
+        fear_visible = (
+            attacker.get("frightened_by") == req.target
+            and req.spatial.get("attacker_sees_target") is True
+            and "blinded" not in aconditions
+            and "invisible" not in req.tconditions
+            and not req.defender.get("hidden", False)
+        )
     else:
         # Compatibility for the existing timed species effect only; canonical
         # condition/source facts take precedence whenever present.
-        fear_visible = (type(frightened) is int and frightened >
-                        (session.character.get("species_trait_state") or {}).get("player_turn_counter", 0))
+        fear_visible = type(frightened) is int and frightened > (
+            req.session.character.get("species_trait_state") or {}
+        ).get("player_turn_counter", 0)
     if fear_visible and "frightened" not in disadvantage:
         disadvantage.append("frightened")
-    for effect in session.world_state.get("attack_effects", []):
+
+
+def _effect_sources(
+    req: _Request,
+    advantage: list[str],
+    disadvantage: list[str],
+) -> None:
+    actor, target = req.actor, req.target
+    for effect in req.session.world_state.get("attack_effects", []):
         if effect["kind"] == "sap" and effect["target_id"] == actor:
             disadvantage.append("sap")
-        if effect["kind"] == "vex" and effect["source_actor"] == actor and effect["target_id"] == target:
+        if (
+            effect["kind"] == "vex"
+            and effect["source_actor"] == actor
+            and effect["target_id"] == target
+        ):
             advantage.append("vex")
-        if effect["kind"] == monk_features.OPENING_EFFECT and effect["target_id"] == target:
-            advantage.append(monk_features.OPENING_EFFECT)
-        if effect["kind"] == GUIDING_EFFECT and effect["target_id"] == target:
-            advantage.append(GUIDING_EFFECT)
-    mastery = None
-    if not unarmed and not profile:
-        eligible = weapon["weapon_id"] in attacker.get("weapon_masteries", [])
-        mastery = weapon["mastery"] if eligible else None
-        requested = choice.get("mastery")
-        if requested == "none":
-            mastery, requested = None, None
-        if requested:
-            if requested not in MASTERY or not eligible or (
-                requested != mastery and requested not in rules.get("mastery_overrides", [])
-            ):
-                fail("mastery_unavailable", "Requested mastery is not granted by authoritative features.")
-            mastery = requested
-    elif choice.get("mastery"):
-        fail("mastery_unavailable", "Unarmed/stat-block attacks do not have weapon mastery.")
-    sequence = sequence_snapshot(session, actor)
-    if origin in {"light", "nick"}:
-        if ("light" not in props or sequence["light_used"] or not sequence["light_weapon_ids"]
-            or weapon["instance_id"] in sequence["light_weapon_ids"]):
-            fail("light_unavailable", "Light requires a different Light weapon and one unused extra attack.")
-        if origin == "nick" and mastery != "nick":
-            fail("nick_unavailable", "Nick mastery is required.")
-        if origin == "light" and economy.ensure(session)[actor]["bonus_action_spent"]:
-            fail("bonus_action_spent", "The Bonus Action has already been spent.")
-    if origin == "continuation":
-        ongoing = economy.ensure(session)[actor].get("attack_action")
+        _target_effect_sources(effect, target, advantage)
+
+
+def _target_effect_sources(effect: Data, target: str, advantage: list[str]) -> None:
+    if effect["kind"] == monk_features.OPENING_EFFECT and effect["target_id"] == target:
+        advantage.append(monk_features.OPENING_EFFECT)
+    if effect["kind"] == GUIDING_EFFECT and effect["target_id"] == target:
+        advantage.append(GUIDING_EFFECT)
+
+
+def _requested_mastery(
+    req: _Request,
+    rules: Data,
+    mastery: str | None,
+    *,
+    eligible: bool,
+) -> str | None:
+    requested = req.choice.get("mastery")
+    if requested == "none":
+        return None
+    if requested:
+        if (
+            requested not in MASTERY
+            or not eligible
+            or (
+                requested != mastery
+                and requested not in rules.get("mastery_overrides", [])
+            )
+        ):
+            fail(
+                "mastery_unavailable",
+                "Requested mastery is not granted by authoritative features.",
+            )
+        return requested
+    return mastery
+
+
+def _attack_mastery(req: _Request, weapon: Data, rules: Data) -> str | None:
+    if req.weapon_id != "unarmed" and not req.profile:
+        eligible = weapon["weapon_id"] in req.attacker.get("weapon_masteries", [])
+        return _requested_mastery(
+            req,
+            rules,
+            weapon["mastery"] if eligible else None,
+            eligible=eligible,
+        )
+    if req.choice.get("mastery"):
+        fail(
+            "mastery_unavailable",
+            "Unarmed/stat-block attacks do not have weapon mastery.",
+        )
+    return None
+
+
+def _check_light_origin(
+    req: _Request,
+    weapon: Data,
+    mastery: str | None,
+    sequence: Data,
+) -> None:
+    session, actor, origin = req.session, req.actor, req.origin
+    if (
+        "light" not in weapon["properties"]
+        or sequence["light_used"]
+        or not sequence["light_weapon_ids"]
+        or weapon["instance_id"] in sequence["light_weapon_ids"]
+    ):
+        fail(
+            "light_unavailable",
+            "Light requires a different Light weapon and one unused extra attack.",
+        )
+    if origin == "nick" and mastery != "nick":
+        fail("nick_unavailable", "Nick mastery is required.")
+    if origin == "light" and economy.ensure(session)[actor]["bonus_action_spent"]:
+        fail("bonus_action_spent", "The Bonus Action has already been spent.")
+
+
+def _check_origin_use(
+    req: _Request,
+    weapon: Data,
+    mastery: str | None,
+    sequence: Data,
+) -> None:
+    if req.origin in {"light", "nick"}:
+        _check_light_origin(req, weapon, mastery, sequence)
+    if req.origin == "continuation":
+        ongoing = economy.ensure(req.session)[req.actor].get("attack_action")
         if not ongoing or ongoing["remaining_attacks"] <= 0:
-            fail("no_attack_continuation", "No rule-granted Attack Action continuation.")
-    loading_key = f"action:{sequence.get('action_index', 0)}" if origin == "action" else origin
+            fail(
+                "no_attack_continuation",
+                "No rule-granted Attack Action continuation.",
+            )
+
+
+def _loading_key(req: _Request, weapon: Data, sequence: Data) -> str:
+    origin = req.origin
+    loading_key = (
+        f"action:{sequence.get('action_index', 0)}" if origin == "action" else origin
+    )
     if origin in {"continuation", "nick", "cleave"}:
         loading_key = sequence.get("active_action_key", "action:0")
     if origin == "light":
         loading_key = "bonus"
-    if "loading" in props and loading_key in sequence["loading_origins"]:
-        fail("loading_limit", "Loading permits one shot per Action/Bonus Action/Reaction.")
-    ammunition = None
-    if "ammunition" in props:
-        ammunition = weapon["ammunition_type"]
-        owner = session.world_state if actor == "player" else attacker
-        integer(owner.get("ammunition", {}).get(ammunition, 0), "ammunition", 0)
-        available = (item_use.ammo_available(session.world_state, ammunition) if actor == "player"
-                     else attacker.get("ammunition", {}).get(ammunition, 0))
-        if integer(available, "ammunition", 0) < 1:
-            fail("no_ammunition", "Required ammunition is unavailable.")
-    unarmed_option = choice.get("unarmed_option", "damage")
-    if unarmed_option not in {"damage", "grapple", "shove"} or (not unarmed and unarmed_option != "damage"):
+    if "loading" in weapon["properties"] and loading_key in sequence["loading_origins"]:
+        fail(
+            "loading_limit",
+            "Loading permits one shot per Action/Bonus Action/Reaction.",
+        )
+    return loading_key
+
+
+def _ammunition_type(req: _Request, weapon: Data) -> str | None:
+    if "ammunition" not in weapon["properties"]:
+        return None
+    ammunition = weapon["ammunition_type"]
+    owner = req.session.world_state if req.actor == "player" else req.attacker
+    integer(owner.get("ammunition", {}).get(ammunition, 0), "ammunition", 0)
+    available = (
+        item_use.ammo_available(req.session.world_state, ammunition)
+        if req.actor == "player"
+        else req.attacker.get("ammunition", {}).get(ammunition, 0)
+    )
+    if integer(available, "ammunition", 0) < 1:
+        fail("no_ammunition", "Required ammunition is unavailable.")
+    return ammunition
+
+
+def _check_unarmed_special(req: _Request, unarmed_option: str) -> None:
+    attacker, defender = req.attacker, req.defender
+    if (
+        SIZES.index(defender.get("size", "medium"))
+        > SIZES.index(attacker.get("size", "medium")) + 1
+    ):
+        fail("invalid_target_size", "Target is more than one size larger.")
+    if unarmed_option == "grapple" and not any(
+        value is None for value in equipment(req.session, req.actor, attacker).values()
+    ):
+        fail("invalid_hands", "Grapple requires a free hand.")
+    if req.choice.get("shove_option", "prone") not in {"prone", "push"}:
+        fail("invalid_shove_choice", "Choose Prone or a 5-foot push.")
+
+
+def _unarmed_option(req: _Request) -> str:
+    unarmed = req.weapon_id == "unarmed"
+    unarmed_option = req.choice.get("unarmed_option", "damage")
+    if unarmed_option not in {"damage", "grapple", "shove"} or (
+        not unarmed and unarmed_option != "damage"
+    ):
         fail("invalid_unarmed_option", "Unknown Unarmed Strike option.")
     if unarmed and unarmed_option in {"grapple", "shove"}:
-        if SIZES.index(defender.get("size", "medium")) > SIZES.index(attacker.get("size", "medium")) + 1:
-            fail("invalid_target_size", "Target is more than one size larger.")
-        if unarmed_option == "grapple" and not any(value is None for value in equipment(session, actor, attacker).values()):
-            fail("invalid_hands", "Grapple requires a free hand.")
-        if choice.get("shove_option", "prone") not in {"prone", "push"}:
-            fail("invalid_shove_choice", "Choose Prone or a 5-foot push.")
-    special = unarmed and unarmed_option != "damage"
-    monk_features.check_attack_choice(session, actor, choice, weapon, origin, special)
+        _check_unarmed_special(req, unarmed_option)
+    return unarmed_option
+
+
+def _check_reckless(
+    req: _Request,
+    ability: str,
+    advantage: list[str],
+    *,
+    special: bool,
+) -> None:
+    session, actor, choice = req.session, req.actor, req.choice
     if choice.get("reckless_attack"):
         state = reckless_state(session, actor)
         if special or not state["available"]:
-            fail("reckless_attack_unavailable", state["reason"] or "Reckless Attack requires an attack roll.")
+            fail(
+                "reckless_attack_unavailable",
+                state["reason"] or "Reckless Attack requires an attack roll.",
+            )
     if not special:
-        if ability == "strength" and (choice.get("reckless_attack") or reckless_active(session, actor)):
+        if ability == "strength" and (
+            choice.get("reckless_attack") or reckless_active(session, actor)
+        ):
             advantage.append("reckless_attack")
-        if reckless_active(session, target):
+        if reckless_active(session, req.target):
             advantage.append("reckless_attack")
-    if choice.get("cleave_target_id"):
-        if mastery != "cleave" or mode != "melee" or sequence["cleave_used"]:
-            fail("cleave_unavailable", "No unused Cleave mastery trigger.")
-        second = choice["cleave_target_id"]
-        if second in {actor, target} or second not in combat["participants"]:
-            fail("invalid_cleave_target", "Cleave needs a second canonical creature.")
-        if pair(session, target, second)["distance_ft"] > 5:
-            fail("invalid_cleave_target", "Second target must be within 5 feet of the first.")
-        # Validate the complete second attack before committing the first.
-        prepare(session, actor, second, weapon_id, {k: v for k, v in choice.items() if k not in {"cleave_target_id", "reckless_attack", "sacred_weapon"}},
-                origin="cleave", profile=profile)
-    if choice.get("push_ft") is not None:
-        integer(choice["push_ft"], "push choice", 0)
-        if choice["push_ft"] > 10 or mastery != "push":
-            fail("invalid_push_choice", "Push choice is not supported.")
+
+
+def _check_cleave(
+    req: _Request,
+    mastery: str | None,
+    mode: str,
+    sequence: Data,
+) -> None:
+    choice = req.choice
+    if mastery != "cleave" or mode != "melee" or sequence["cleave_used"]:
+        fail("cleave_unavailable", "No unused Cleave mastery trigger.")
+    second = choice["cleave_target_id"]
+    if second in {req.actor, req.target} or second not in req.combat["participants"]:
+        fail("invalid_cleave_target", "Cleave needs a second canonical creature.")
+    if pair(req.session, req.target, second)["distance_ft"] > 5:
+        fail(
+            "invalid_cleave_target",
+            "Second target must be within 5 feet of the first.",
+        )
+    # Validate the complete second attack before committing the first.
+    prepare(
+        req.session,
+        req.actor,
+        second,
+        req.weapon_id,
+        {
+            k: v
+            for k, v in choice.items()
+            if k not in {"cleave_target_id", "reckless_attack", "sacred_weapon"}
+        },
+        origin="cleave",
+        profile=req.profile,
+    )
+
+
+def _check_additional_damage(rules: Data) -> None:
+    damage_sources = set()
+    for extra in rules.get("additional_damage", []):
+        if (
+            not isinstance(extra, dict)
+            or not extra.get("source")
+            or extra.get("damage_type") not in DAMAGE_TYPES
+        ):
+            fail("invalid_attack_state", "Additional damage needs type and provenance.")
+        if extra["source"] in damage_sources:
+            fail(
+                "invalid_attack_state",
+                "Additional damage sources cannot be repeated.",
+            )
+        damage_sources.add(extra["source"])
+        integer(extra.get("damage_die", 0), "additional damage die", 0)
+        integer(extra.get("damage_dice", 0), "additional damage dice", 0)
+        integer(extra.get("modifier", 0), "additional damage modifier")
+        if extra.get("damage_dice", 0) and extra.get("damage_die", 0) < 2:
+            fail("invalid_attack_state", "Invalid additional damage dice.")
+
+
+def _damage_dice(weapon: Data, rules: Data) -> tuple[int, int]:
     die = rules.get("damage_die", weapon["damage_die"])
     count = rules.get("damage_dice", weapon["damage_dice"])
     if "damage_die" in rules or "damage_dice" in rules:
@@ -727,32 +1240,116 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
         integer(rules["damage_modifier"], "feature damage modifier")
     if count and die < 2:
         fail("invalid_attack_state", "Damage dice require valid sides.")
-    damage_sources = set()
-    for extra in rules.get("additional_damage", []):
-        if not isinstance(extra, dict) or not extra.get("source") or extra.get("damage_type") not in DAMAGE_TYPES:
-            fail("invalid_attack_state", "Additional damage needs type and provenance.")
-        if extra["source"] in damage_sources:
-            fail("invalid_attack_state", "Additional damage sources cannot be repeated.")
-        damage_sources.add(extra["source"])
-        integer(extra.get("damage_die", 0), "additional damage die", 0)
-        integer(extra.get("damage_dice", 0), "additional damage dice", 0)
-        integer(extra.get("modifier", 0), "additional damage modifier")
-        if extra.get("damage_dice", 0) and extra.get("damage_die", 0) < 2:
-            fail("invalid_attack_state", "Invalid additional damage dice.")
+    _check_additional_damage(rules)
     if weapon["damage_type"] not in DAMAGE_TYPES:
         fail("invalid_attack_state", "Unknown canonical damage type.")
-    return {"actor_id": actor, "target_id": target, "weapon": weapon, "choice": choice,
-            "origin": origin, "mode": mode, "ability": ability, "ability_modifier": ability_mod,
-            "proficient": proficient, "proficiency_bonus": pb,
-            "attack_bonus": bonus - 2 * exhaustion(attacker), "attack_modifiers": attack_modifiers,
-            "damage_adjustment": damage_adjustment, "damage_modifiers": damage_modifiers,
-            "advantage_sources": sorted(set(advantage)), "disadvantage_sources": sorted(set(disadvantage)),
-            "target_ac_base": integer(defender.get("armor_class"), "target AC", 0),
-            "target_ac": defender["armor_class"] + spatial_rules.COVER_AC[cover],
-            "cover": cover, "spatial": spatial, "auto_miss": auto_miss, "mastery": mastery,
-            "damage_die": die, "damage_dice": count, "rules": rules,
-            "ammunition": ammunition, "loading_key": loading_key, "unarmed": unarmed,
-            "unarmed_option": unarmed_option, "target_conditions": sorted(tconditions)}
+    return die, count
+
+
+def _roll_sources(
+    req: _Request,
+    weapon: Data,
+    mode: str,
+    rules: Data,
+) -> tuple[list[str], list[str], bool]:
+    """Return the advantage sources, the disadvantage sources and whether the attack misses outright."""
+    advantage, disadvantage = _base_roll_sources(req, rules)
+    _attacker_condition_sources(req, advantage, disadvantage)
+    _target_condition_sources(req, advantage, disadvantage)
+    _dodge_and_heavy_sources(req, weapon, disadvantage)
+    auto_miss = _range_sources(req, weapon, mode, disadvantage)
+    _fear_source(req, disadvantage)
+    _effect_sources(req, advantage, disadvantage)
+    return advantage, disadvantage, auto_miss
+
+
+def prepare(
+    session,
+    actor,
+    target,
+    weapon_id=None,
+    choice=None,
+    *,
+    origin="action",
+    profile=None,
+):
+    choice = copy.deepcopy(choice or {})
+    _check_choice(choice)
+    req = _Request(
+        session,
+        actor,
+        target,
+        weapon_id,
+        choice,
+        origin,
+        profile,
+        actor_data(session, actor),
+        actor_data(session, target),
+    )
+    _check_combat(req)
+    _check_conditions(req)
+    spatial = req.spatial = pair(session, actor, target)
+    distance = spatial["distance_ft"]
+    weapon = _attack_weapon(req)
+    mode = _check_mode(weapon, choice, distance)
+    cover = _cover_of(spatial)
+    rules = _attack_rules(req, weapon)
+    numbers = _attack_numbers(
+        req,
+        weapon,
+        rules,
+        _attack_ability(weapon, choice, rules),
+    )
+    advantage, disadvantage, auto_miss = _roll_sources(req, weapon, mode, rules)
+    mastery = _attack_mastery(req, weapon, rules)
+    sequence = sequence_snapshot(session, actor)
+    _check_origin_use(req, weapon, mastery, sequence)
+    loading_key = _loading_key(req, weapon, sequence)
+    ammunition = _ammunition_type(req, weapon)
+    unarmed_option = _unarmed_option(req)
+    special = weapon_id == "unarmed" and unarmed_option != "damage"
+    monk_features.check_attack_choice(session, actor, choice, weapon, origin, special)
+    _check_reckless(req, numbers["ability"], advantage, special=special)
+    if choice.get("cleave_target_id"):
+        _check_cleave(req, mastery, mode, sequence)
+    if choice.get("push_ft") is not None:
+        integer(choice["push_ft"], "push choice", 0)
+        if choice["push_ft"] > 10 or mastery != "push":
+            fail("invalid_push_choice", "Push choice is not supported.")
+    die, count = _damage_dice(weapon, rules)
+    defender = req.defender
+    return {
+        "actor_id": actor,
+        "target_id": target,
+        "weapon": weapon,
+        "choice": choice,
+        "origin": origin,
+        "mode": mode,
+        "ability": numbers["ability"],
+        "ability_modifier": numbers["ability_modifier"],
+        "proficient": numbers["proficient"],
+        "proficiency_bonus": numbers["proficiency_bonus"],
+        "attack_bonus": numbers["attack_bonus"] - 2 * exhaustion(req.attacker),
+        "attack_modifiers": numbers["attack_modifiers"],
+        "damage_adjustment": numbers["damage_adjustment"],
+        "damage_modifiers": numbers["damage_modifiers"],
+        "advantage_sources": sorted(set(advantage)),
+        "disadvantage_sources": sorted(set(disadvantage)),
+        "target_ac_base": integer(defender.get("armor_class"), "target AC", 0),
+        "target_ac": defender["armor_class"] + spatial_rules.COVER_AC[cover],
+        "cover": cover,
+        "spatial": spatial,
+        "auto_miss": auto_miss,
+        "mastery": mastery,
+        "damage_die": die,
+        "damage_dice": count,
+        "rules": rules,
+        "ammunition": ammunition,
+        "loading_key": loading_key,
+        "unarmed": weapon_id == "unarmed",
+        "unarmed_option": unarmed_option,
+        "target_conditions": sorted(req.tconditions),
+    }
 
 
 def preview(session, actor, target, weapon_id, choice=None, *, origin="action"):
@@ -944,294 +1541,711 @@ def resolve(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             return _resolve(session, context)
 
 
-def _resolve(session, c):
-    actor, target, weapon = c["actor_id"], c["target_id"], c["weapon"]
-    attacker, defender = actor_data(session, actor), actor_data(session, target)
-    hp_before = defender["current_hp"]
-    resolution, unarmed_save = None, None
-    special = c["unarmed"] and c["unarmed_option"] != "damage"
-    if actor == "player" and c["choice"].get("sacred_weapon"):
-        paladin_features.begin_sacred_weapon(session, weapon)
-    if special:
-        dc = 8 + c["ability_modifier"] + c["proficiency_bonus"]
-        unarmed_save = save(session, target, ("strength", "dexterity"), dc, c["choice"].get("target_save_ability"))
-        hit = unarmed_save["outcome"] == "FAILURE"
-        critical = False
-    else:
-        if c["choice"].get("reckless_attack"):
-            effect(session, "reckless_attack", actor, actor)
-            if (actor == "player" and character_progression.berserker_eligible(attacker, session.world_state)
-                    and barbarian_rage.active(session)):
-                turn_state(session, actor)["frenzy_eligible"] = True
-        import spell_concentration
-        bless = spell_concentration.bless_roll(session, actor)  # Bless: +1d4 to the attack roll (4C.4b)
-        resolution = resolve_attack_roll(
-            roll_fn=session.roll_attack if actor == "player" else session.roll_d20,
-            attack_bonus=c["attack_bonus"] + (bless or 0), target_ac=c["target_ac"],
-            advantage=bool(c["advantage_sources"]), disadvantage=bool(c["disadvantage_sources"]),
-            actor_id=actor, target_id=target)
-        if bless is not None:
-            resolution["bless_roll"] = bless
-        hit = resolution["outcome"] != "MISS" and not c["auto_miss"]
-        if actor == "player":
-            rogue_features.spend_steady_aim(session)
-        threshold = fighter_features.critical_threshold(attacker) if actor == "player" else 20
-        critical = bool(hit and (resolution["selected_roll"] >= threshold or (
-            c["spatial"]["distance_ft"] <= 5 and set(c["target_conditions"]) & {"unconscious", "paralyzed"})))
-    # Observe the actual roll/save, including misses, before damage can close combat.
+@dataclass
+class _Outcome:
+    """What one resolved attack has produced so far."""
+
+    attacker: Data
+    defender: Data
+    hp_before: int
+    special: bool
+    resolution: Data | None = None
+    unarmed_save: Data | None = None
+    hit: bool = False
+    critical: bool = False
+    graze: bool = False
+    damage_rolls: list[Data] = field(default_factory=list)
+    components: list[Data] = field(default_factory=list)
+    species_effects: list[Data] = field(default_factory=list)
+    additional_effects: list[Data] = field(default_factory=list)
+    sneak: Data | None = None
+    grouped: dict[str, int] = field(default_factory=dict)
+    raw_grouped: dict[str, int] = field(default_factory=dict)
+    deflected: Data | None = None
+    damage_instances: list[Data] = field(default_factory=list)
+    damage: int = 0
+    hp_after: int = 0
+    hp_result: Data = field(default_factory=dict)
+    mastery_result: Data | None = None
+
+
+def _roll_unarmed_save(session: Session, c: Data, out: _Outcome) -> None:
+    dc = 8 + c["ability_modifier"] + c["proficiency_bonus"]
+    out.unarmed_save = save(
+        session,
+        c["target_id"],
+        ("strength", "dexterity"),
+        dc,
+        c["choice"].get("target_save_ability"),
+    )
+    out.hit = out.unarmed_save["outcome"] == "FAILURE"
+    out.critical = False
+
+
+def _start_reckless(session: Session, c: Data, out: _Outcome) -> None:
+    actor = c["actor_id"]
+    if c["choice"].get("reckless_attack"):
+        effect(session, "reckless_attack", actor, actor)
+        if (
+            actor == "player"
+            and character_progression.berserker_eligible(
+                out.attacker,
+                session.world_state,
+            )
+            and barbarian_rage.active(session)
+        ):
+            turn_state(session, actor)["frenzy_eligible"] = True
+
+
+def _is_critical(c: Data, out: _Outcome, resolution: Data) -> bool:
+    threshold = (
+        fighter_features.critical_threshold(out.attacker)
+        if c["actor_id"] == "player"
+        else 20
+    )
+    return bool(
+        out.hit
+        and (
+            resolution["selected_roll"] >= threshold
+            or (
+                c["spatial"]["distance_ft"] <= 5
+                and set(c["target_conditions"]) & {"unconscious", "paralyzed"}
+            )
+        ),
+    )
+
+
+def _roll_attack(session: Session, c: Data, out: _Outcome) -> None:
+    actor = c["actor_id"]
+    _start_reckless(session, c, out)
+    import spell_concentration
+
+    bless = spell_concentration.bless_roll(
+        session,
+        actor,
+    )  # Bless: +1d4 to the attack roll (4C.4b)
+    resolution = out.resolution = resolve_attack_roll(
+        roll_fn=session.roll_attack if actor == "player" else session.roll_d20,
+        attack_bonus=c["attack_bonus"] + (bless or 0),
+        target_ac=c["target_ac"],
+        advantage=bool(c["advantage_sources"]),
+        disadvantage=bool(c["disadvantage_sources"]),
+        actor_id=actor,
+        target_id=c["target_id"],
+    )
+    if bless is not None:
+        resolution["bless_roll"] = bless
+    out.hit = resolution["outcome"] != "MISS" and not c["auto_miss"]
     if actor == "player":
-        barbarian_rage.observe_enemy_roll_or_save(session, target)
-    graze = not hit and not c["auto_miss"] and c["mastery"] == "graze"
-    damage_rolls, components, species_effects, additional_effects = [], [], [], []
-    sneak = None
-    if hit and not special:
-        modifier = c["rules"].get("damage_modifier", c["ability_modifier"])
-        integer(modifier, "damage modifier")
-        if c["origin"] in {"light", "nick", "cleave"} and not (actor == "player" and fighter_features.light_attack_keeps_modifier(attacker, c["origin"])):
-            modifier = min(0, modifier)
-        fixed = weapon.get("fixed_damage")
-        if fixed is not None and not c["unarmed"]:
-            modifier = 0  # Blowgun's fixed damage has no ability modifier.
-        rage_bonus = barbarian_rage.damage_bonus(session, c["ability"]) if actor == "player" else 0
-        if fixed is not None:
-            raw = max(0, fixed + modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"] + rage_bonus)
-        else:
-            die = c["damage_die"]
-            if weapon.get("grip") == 2 and "versatile" in weapon["properties"] and c["mode"] == "melee":
-                die = weapon["versatile_damage_die"]
-            count = c["damage_dice"] * (2 if critical else 1)
-            rolls = []
-            raw = max(0, session.roll_damage(die, count, modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"] + rage_bonus, rolls=rolls))
-            entry = {"source": "weapon", "die": die, "count": count, "rolls": rolls}
-            counted = fighter_features.great_weapon_rolls(attacker, weapon, c["mode"], rolls) if actor == "player" else None
-            if counted is not None:
-                raw += sum(counted) - sum(rolls)
-                entry.update(rolls=counted, natural_rolls=rolls)
-            damage_rolls.append(entry)
-        components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
-        sequence = sequence_snapshot(session, actor)
-        if (actor == "player" and c["ability"] == "strength"
-                and session.world_state["combat"].get("current_actor_id") == "player"
-                and character_progression.berserker_eligible(attacker, session.world_state)
-                and barbarian_rage.active(session)
-                and sequence.get("frenzy_eligible") is True
-                and "frenzy_used" not in sequence):
-            count = barbarian_rage.damage_bonus(session, "strength") * (2 if critical else 1)
-            rolls = []
-            raw = session.roll_damage(6, count, 0, rolls=rolls)
-            damage_rolls.append({"source": "frenzy", "die": 6, "count": count, "rolls": rolls})
-            components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
-            turn_state(session, actor)["frenzy_used"] = True
-        for extra in c["rules"].get("additional_damage", []):
-            count = extra.get("damage_dice", 0) * (2 if critical and extra.get("critical_doublable", True) else 1)
-            rolls = []
-            raw = max(0, session.roll_damage(extra.get("damage_die", 0), count, extra.get("modifier", 0), rolls=rolls))
-            damage_rolls.append({"source": extra["source"], "die": extra.get("damage_die", 0), "count": count, "rolls": rolls})
-            components.append({"damage_type": extra["damage_type"], "raw_damage": raw})
-        sneak = rogue_features.sneak_attack(session, c, critical) if actor == "player" else None
-        if sneak:
-            rolls = []
-            raw = session.roll_damage(sneak["die"], sneak["count"], sneak["surprising_strikes"], rolls=rolls)
-            damage_rolls.append({"source": "sneak_attack", "die": sneak["die"], "count": sneak["count"], "rolls": rolls})
-            components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
-        if actor == "player":
-            pre_species = {}
-            for entry in components:
-                pre_species[entry["damage_type"]] = pre_species.get(entry["damage_type"], 0) + entry["raw_damage"]
-            # Giant Ancestry needs the hit to deal damage (PHB 2024 "hit ... and deal damage"; D-197).
-            deals_damage = any(mitigate(session, target, kind, amount)["final_damage"] > 0
-                               for kind, amount in pre_species.items())
-            _, species_effects = session._apply_species_on_hit_effects(
-                defender, critical=critical, deals_damage=deals_damage)
-            for entry in species_effects:
-                if entry.get("damage"):
-                    components.append({"damage_type": entry["damage_type"], "raw_damage": entry["damage"]})
-                    if entry.get("raw_rolls"):
-                        damage_rolls.append({"source": entry["trait"], "die": entry["damage_die"],
-                                             "count": len(entry["raw_rolls"]), "raw_rolls": entry["raw_rolls"],
-                                             "modifier": 0, "damage_type": entry["damage_type"]})
-    elif graze:
-        components.append({"damage_type": weapon["damage_type"], "raw_damage": max(0, c["ability_modifier"])})
-    grouped = {}
-    for entry in components:
-        grouped[entry["damage_type"]] = grouped.get(entry["damage_type"], 0) + entry["raw_damage"]
-    raw_grouped = dict(grouped)
-    if target == "player":
-        reduced, flat_effects = session._reduce_attack_damage_to_player(sum(grouped.values()))
-        species_effects.extend(flat_effects)
-        reduced, dodged = rogue_features.uncanny_dodge(session, c, hit, reduced)
-        additional_effects.extend(dodged)
-        deflected = None
-        if hit:
-            reduced, deflected = monk_features.deflect_attacks(session, c, reduced, grouped)
-        remaining_reduction = sum(grouped.values()) - reduced
-        for kind in grouped:
-            applied = min(grouped[kind], remaining_reduction)
-            grouped[kind] -= applied
-            remaining_reduction -= applied
-    damage_instances = []
-    for kind, amount in grouped.items():
-        instance = mitigate(session, target, kind, amount, graze=graze)
-        instance.update(raw_damage=raw_grouped[kind], pre_resistance_damage=amount,
-                        flat_reduction=raw_grouped[kind] - amount)
-        damage_instances.append(instance)
-    damage = sum(entry["final_damage"] for entry in damage_instances)
-    if target == "player":
-        hp_result = session._apply_attack_damage_to_player(damage, critical, hit or graze)
-        species_effects.extend(hp_result["species_effects"])
-        # Storm's Thunder answers a creature's damage (D-132); a death rollback restored the fight, nothing answers.
-        if actor != "player" and not (hp_result.get("death_resolution") or {}).get("rolled_back"):
-            species_effects.extend(session._storm_thunder_reaction(attacker, damage, c["spatial"]["distance_ft"]))
-        hp_after = session.character["current_hp"]
-        if deflected:
-            additional_effects.append(deflected)
-            additional_effects.extend(monk_features.redirect(session, c, deflected, damage, max(raw_grouped, key=raw_grouped.get)))
+        rogue_features.spend_steady_aim(session)
+    out.critical = _is_critical(c, out, resolution)
+
+
+def _roll_weapon_dice(session: Session, c: Data, out: _Outcome, flat: int) -> int:
+    weapon, actor = c["weapon"], c["actor_id"]
+    die = c["damage_die"]
+    if (
+        weapon.get("grip") == 2
+        and "versatile" in weapon["properties"]
+        and c["mode"] == "melee"
+    ):
+        die = weapon["versatile_damage_die"]
+    count = c["damage_dice"] * (2 if out.critical else 1)
+    rolls = []
+    raw = max(0, session.roll_damage(die, count, flat, rolls=rolls))
+    entry = {"source": "weapon", "die": die, "count": count, "rolls": rolls}
+    counted = (
+        fighter_features.great_weapon_rolls(out.attacker, weapon, c["mode"], rolls)
+        if actor == "player"
+        else None
+    )
+    if counted is not None:
+        raw += sum(counted) - sum(rolls)
+        entry.update(rolls=counted, natural_rolls=rolls)
+    out.damage_rolls.append(entry)
+    return raw
+
+
+def _add_weapon_damage(session: Session, c: Data, out: _Outcome) -> None:
+    weapon, actor, attacker = c["weapon"], c["actor_id"], out.attacker
+    modifier = c["rules"].get("damage_modifier", c["ability_modifier"])
+    integer(modifier, "damage modifier")
+    if c["origin"] in {"light", "nick", "cleave"} and not (
+        actor == "player"
+        and fighter_features.light_attack_keeps_modifier(attacker, c["origin"])
+    ):
+        modifier = min(0, modifier)
+    fixed = weapon.get("fixed_damage")
+    if fixed is not None and not c["unarmed"]:
+        modifier = 0  # Blowgun's fixed damage has no ability modifier.
+    rage_bonus = (
+        barbarian_rage.damage_bonus(session, c["ability"]) if actor == "player" else 0
+    )
+    flat = modifier + weapon["magic_damage_bonus"] + c["damage_adjustment"] + rage_bonus
+    if fixed is not None:
+        raw = max(0, fixed + flat)
     else:
-        hp_after = session.apply_npc_damage(defender, damage, knock_out=_spares(c, actor, defender))
-        hp_result = {"hp_damage": damage, "death_resolution": None}
-    if special and hit:
-        if c["unarmed_option"] == "grapple":
-            add_condition(defender, "grappled")
-            defender["grappled_by"] = actor
-            defender["grapple_escape_dc"] = 8 + c["ability_modifier"] + c["proficiency_bonus"]
-            hands = equipment(session, actor, attacker)
-            free = next(hand for hand, value in hands.items() if value is None)
-            hands[free] = f"grapple:{target}"
-            additional_effects.append({"kind": "grapple", "applied": True,
-                                       "escape_dc": defender["grapple_escape_dc"], "hand": free})
-        elif c["choice"].get("shove_option", "prone") == "push":
-            additional_effects.append(push(session, actor, target, 5, size_limit=None))
-        else:
-            add_condition(defender, "prone")
-            additional_effects.append({"kind": "shove_prone", "applied": True})
-    mastery_result = None
-    mastery = c["mastery"]
+        raw = _roll_weapon_dice(session, c, out, flat)
+    out.components.append({"damage_type": weapon["damage_type"], "raw_damage": raw})
+
+
+def _add_frenzy_damage(session: Session, c: Data, out: _Outcome) -> None:
+    actor = c["actor_id"]
+    sequence = sequence_snapshot(session, actor)
+    if (
+        actor == "player"
+        and c["ability"] == "strength"
+        and session.world_state["combat"].get("current_actor_id") == "player"
+        and character_progression.berserker_eligible(out.attacker, session.world_state)
+        and barbarian_rage.active(session)
+        and sequence.get("frenzy_eligible") is True
+        and "frenzy_used" not in sequence
+    ):
+        count = barbarian_rage.damage_bonus(session, "strength") * (
+            2 if out.critical else 1
+        )
+        rolls = []
+        raw = session.roll_damage(6, count, 0, rolls=rolls)
+        out.damage_rolls.append(
+            {"source": "frenzy", "die": 6, "count": count, "rolls": rolls},
+        )
+        out.components.append(
+            {"damage_type": c["weapon"]["damage_type"], "raw_damage": raw},
+        )
+        turn_state(session, actor)["frenzy_used"] = True
+
+
+def _add_additional_damage(session: Session, c: Data, out: _Outcome) -> None:
+    for extra in c["rules"].get("additional_damage", []):
+        count = extra.get("damage_dice", 0) * (
+            2 if out.critical and extra.get("critical_doublable", True) else 1
+        )
+        rolls = []
+        raw = max(
+            0,
+            session.roll_damage(
+                extra.get("damage_die", 0),
+                count,
+                extra.get("modifier", 0),
+                rolls=rolls,
+            ),
+        )
+        out.damage_rolls.append(
+            {
+                "source": extra["source"],
+                "die": extra.get("damage_die", 0),
+                "count": count,
+                "rolls": rolls,
+            },
+        )
+        out.components.append({"damage_type": extra["damage_type"], "raw_damage": raw})
+
+
+def _add_sneak_damage(session: Session, c: Data, out: _Outcome) -> None:
+    sneak = out.sneak = rogue_features.sneak_attack(session, c, out.critical)
+    if sneak:
+        rolls = []
+        raw = session.roll_damage(
+            sneak["die"],
+            sneak["count"],
+            sneak["surprising_strikes"],
+            rolls=rolls,
+        )
+        out.damage_rolls.append(
+            {
+                "source": "sneak_attack",
+                "die": sneak["die"],
+                "count": sneak["count"],
+                "rolls": rolls,
+            },
+        )
+        out.components.append(
+            {"damage_type": c["weapon"]["damage_type"], "raw_damage": raw},
+        )
+
+
+def _add_species_damage(session: Session, c: Data, out: _Outcome) -> None:
+    pre_species = {}
+    for entry in out.components:
+        pre_species[entry["damage_type"]] = (
+            pre_species.get(entry["damage_type"], 0) + entry["raw_damage"]
+        )
+    # Giant Ancestry needs the hit to deal damage (PHB 2024 "hit ... and deal damage"; D-197).
+    deals_damage = any(
+        mitigate(session, c["target_id"], kind, amount)["final_damage"] > 0
+        for kind, amount in pre_species.items()
+    )
+    _, out.species_effects = session._apply_species_on_hit_effects(
+        out.defender,
+        critical=out.critical,
+        deals_damage=deals_damage,
+    )
+    for entry in out.species_effects:
+        if entry.get("damage"):
+            out.components.append(
+                {"damage_type": entry["damage_type"], "raw_damage": entry["damage"]},
+            )
+            if entry.get("raw_rolls"):
+                out.damage_rolls.append(
+                    {
+                        "source": entry["trait"],
+                        "die": entry["damage_die"],
+                        "count": len(entry["raw_rolls"]),
+                        "raw_rolls": entry["raw_rolls"],
+                        "modifier": 0,
+                        "damage_type": entry["damage_type"],
+                    },
+                )
+
+
+def _roll_hit_damage(session: Session, c: Data, out: _Outcome) -> None:
+    _add_weapon_damage(session, c, out)
+    _add_frenzy_damage(session, c, out)
+    _add_additional_damage(session, c, out)
+    if c["actor_id"] == "player":
+        _add_sneak_damage(session, c, out)
+        _add_species_damage(session, c, out)
+
+
+def _group_damage(out: _Outcome) -> None:
+    for entry in out.components:
+        out.grouped[entry["damage_type"]] = (
+            out.grouped.get(entry["damage_type"], 0) + entry["raw_damage"]
+        )
+    out.raw_grouped = dict(out.grouped)
+
+
+def _reduce_for_player(session: Session, c: Data, out: _Outcome) -> None:
+    grouped = out.grouped
+    reduced, flat_effects = session._reduce_attack_damage_to_player(
+        sum(grouped.values()),
+    )
+    out.species_effects.extend(flat_effects)
+    reduced, dodged = rogue_features.uncanny_dodge(session, c, out.hit, reduced)
+    out.additional_effects.extend(dodged)
+    if out.hit:
+        reduced, out.deflected = monk_features.deflect_attacks(
+            session,
+            c,
+            reduced,
+            grouped,
+        )
+    remaining_reduction = sum(grouped.values()) - reduced
+    for kind in grouped:
+        applied = min(grouped[kind], remaining_reduction)
+        grouped[kind] -= applied
+        remaining_reduction -= applied
+
+
+def _damage_player(session: Session, c: Data, out: _Outcome) -> None:
+    actor, damage = c["actor_id"], out.damage
+    out.hp_result = hp_result = session._apply_attack_damage_to_player(
+        damage,
+        out.critical,
+        out.hit or out.graze,
+    )
+    out.species_effects.extend(hp_result["species_effects"])
+    # Storm's Thunder answers a creature's damage (D-132); a death rollback restored the fight, nothing answers.
+    if actor != "player" and not (hp_result.get("death_resolution") or {}).get(
+        "rolled_back",
+    ):
+        out.species_effects.extend(
+            session._storm_thunder_reaction(
+                out.attacker,
+                damage,
+                c["spatial"]["distance_ft"],
+            ),
+        )
+    out.hp_after = session.character["current_hp"]
+    if out.deflected:
+        out.additional_effects.append(out.deflected)
+        out.additional_effects.extend(
+            monk_features.redirect(
+                session,
+                c,
+                out.deflected,
+                damage,
+                max(out.raw_grouped, key=out.raw_grouped.get),
+            ),
+        )
+
+
+def _mitigate_groups(session: Session, c: Data, out: _Outcome) -> None:
+    for kind, amount in out.grouped.items():
+        instance = mitigate(session, c["target_id"], kind, amount, graze=out.graze)
+        instance.update(
+            raw_damage=out.raw_grouped[kind],
+            pre_resistance_damage=amount,
+            flat_reduction=out.raw_grouped[kind] - amount,
+        )
+        out.damage_instances.append(instance)
+    out.damage = sum(entry["final_damage"] for entry in out.damage_instances)
+
+
+def _damage_target(session: Session, c: Data, out: _Outcome) -> None:
+    if c["target_id"] == "player":
+        _damage_player(session, c, out)
+    else:
+        out.hp_after = session.apply_npc_damage(
+            out.defender,
+            out.damage,
+            knock_out=_spares(c, c["actor_id"], out.defender),
+        )
+        out.hp_result = {"hp_damage": out.damage, "death_resolution": None}
+
+
+def _apply_unarmed_option(session: Session, c: Data, out: _Outcome) -> None:
+    actor, target, attacker, defender = (
+        c["actor_id"],
+        c["target_id"],
+        out.attacker,
+        out.defender,
+    )
+    if c["unarmed_option"] == "grapple":
+        add_condition(defender, "grappled")
+        defender["grappled_by"] = actor
+        defender["grapple_escape_dc"] = (
+            8 + c["ability_modifier"] + c["proficiency_bonus"]
+        )
+        hands = equipment(session, actor, attacker)
+        free = next(hand for hand, value in hands.items() if value is None)
+        hands[free] = f"grapple:{target}"
+        out.additional_effects.append(
+            {
+                "kind": "grapple",
+                "applied": True,
+                "escape_dc": defender["grapple_escape_dc"],
+                "hand": free,
+            },
+        )
+    elif c["choice"].get("shove_option", "prone") == "push":
+        out.additional_effects.append(push(session, actor, target, 5, size_limit=None))
+    else:
+        add_condition(defender, "prone")
+        out.additional_effects.append({"kind": "shove_prone", "applied": True})
+
+
+def _topple(session: Session, c: Data, out: _Outcome) -> Data:
+    dc = 8 + c["proficiency_bonus"] + c["ability_modifier"]
+    saving = save(session, c["target_id"], ("constitution",), dc)
+    applied = saving["outcome"] == "FAILURE"
+    if applied:
+        add_condition(out.defender, "prone")
+    return {"kind": "topple", "applied": applied, "save": saving}
+
+
+def _apply_mastery(session: Session, c: Data, out: _Outcome) -> None:
+    actor, target, mastery, hit = c["actor_id"], c["target_id"], c["mastery"], out.hit
     if hit and mastery in {"sap", "slow", "vex"}:
-        qualifies = mastery == "sap" or damage > 0
+        qualifies = mastery == "sap" or out.damage > 0
         if qualifies:
             effect(session, mastery, actor, target)
-        mastery_result = {"kind": mastery, "applied": qualifies}
+        out.mastery_result = {"kind": mastery, "applied": qualifies}
     elif hit and mastery == "push":
-        mastery_result = push(session, actor, target, c["choice"].get("push_ft", 10))
+        out.mastery_result = push(
+            session,
+            actor,
+            target,
+            c["choice"].get("push_ft", 10),
+        )
     elif hit and mastery == "topple":
-        dc = 8 + c["proficiency_bonus"] + c["ability_modifier"]
-        saving = save(session, target, ("constitution",), dc)
-        applied = saving["outcome"] == "FAILURE"
-        if applied:
-            add_condition(defender, "prone")
-        mastery_result = {"kind": "topple", "applied": applied, "save": saving}
-    elif graze:
-        mastery_result = {"kind": "graze", "applied": True}
+        out.mastery_result = _topple(session, c, out)
+    elif out.graze:
+        out.mastery_result = {"kind": "graze", "applied": True}
+
+
+def _remove_one_thrown(items: list[Any], thrown: Data | str) -> None:
+    # A counted starting line ("10 Dart", "5 Hançer") is one record: a throw spends one of it, not the bundle.
+    name = thrown.get("name") if isinstance(thrown, dict) else thrown
+    counted = re.fullmatch(r"\s*(\d+)\s+(.+)", name) if isinstance(name, str) else None
+    if counted and int(counted.group(1)) > 1:
+        left = int(counted.group(1)) - 1
+        rest = f"{left} {counted.group(2)}" if left > 1 else counted.group(2)
+        if isinstance(thrown, dict):
+            thrown["name"] = rest
+        else:
+            items[items.index(thrown)] = rest
+    else:
+        items.remove(thrown)
+
+
+def _spend_thrown_weapon(session: Session, c: Data, out: _Outcome) -> None:
+    actor, weapon, attacker = c["actor_id"], c["weapon"], out.attacker
+    items = inventory(session, actor, attacker)
+    thrown = item_for(session, actor, attacker, weapon, weapon["instance_id"])
+    _remove_one_thrown(items, thrown)
+    hands = equipment(session, actor, attacker)
+    for hand, value in hands.items():
+        if value == weapon["instance_id"] or (
+            lookup(value) and lookup(value)["weapon_id"] == weapon["instance_id"]
+        ):
+            hands[hand] = None
+    session.world_state.setdefault("spent_thrown_weapons", []).append(
+        {
+            "weapon_id": weapon["weapon_id"],
+            "actor_id": actor,
+            "target_id": c["target_id"],
+        },
+    )
+
+
+def _spend_resources(session: Session, c: Data, out: _Outcome) -> None:
+    actor, weapon = c["actor_id"], c["weapon"]
     if weapon.get("equipment_after") is not None:
-        owner = session.world_state if actor == "player" else attacker
+        owner = session.world_state if actor == "player" else out.attacker
         owner["equipment"] = weapon["equipment_after"]
     if c["ammunition"]:
-        owner = session.world_state if actor == "player" else attacker
+        owner = session.world_state if actor == "player" else out.attacker
         if actor == "player":
             item_use.ensure_ammunition(owner)
         owner["ammunition"][c["ammunition"]] -= 1
     if "thrown" in weapon["properties"] and c["mode"] != "melee":
-        items = inventory(session, actor, attacker)
-        thrown = item_for(session, actor, attacker, weapon, weapon["instance_id"])
-        # A counted starting line ("10 Dart", "5 Hançer") is one record: a throw spends one of it, not the bundle.
-        name = thrown.get("name") if isinstance(thrown, dict) else thrown
-        counted = re.fullmatch(r"\s*(\d+)\s+(.+)", name) if isinstance(name, str) else None
-        if counted and int(counted.group(1)) > 1:
-            left = int(counted.group(1)) - 1
-            rest = f"{left} {counted.group(2)}" if left > 1 else counted.group(2)
-            if isinstance(thrown, dict):
-                thrown["name"] = rest
-            else:
-                items[items.index(thrown)] = rest
-        else:
-            items.remove(thrown)
-        hands = equipment(session, actor, attacker)
-        for hand, value in hands.items():
-            if value == weapon["instance_id"] or (lookup(value) and lookup(value)["weapon_id"] == weapon["instance_id"]):
-                hands[hand] = None
-        session.world_state.setdefault("spent_thrown_weapons", []).append(
-            {"weapon_id": weapon["weapon_id"], "actor_id": actor, "target_id": target})
-    if attacker.get("hidden") is True:
-        attacker["hidden"] = False
-        additional_effects.append({"kind": "hidden_location_revealed"})
+        _spend_thrown_weapon(session, c, out)
+
+
+def _spent_by_attack(e: Data, actor: str, target: str) -> bool:
+    return bool(
+        (e["kind"] == "sap" and e["target_id"] == actor)
+        or (e["kind"] == monk_features.OPENING_EFFECT and e["target_id"] == target)
+        or (e["kind"] == GUIDING_EFFECT and e["target_id"] == target)
+        or (
+            e["kind"] == "vex"
+            and e["source_actor"] == actor
+            and e["target_id"] == target
+        ),
+    )
+
+
+def _forget_used_effects(session: Session, c: Data) -> None:
+    actor, target = c["actor_id"], c["target_id"]
     effects = session.world_state.get("attack_effects", [])
-    if not special:
-        effects[:] = [e for e in effects if not (
-            (e["kind"] == "sap" and e["target_id"] == actor)
-            or (e["kind"] == monk_features.OPENING_EFFECT and e["target_id"] == target)
-            or (e["kind"] == GUIDING_EFFECT and e["target_id"] == target)
-            or (e["kind"] == "vex" and e["source_actor"] == actor and e["target_id"] == target))]
+    effects[:] = [e for e in effects if not _spent_by_attack(e, actor, target)]
+
+
+def _clear_spent_effects(session: Session, c: Data, out: _Outcome) -> None:
+    if out.attacker.get("hidden") is True:
+        out.attacker["hidden"] = False
+        out.additional_effects.append({"kind": "hidden_location_revealed"})
+    if not out.special:
+        _forget_used_effects(session, c)
         # A newly granted Vex belongs to this hit, not the previous attack.
-        if hit and mastery == "vex" and damage > 0:
-            effect(session, "vex", actor, target)
-        if hit:
-            additional_effects.extend(monk_features.after_hit(session, c, defender))
-    combat = session.world_state["combat"]
-    if combat["active"]:
-        sequence = turn_state(session, actor)
-        if actor == "player":
-            paladin_features.observe_attack(session, weapon=weapon, target=target, landed=hit and not special, critical=critical)
-        sequence["attacks"] += 1
-        if not special and "attack_rolls" in sequence:
-            sequence["attack_rolls"] += 1
-        if "light" in weapon["properties"] and c["origin"] in {"action", "continuation"}:
-            sequence["light_weapon_ids"].append(weapon["instance_id"])
-        if c["origin"] in {"light", "nick"}:
-            sequence["light_used"] = True
-        if "loading" in weapon["properties"]:
-            sequence["loading_origins"].append(c["loading_key"])
-        if c["origin"] == "action":
-            sequence["active_action_key"] = c["loading_key"]
-            sequence["action_index"] = sequence.get("action_index", 0) + 1
-    result = {
-        "action": "attack" if actor == "player" else "enemy_attack", "status": "resolved",
-        "success": hit, "outcome": "critical_hit" if critical else "hit" if hit else "miss",
-        "actor_id": actor, "actor": actor, "actor_name": attacker.get("name"),
-        "target_id": target, "target": target, "target_name": defender.get("name"),
-        "combat_id": combat.get("combat_id"), "weapon": "Kılıç" if weapon["weapon_id"] == "longsword" else weapon["name"],
-        "weapon_id": weapon["weapon_id"], "attack_type": c["mode"], "attack_origin": c["origin"],
-        "ability_used": c["ability"], "ability_modifier": c["ability_modifier"],
-        "proficient": c["proficient"], "proficiency_bonus": c["proficiency_bonus"],
-        "proficiency_applied": c["proficient"], "attack_bonuses": c["attack_modifiers"],
-        "damage_modifiers": c["damage_modifiers"], "attack_bonus": c["attack_bonus"],
+        if out.hit and c["mastery"] == "vex" and out.damage > 0:
+            effect(session, "vex", c["actor_id"], c["target_id"])
+        if out.hit:
+            out.additional_effects.extend(
+                monk_features.after_hit(session, c, out.defender),
+            )
+
+
+def _count_attack(sequence: Data, c: Data, out: _Outcome) -> None:
+    weapon = c["weapon"]
+    sequence["attacks"] += 1
+    if not out.special and "attack_rolls" in sequence:
+        sequence["attack_rolls"] += 1
+    if "light" in weapon["properties"] and c["origin"] in {"action", "continuation"}:
+        sequence["light_weapon_ids"].append(weapon["instance_id"])
+    if c["origin"] in {"light", "nick"}:
+        sequence["light_used"] = True
+    if "loading" in weapon["properties"]:
+        sequence["loading_origins"].append(c["loading_key"])
+    if c["origin"] == "action":
+        sequence["active_action_key"] = c["loading_key"]
+        sequence["action_index"] = sequence.get("action_index", 0) + 1
+
+
+def _record_sequence(session: Session, c: Data, out: _Outcome) -> None:
+    actor = c["actor_id"]
+    if not session.world_state["combat"]["active"]:
+        return
+    sequence = turn_state(session, actor)
+    if actor == "player":
+        paladin_features.observe_attack(
+            session,
+            weapon=c["weapon"],
+            target=c["target_id"],
+            landed=out.hit and not out.special,
+            critical=out.critical,
+        )
+    _count_attack(sequence, c, out)
+
+
+def _attack_header(c: Data, out: _Outcome, combat: Data) -> Data:
+    actor, target, weapon = c["actor_id"], c["target_id"], c["weapon"]
+    return {
+        "action": "attack" if actor == "player" else "enemy_attack",
+        "status": "resolved",
+        "success": out.hit,
+        "outcome": "critical_hit" if out.critical else "hit" if out.hit else "miss",
+        "actor_id": actor,
+        "actor": actor,
+        "actor_name": out.attacker.get("name"),
+        "target_id": target,
+        "target": target,
+        "target_name": out.defender.get("name"),
+        "combat_id": combat.get("combat_id"),
+        "weapon": "Kılıç" if weapon["weapon_id"] == "longsword" else weapon["name"],
+        "weapon_id": weapon["weapon_id"],
+        "attack_type": c["mode"],
+        "attack_origin": c["origin"],
+        "ability_used": c["ability"],
+        "ability_modifier": c["ability_modifier"],
+        "proficient": c["proficient"],
+        "proficiency_bonus": c["proficiency_bonus"],
+        "proficiency_applied": c["proficient"],
+        "attack_bonuses": c["attack_modifiers"],
+        "damage_modifiers": c["damage_modifiers"],
+        "attack_bonus": c["attack_bonus"],
+    }
+
+
+def _attack_roll_fields(c: Data, out: _Outcome) -> Data:
+    resolution = out.resolution
+    rolled = resolution or out.unarmed_save
+    return {
         "attack_roll": resolution["selected_roll"] if resolution else None,
         "attack_rolls": resolution["raw_rolls"] if resolution else [],
         "attack_total": resolution["total"] if resolution else None,
-        "resolution": resolution or unarmed_save, "unarmed_option": c["unarmed_option"] if c["unarmed"] else None,
-        "action_id": (resolution or unarmed_save).get("action_id"),
-        "resolution_id": (resolution or unarmed_save).get("resolution_id"),
-        "attack_id": (resolution or unarmed_save).get("resolution_id"),
-        "advantage_sources": c["advantage_sources"], "disadvantage_sources": c["disadvantage_sources"],
+        "resolution": rolled,
+        "unarmed_option": c["unarmed_option"] if c["unarmed"] else None,
+        "action_id": rolled.get("action_id"),
+        "resolution_id": rolled.get("resolution_id"),
+        "attack_id": rolled.get("resolution_id"),
+        "advantage_sources": c["advantage_sources"],
+        "disadvantage_sources": c["disadvantage_sources"],
         "disadvantage": bool(c["disadvantage_sources"]) and not c["advantage_sources"],
-        "cover_state": c["cover"], "target_ac_base": c["target_ac_base"], "target_ac": c["target_ac"],
+        "cover_state": c["cover"],
+        "target_ac_base": c["target_ac_base"],
+        "target_ac": c["target_ac"],
         "natural_20": bool(resolution and resolution["selected_roll"] == 20),
         "natural_1": bool(resolution and resolution["selected_roll"] == 1),
-        "critical": critical, "hit": hit, "damage": damage, "damage_type": weapon["damage_type"],
-        "raw_damage": sum(raw_grouped.values()), "damage_rolls": damage_rolls, "damage_instances": damage_instances,
-        "mastery": mastery, "mastery_effect": mastery_result, "additional_effects": additional_effects,
-        "ammunition_consumed": {"type": c["ammunition"], "quantity": 1} if c["ammunition"] else None,
-        "weapon_instance_id": weapon.get("instance_id"),
-        "target_hp_before": hp_before, "target_hp_after": hp_after,
-        "target_status": session.world_state.get("player_combat_status", "active") if target == "player" else defender.get("combat_status", "active"),
-        "resulting_conditions": sorted(conditions(session, target, defender)),
-        "resulting_position": mastery_result if mastery_result and mastery_result["kind"] == "push" else None,
-        "species_effects": species_effects, **{k: v for k, v in hp_result.items() if k != "species_effects"},
     }
-    rogue_features.after_attack(session, c, result, sneak)
+
+
+def _attack_damage_fields(session: Session, c: Data, out: _Outcome) -> Data:
+    target, weapon, defender, mastery_result = (
+        c["target_id"],
+        c["weapon"],
+        out.defender,
+        out.mastery_result,
+    )
+    return {
+        "critical": out.critical,
+        "hit": out.hit,
+        "damage": out.damage,
+        "damage_type": weapon["damage_type"],
+        "raw_damage": sum(out.raw_grouped.values()),
+        "damage_rolls": out.damage_rolls,
+        "damage_instances": out.damage_instances,
+        "mastery": c["mastery"],
+        "mastery_effect": mastery_result,
+        "additional_effects": out.additional_effects,
+        "ammunition_consumed": {"type": c["ammunition"], "quantity": 1}
+        if c["ammunition"]
+        else None,
+        "weapon_instance_id": weapon.get("instance_id"),
+        "target_hp_before": out.hp_before,
+        "target_hp_after": out.hp_after,
+        "target_status": session.world_state.get("player_combat_status", "active")
+        if target == "player"
+        else defender.get("combat_status", "active"),
+        "resulting_conditions": sorted(conditions(session, target, defender)),
+        "resulting_position": mastery_result
+        if mastery_result and mastery_result["kind"] == "push"
+        else None,
+        "species_effects": out.species_effects,
+        **{k: v for k, v in out.hp_result.items() if k != "species_effects"},
+    }
+
+
+def _attack_result(session: Session, c: Data, out: _Outcome) -> Data:
+    header = _attack_header(c, out, session.world_state["combat"])
+    return {
+        **header,
+        **_attack_roll_fields(c, out),
+        **_attack_damage_fields(session, c, out),
+    }
+
+
+def _finish_attack(session: Session, c: Data, result: Data, out: _Outcome) -> None:
+    rogue_features.after_attack(session, c, result, out.sneak)
     for event in ("after_attack", "after_damage", "after_mastery"):
         # Notifications, not unvalidated mutation commands.
         hook(session, event, result)
     import monster_combat
+
     monster_combat.observe_attack(session, result)
-    if hit and c["choice"].get("cleave_target_id"):
-        sequence = turn_state(session, actor)
-        sequence["cleave_used"] = True
-        second_choice = {k: v for k, v in c["choice"].items() if k not in {"cleave_target_id", "reckless_attack", "sacred_weapon"}}
-        result["cleave_attack"] = resolve(session, actor, c["choice"]["cleave_target_id"],
-                                         weapon["weapon_id"], second_choice, origin="cleave")
+    if out.hit and c["choice"].get("cleave_target_id"):
+        turn_state(session, c["actor_id"])["cleave_used"] = True
+        second_choice = {
+            k: v
+            for k, v in c["choice"].items()
+            if k not in {"cleave_target_id", "reckless_attack", "sacred_weapon"}
+        }
+        result["cleave_attack"] = resolve(
+            session,
+            c["actor_id"],
+            c["choice"]["cleave_target_id"],
+            c["weapon"]["weapon_id"],
+            second_choice,
+            origin="cleave",
+        )
     history = session.world_state.setdefault("attack_results", [])
     history.append(copy.deepcopy(result))
     del history[:-32]
+
+
+def _roll_to_hit(session: Session, c: Data, out: _Outcome) -> None:
+    actor = c["actor_id"]
+    if actor == "player" and c["choice"].get("sacred_weapon"):
+        paladin_features.begin_sacred_weapon(session, c["weapon"])
+    if out.special:
+        _roll_unarmed_save(session, c, out)
+    else:
+        _roll_attack(session, c, out)
+    # Observe the actual roll/save, including misses, before damage can close combat.
+    if actor == "player":
+        barbarian_rage.observe_enemy_roll_or_save(session, c["target_id"])
+    out.graze = not out.hit and not c["auto_miss"] and c["mastery"] == "graze"
+
+
+def _collect_damage(session: Session, c: Data, out: _Outcome) -> None:
+    if out.hit and not out.special:
+        _roll_hit_damage(session, c, out)
+    elif out.graze:
+        out.components.append(
+            {
+                "damage_type": c["weapon"]["damage_type"],
+                "raw_damage": max(0, c["ability_modifier"]),
+            },
+        )
+    _group_damage(out)
+    if c["target_id"] == "player":
+        _reduce_for_player(session, c, out)
+
+
+def _resolve(session, c):
+    attacker, defender = (
+        actor_data(session, c["actor_id"]),
+        actor_data(session, c["target_id"]),
+    )
+    out = _Outcome(
+        attacker,
+        defender,
+        defender["current_hp"],
+        c["unarmed"] and c["unarmed_option"] != "damage",
+    )
+    _roll_to_hit(session, c, out)
+    _collect_damage(session, c, out)
+    _mitigate_groups(session, c, out)
+    _damage_target(session, c, out)
+    if out.special and out.hit:
+        _apply_unarmed_option(session, c, out)
+    _apply_mastery(session, c, out)
+    _spend_resources(session, c, out)
+    _clear_spent_effects(session, c, out)
+    _record_sequence(session, c, out)
+    result = _attack_result(session, c, out)
+    _finish_attack(session, c, result, out)
     return result
 
 

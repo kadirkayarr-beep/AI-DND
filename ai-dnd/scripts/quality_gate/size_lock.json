@@ -47,15 +47,12 @@
   "live_integration_test.py::run_mock_suite": 240,
   "live_narration_smoke.py::main": 162,
   "live_phase_c_narrative_smoke.py::main": 349,
-  "living_world.py::ensure_scene_state": 306,
   "reports/wave3-local-live-20261006/run_rejected_narration_live.py::main": 165,
   "reports/wave3-local-live-20261006/run_wave3_followup.py::main": 151,
   "reports/wave3-local-live-20261006/run_wave3_live_acceptance.py::main": 371,
   "reports/wave3-local-live-20261006/run_weapon_fix_live.py::main": 279,
   "spell_scope.py::_cast": 230,
-  "test_combat.py::run_tests": 221,
-  "weapon_attack.py::_resolve": 289,
-  "weapon_attack.py::prepare": 355
+  "test_combat.py::run_tests": 221
  },
  "ts_files": {
   "artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx": 2110
