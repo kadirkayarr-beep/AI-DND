@@ -3,7 +3,9 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
+import tomllib
 import unittest
 
 
@@ -348,6 +350,39 @@ class RoadmapB04Tests(unittest.TestCase):
         for entry in with_bookmark:
             self.assertIn(entry["pdf_page"], titles.get(entry.get("bookmark_title", entry["name"]), set()), entry["source_id"])
         self.assertEqual(sorted(e["name"] for e in outline_based if not e["bookmark_present"]), ["Bane", "Heavy Armor Master"])
+
+
+class PythonDependencyDeclarationTests(unittest.TestCase):
+    """D-587 / D-593: the Python lock is past the certifi advisory and every imported package is declared."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.pyproject = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
+        cls.lock = tomllib.loads((REPO / "uv.lock").read_text(encoding="utf-8"))
+        cls.workflow = (REPO / ".github" / "workflows" / "ai-dnd-ci.yml").read_text(encoding="utf-8")
+
+    def declared(self, group: list[str]) -> set[str]:
+        return {re.split(r"[<>=!~ \[]", item, maxsplit=1)[0].lower() for item in group}
+
+    def test_locked_certifi_is_past_pysec_2026_4320(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        version = next(p["version"] for p in self.lock["package"] if p["name"] == "certifi")
+        self.assertGreaterEqual(tuple(int(part) for part in version.split(".")), (2026, 10, 18))
+
+    def test_pydantic_and_starlette_are_declared_direct_dependencies(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        names = self.declared(self.pyproject["project"]["dependencies"])
+        self.assertLessEqual({"pydantic", "starlette"}, names)
+
+    def test_pypdf_is_declared_as_a_development_dependency(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        self.assertIn("pypdf", self.declared(self.pyproject["dependency-groups"]["dev"]))
+        self.assertNotIn("pypdf", self.declared(self.pyproject["project"]["dependencies"]))
+
+    def test_ci_audits_and_checks_python_dependencies(self) -> None:
+        """Part of the D-587 / D-593 dependency contract."""
+        self.assertIn("pip-audit", self.workflow)
+        self.assertIn("deptry", self.workflow)
 
 if __name__ == "__main__":
     unittest.main()
