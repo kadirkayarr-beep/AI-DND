@@ -1,6 +1,7 @@
 """G2.5: the road and the arrival tell the truth in one voice (D-301, D-338, D-309, D-296, D-498, D-303)."""
 import json
 import unittest
+from typing import Any
 
 import front_proposal
 import grounded_action
@@ -17,8 +18,16 @@ WAY_OUT = {"kind": "go_to", "place_id": front_proposal.WAY_OUT}
 NARRATED = "Gün ışığı yüzüne vurur, sokak seni karşılar."
 
 
+def _made(place: dict[str, Any] | None) -> dict[str, Any]:
+    """The place a test asked the engine to make; it must exist."""
+    if place is None:
+        raise AssertionError("the engine made the place")
+    return place
+
+
 class _Story(_ArrivalApi):
     TOWN_SEED = 4401
+    store: Any  # set by the arrival harness
 
     async def asyncSetUp(self):
         await super().asyncSetUp()
@@ -71,12 +80,9 @@ class TestArrivalReasonIsSaved(_Story):
 class TestStreetLineOncePerVisit(_Story):
     def make_places(self):
         world = self.session().world_state
-        second = local_places.create_local_place(world, CITY, "estate")
-        third = local_places.create_local_place(world, CITY, "archive")
-        fourth = local_places.create_local_place(world, CITY, "market")
-        self.assertIsNotNone(second)
-        self.assertIsNotNone(third)
-        self.assertIsNotNone(fourth)
+        second = _made(local_places.create_local_place(world, CITY, "estate"))
+        third = _made(local_places.create_local_place(world, CITY, "archive"))
+        fourth = _made(local_places.create_local_place(world, CITY, "market"))
         return world, second, third, fourth
 
     async def test_leaving_two_buildings_into_the_same_street_says_it_once(self):  # D-498, S22
@@ -107,21 +113,20 @@ class TestStreetLineOncePerVisit(_Story):
 class TestRoadOnAlone(_Story):
     async def test_two_walks_on_in_a_row_do_not_repeat_the_same_line(self):  # D-338
         world = self.session().world_state
-        grove = local_places.create_local_place(world, CITY, "grove")
-        self.assertIsNotNone(grove)
+        grove = _made(local_places.create_local_place(world, CITY, "grove"))
         self.stand_at(grove["id"])
         lines = []
         for _ in range(2):
             walked = grounded_action.road_goes_on(self.session(), "yürümeye devam ediyorum")
-            self.assertIsNotNone(walked)
+            if walked is None:
+                self.fail("the walk on has a line")
             lines.append(walked["narration"])
         self.assertNotEqual(lines[0], lines[1])
         for line in lines:
             self.assertIn("Hâlâ yoldasın.", line)
 
     async def test_two_real_turns_in_a_row_do_not_repeat_the_same_line(self):  # D-338: turn_index steps by one a turn
-        grove = local_places.create_local_place(self.session().world_state, CITY, "grove")
-        self.assertIsNotNone(grove)
+        grove = _made(local_places.create_local_place(self.session().world_state, CITY, "grove"))
         self.stand_at(grove["id"])
         lines = []
         for _ in range(2):
@@ -172,8 +177,7 @@ class TestStartingTownKeepsItsOwnWords(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("town_portrait", self.world["locations"][HOME])
 
     async def test_a_start_place_inside_the_town_also_keeps_the_town_without_a_portrait(self):
-        start = local_places.create_local_place(self.world, HOME, "estate")
-        self.assertIsNotNone(start)
+        start = _made(local_places.create_local_place(self.world, HOME, "estate"))
         self.world["flags"]["starting_settlement_id"] = start["id"]
         await self.travel(FAR, "Sis dağılırken Karaduvar'ın taş kapısı belirir.")
         await self.travel(HOME, "Eve dönüyorsun. Kapılar hâlâ açık.")

@@ -10,6 +10,7 @@ the words name, as a failed reading does (owner rule G11). No coin moves in any 
 from __future__ import annotations
 
 import unittest
+from typing import Any, cast
 from unittest.mock import patch
 
 import bold_acts
@@ -24,7 +25,7 @@ NAMED_COIN = "barmene 5 bakır veriyorum"
 ASKS_THE_AMOUNT = economic_actions._CLARIFY["amount_required"]
 
 
-class AShopkeeperOnlyBecauseOfARole(unittest.TestCase):
+class TestAShopkeeperOnlyBecauseOfARole(unittest.TestCase):
     def setUp(self):
         self.session = make_session("Human")
         self.world = self.session.world_state
@@ -33,7 +34,7 @@ class AShopkeeperOnlyBecauseOfARole(unittest.TestCase):
         npc = self.session.create_npc_from_ai(
             {"name": "Orrin", "role": "Shopkeeper", "location": self.world["location"]})
         self.assertIsNotNone(npc)
-        return npc
+        return cast("dict[str, Any]", npc)
 
     def test_a_modelled_shopkeeper_without_a_shop_carries_a_small_purse(self):
         npc = self.modelled_shopkeeper()
@@ -51,14 +52,14 @@ class AShopkeeperOnlyBecauseOfARole(unittest.TestCase):
             "name": "Equipment Counter", "description": "", "location": self.world["location"],
             "shopkeeper": {"name": "Equipment Merchant", "description": ""}})
         self.assertIsNotNone(created)
-        owner = created["shopkeeper"]
+        owner = cast("dict[str, Any]", created)["shopkeeper"]
         self.assertEqual(self.world["currency"][owner["id"]], 1000)
         self.assertEqual(equipment_economy.person_purse(self.world, owner), 1000)
         del self.world["currency"][owner["id"]]
         self.assertEqual(bold_acts._purse_of(self.world, owner), 1000)
 
 
-class CoinWithNoFigureAsksTheAmount(unittest.TestCase):
+class TestCoinWithNoFigureAsksTheAmount(unittest.TestCase):
     def test_coin_with_no_figure_asks_how_much_and_moves_nothing(self):
         on = _played(self, 20261702, "1", UNNAMED_COIN)
         self.assertEqual(on["route"], "fallback:failed")
@@ -77,7 +78,7 @@ class CoinWithNoFigureAsksTheAmount(unittest.TestCase):
         self.assertNotIn(ASKS_THE_AMOUNT, plain["narration"])
 
 
-class TheAskIsSaidOnce(unittest.TestCase):
+class TestTheAskIsSaidOnce(unittest.TestCase):
     def test_a_turn_that_already_asked_the_amount_does_not_ask_it_twice(self):
         session = type("Turn", (), {"_coin_unnamed": True})()
         result = {"narration": f"Marek bakıyor. {ASKS_THE_AMOUNT}"}
@@ -88,7 +89,7 @@ class TheAskIsSaidOnce(unittest.TestCase):
         self.assertEqual(fresh["narration"].count(ASKS_THE_AMOUNT), 1)
 
 
-class ACoinLineWhoseListCouldNotBeBuilt(unittest.TestCase):
+class TestACoinLineWhoseListCouldNotBeBuilt(unittest.TestCase):
     def test_the_words_figure_is_still_decided_and_noted(self):
         with patch("front_proposal.listing", side_effect=RuntimeError("no list")):
             on = _played(self, 20261706, "1", NAMED_COIN)

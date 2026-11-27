@@ -2597,7 +2597,7 @@ def _do_wander(run: _Run, step, *, how: str = "") -> dict[str, Any]:
     world_threads.ensure(run.world)
     talk = world_threads.street_talk(run.world, settlement)
     place = run.location(talk["place_id"]) if talk else None
-    if place:  # a walker hears what the town is on about, and the place is real
+    if talk and place:  # a walker hears what the town is on about, and the place is real
         world_threads.mark_heard(talk, int(run.world.get("flags", {}).get("turn_index", 0) or 0))
         world_threads.note_heard_names(run.world, talk["public_line"])
         npc_statements.overheard_place(run.world, place["id"], place.get("name", ""))

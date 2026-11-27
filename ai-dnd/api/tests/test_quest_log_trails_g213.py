@@ -25,7 +25,7 @@ def _duyulan(world: dict[str, Any]) -> list[dict[str, Any]]:
     return [row for row in quest_log.trails(world) if row["source"] == "duyulan"]
 
 
-class TrailWhoAndTwice(unittest.TestCase):
+class TestTrailWhoAndTwice(unittest.TestCase):
     """D-336."""
 
     def test_a_trail_the_owner_told_names_the_owner(self) -> None:
@@ -52,7 +52,7 @@ class TrailWhoAndTwice(unittest.TestCase):
         self.assertIsNotNone(rows[0]["who"])
 
 
-class OfferedJobShows(unittest.TestCase):
+class TestOfferedJobShows(unittest.TestCase):
     """D-337."""
 
     def test_an_offered_job_is_in_the_journal_with_pay_and_days(self) -> None:
@@ -63,7 +63,8 @@ class OfferedJobShows(unittest.TestCase):
              if t["type"] in {"hiring", "errand"} and t["terms"].get("pay")),
             None,
         )
-        self.assertIsNotNone(job)
+        if job is None:
+            self.fail("the town has an offerable job")
         world_threads.mark_offered(world, job, owner, job["owner_line"], 2)
         self.assertEqual(job["status"], "offered")
         trails = quest_log.view(world)["trails"]

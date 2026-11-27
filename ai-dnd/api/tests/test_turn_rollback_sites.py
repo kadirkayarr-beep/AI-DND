@@ -172,7 +172,7 @@ class TurnRollbackSites(unittest.IsolatedAsyncioTestCase):
         trees = {name: ast.parse((root / name).read_text(encoding="utf-8"))
                  for name in TURN_FILES}
         found = [f"{name}:{node.lineno}" for name, tree in trees.items()
-                 for node in ast.walk(tree) if moves_turn_index(node)]
+                 for node in ast.walk(tree) if isinstance(node, ast.stmt) and moves_turn_index(node)]
         self.assertEqual(found, [], "turn_index is moved only by turn_close.advance")
 
     def test_advance_and_record_exchange(self) -> None:

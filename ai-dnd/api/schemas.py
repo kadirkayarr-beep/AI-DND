@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, RootModel, StrictBool, StrictStr, field_validator, model_validator
 
-from api.dnd_2024_rules import ABILITY_KEYS
+from dnd_2024_rules import ABILITY_KEYS
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
 
 from api.local_model_config import DEFAULT_LOCAL_MODEL, LocalModelName
@@ -1221,19 +1221,24 @@ class SorcererLevelChoices(BaseModel):
     level_5: LevelUpFiveChoices = Field(default_factory=lambda: None, alias="5")
 
 
+def _no_choice() -> Any:
+    """The default of a start step that was not sent (the field is left out of the dump)."""
+    return None
+
+
 class WizardLevelChoices(BaseModel):
     """Wizard start 2-5: the earned-level steps (spellbook spells each level, subclass, cantrip and ASI)."""
 
     model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
     level_2: WizardSpellbookChoices = Field(alias="2")
     level_3: WizardLevel3Choices = Field(
-        default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None,
+        default_factory=_no_choice, alias="3", exclude_if=lambda value: value is None,
     )
     level_4: WizardLevel4Choices = Field(
-        default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None,
+        default_factory=_no_choice, alias="4", exclude_if=lambda value: value is None,
     )
     level_5: WizardSpellbookChoices = Field(
-        default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None,
+        default_factory=_no_choice, alias="5", exclude_if=lambda value: value is None,
     )
 
 
@@ -1243,13 +1248,13 @@ class ClericLevelChoices(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
     level_2: BarbarianLevel2Choices = Field(alias="2")
     level_3: ClericLevel3Choices = Field(
-        default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None,
+        default_factory=_no_choice, alias="3", exclude_if=lambda value: value is None,
     )
     level_4: ClericLevel4Choices = Field(
-        default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None,
+        default_factory=_no_choice, alias="4", exclude_if=lambda value: value is None,
     )
     level_5: BarbarianLevel2Choices = Field(
-        default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None,
+        default_factory=_no_choice, alias="5", exclude_if=lambda value: value is None,
     )
 
 
@@ -1286,6 +1291,52 @@ _START_BUNDLES: dict[str, tuple[type[BaseModel], bool]] = {
     "Wizard": (WizardLevelChoices, False),
     "Cleric": (ClericLevelChoices, True),
 }
+
+
+_CUSTOM_FIELD_NAMES = (
+    "name", "race", "character_class", "species", "giant_ancestry", "background", "alignment",
+    "ability_score_method", "ability_scores", "background_ability_bonuses", "proficient_skills",
+    "expertise_skills", "proficient_tools", "origin_feat", "species_bonus_feat", "species_bonus_skills",
+    "fighting_style", "equipment_package", "equipment_choices", "cantrips", "spells", "languages",
+    "background_equipment_option", "origin", "appearance", "personality", "backstory",
+)
+
+
+def _check_start_bundle(character_class: str | None, starting_level: int, level_choices: BaseModel | None) -> None:
+    """A custom start above level 1 needs its own class's exact choice bundle."""
+    if starting_level <= 1:
+        return
+    if character_class in _START_BUNDLES:
+        own, shares_start_two = _START_BUNDLES[character_class]
+        shared_start_two = shares_start_two and starting_level == 2 and isinstance(level_choices, BarbarianLevelChoices)
+        if not (shared_start_two or isinstance(level_choices, own)):
+            message = (
+                f"{character_class} supports only the exact level2 to level5 "
+                "choice bundle for its starting level."
+            )
+            raise ValueError(message)
+    elif character_class == "Sorcerer":
+        if not isinstance(level_choices, SorcererLevelChoices):
+            raise ValueError("Sorcerer requires its own per-level choices.")
+    else:
+        raise ValueError("Higher starting levels are unsupported for this class.")
+
+
+def _has_custom_field(model: BaseModel) -> bool:
+    return any(getattr(model, field) is not None for field in _CUSTOM_FIELD_NAMES)
+
+
+def _check_custom_identity(model: Any) -> None:
+    """Custom creation names a character, a species or race, and a class; a Goliath alone picks a Giant Ancestry."""
+    if model.name is None or (model.race is None and model.species is None) or model.character_class is None:
+        raise ValueError(
+            "Custom character creation requires a name, race, and class."
+        )
+    selected_species = model.species or model.race
+    if selected_species == "Goliath" and model.giant_ancestry is None:
+        raise ValueError("Goliath characters must choose a Giant Ancestry.")
+    if selected_species != "Goliath" and model.giant_ancestry is not None:
+        raise ValueError("Giant Ancestry is only available to Goliaths.")
 
 
 class CharacterCreateInput(BaseModel):
@@ -1339,67 +1390,12 @@ class CharacterCreateInput(BaseModel):
             if self.starting_level != 1 or self.level_choices is not None:
                 raise ValueError("Random creation supports level 1 without level choices only.")
         else:
-            if self.starting_level > 1:
-                if self.character_class in _START_BUNDLES:
-                    own, shares_start_two = _START_BUNDLES[self.character_class]
-                    shared_start_two = shares_start_two and self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
-                    if not (shared_start_two or isinstance(self.level_choices, own)):
-                        message = (
-                            f"{self.character_class} supports only the exact level2 to level5 "
-                            "choice bundle for its starting level."
-                        )
-                        raise ValueError(message)
-                elif self.character_class == "Sorcerer":
-                    if not isinstance(self.level_choices, SorcererLevelChoices):
-                        raise ValueError("Sorcerer requires its own per-level choices.")
-                else:
-                    raise ValueError("Higher starting levels are unsupported for this class.")
+            _check_start_bundle(self.character_class, self.starting_level, self.level_choices)
             if steps != {str(level) for level in range(2, self.starting_level + 1)}:
                 raise ValueError("Level choices must contain exactly the steps through the starting level.")
-        custom_fields = (
-            self.name,
-            self.race,
-            self.character_class,
-            self.species,
-            self.giant_ancestry,
-            self.background,
-            self.alignment,
-            self.ability_score_method,
-            self.ability_scores,
-            self.background_ability_bonuses,
-            self.proficient_skills,
-            self.expertise_skills,
-            self.proficient_tools,
-            self.origin_feat,
-            self.species_bonus_feat,
-            self.species_bonus_skills,
-            self.fighting_style,
-            self.equipment_package,
-            self.equipment_choices,
-            self.cantrips,
-            self.spells,
-            self.languages,
-            self.background_equipment_option,
-            self.origin,
-            self.appearance,
-            self.personality,
-            self.backstory,
-        )
         if self.mode == "custom":
-            if (
-                self.name is None
-                or (self.race is None and self.species is None)
-                or self.character_class is None
-            ):
-                raise ValueError(
-                    "Custom character creation requires a name, race, and class."
-                )
-            selected_species = self.species or self.race
-            if selected_species == "Goliath" and self.giant_ancestry is None:
-                raise ValueError("Goliath characters must choose a Giant Ancestry.")
-            if selected_species != "Goliath" and self.giant_ancestry is not None:
-                raise ValueError("Giant Ancestry is only available to Goliaths.")
-        elif any(value is not None for value in custom_fields):
+            _check_custom_identity(self)
+        elif _has_custom_field(self):
             raise ValueError(
                 "Random character creation does not accept custom character fields."
             )

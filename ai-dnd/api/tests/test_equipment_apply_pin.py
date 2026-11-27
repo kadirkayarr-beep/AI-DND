@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import copy
 import unittest
+from typing import Any, cast
 from unittest.mock import patch
 
 import game
@@ -21,17 +22,18 @@ WRONG_ARITY = {
 }
 
 
-class EquipmentApplyPin(unittest.TestCase):
+class TestEquipmentApplyPin(unittest.TestCase):
     def setUp(self):
         with fixed_town(self, 20261711):
             self.s = game.create_session(seed=20261711)
-        self.w = self.s.world_state
+        self.w: dict[str, Any] = self.s.world_state
         self.w["npcs"] = [{"id": "vendor", "name": "Mira", "location": self.w["location"], "current_hp": 10,
                            "inventory": ["Hançer"]}]
         self.w["shops"] = [{"id": "shop", "location": self.w["location"], "shopkeeper_id": "vendor"}]
         self.w["currency"] = {"player": 5000, "vendor": 5000}
         with patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
-            self.assertTrue(self.s.run_player_turn("/item list")["action_result"]["success"])
+            turn = cast("dict[str, Any]", self.s.run_player_turn("/item list"))
+            self.assertTrue(turn["action_result"]["success"])
         self.sword = next(i for i in self.w["inventory"] if i["name"] == "Kılıç")["item_id"]
         self.dagger = self.w["npcs"][0]["inventory"][0]["item_id"]
         self.w["shops"][0].update(item_offers_cp={self.dagger: 200}, buys_equipment=True)

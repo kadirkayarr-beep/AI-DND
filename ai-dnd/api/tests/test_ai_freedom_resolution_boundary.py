@@ -16,6 +16,7 @@ import copy
 import json
 import os
 import unittest
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -41,6 +42,9 @@ def boundary_scene(test):
 
 
 class EngineResolutionBoundaryTests(unittest.TestCase):
+    session: game.GameSession  # both set by boundary_scene
+    person: dict[str, Any]
+
     def setUp(self):
         boundary_scene(self)
 

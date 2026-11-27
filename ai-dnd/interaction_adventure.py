@@ -983,7 +983,7 @@ TRAVEL_NO_ROAD = (
 )
 
 # D-226: what a won or lost try on a person looks like when no model reply could be used (the dice decided it).
-_SOCIAL_LINES = {
+_SOCIAL_LINES: dict[tuple[str, bool | None], str] = {
     ("Intimidation", True): "{n} yutkunuyor, gözlerini kaçırıp bir adım geri çekiliyor; sözün işledi.",
     ("Intimidation", False): "{n} kollarını kavuşturup sana bakıyor; sözün ona işlemiyor.",
     ("Persuasion", True): "{n} bir an düşünüp başını sallıyor; sözün onu ikna etti.",

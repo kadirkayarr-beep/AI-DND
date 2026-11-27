@@ -91,7 +91,10 @@ class RealLeadFallback(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("yüz altın", text.casefold())
         self.assertEqual(said_calls(bad), SAY)
         self.assertEqual(self.finances(world), before)
-        self.assertEqual(npc_statements.last_said_place(world)["location_id"], target["place_id"])
+        said = npc_statements.last_said_place(world)
+        if said is None:
+            self.fail("a place was said")
+        self.assertEqual(said["location_id"], target["place_id"])
 
     async def test_nonempty_invented_object_speech_keeps_the_existing_rejection(self):
         world, _, _ = await self.armorer()

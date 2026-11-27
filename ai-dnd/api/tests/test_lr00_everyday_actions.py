@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import unittest
 import uuid
+from typing import Any
 from unittest.mock import patch
 
 import everyday_actions
@@ -23,6 +24,8 @@ class NoModelClient(test_campaign_api.FakeOllamaClient):
 
 
 class EverydayActionTests(unittest.IsolatedAsyncioTestCase):
+    http: Any  # set by CampaignApiTests.asyncSetUp, called on this case
+
     async def asyncSetUp(self):
         await test_campaign_api.CampaignApiTests.asyncSetUp(self)
         self.enterContext(patch.object(self.app.state.ollama_adapter, "_client", NoModelClient()))

@@ -6,7 +6,7 @@ import re
 import shlex
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, NoReturn
 
 from game_errors import GameInputError
 from weapon_catalog import lookup
@@ -37,7 +37,7 @@ class ItemCardRequest:
     proposal: Any  # economic_actions.EconomicProposal, purpose "item_gift"
 
 
-def fail(reason):
+def fail(reason) -> NoReturn:
     raise EquipmentError(reason)
 
 

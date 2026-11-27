@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 import uuid
+from typing import Any
 from unittest.mock import patch
 
 import living_world
@@ -25,8 +26,15 @@ class Branches(unittest.IsolatedAsyncioTestCase):
     first_town = FIRST_TOWN
 
     async def asyncSetUp(self):
-        await speech.ExperimentalNpcDialogueTests.asyncSetUp(self)
+        parent: Any = speech.ExperimentalNpcDialogueTests  # its set-up runs on this case
+        await parent.asyncSetUp(self)
         self.watch = RouteWatch(self)
+
+    def job_thread(self):
+        thread = world_threads.by_id(self.world, self.tid)
+        if thread is None:
+            self.fail("the job thread is in the world")
+        return thread
 
     async def town(self, seed):
         with fixed_town(self, self.first_town):
@@ -184,7 +192,7 @@ class Branches(unittest.IsolatedAsyncioTestCase):
         await self.line("başlayalım", "Akşam gel.")
         self.assertEqual(self.world.get("currency", {}).get("player", 0), start)
         self.assertEqual(self.world["campaign_time"]["elapsed_seconds"], clock["elapsed_seconds"])
-        thread = world_threads.by_id(self.world, self.tid)
+        thread = self.job_thread()
         self.assertEqual(thread["status"], "accepted")
         # the wage ledger is untouched by the day attempt (_credit_day writes these and a "paid" event)
         self.assertEqual((thread.get("days_worked", 0), thread.get("paid_cp", 0), thread.get("last_paid_day_index")),
@@ -195,7 +203,7 @@ class Branches(unittest.IsolatedAsyncioTestCase):
         self.world["campaign_time"]["start_second"] = 21 * 3600
         await self.line("başlayalım")
         self.assertEqual(self.world.get("currency", {}).get("player", 0) - start, 12)
-        thread = world_threads.by_id(self.world, self.tid)
+        thread = self.job_thread()
         self.assertEqual((thread.get("days_worked"), thread.get("paid_cp")), (1, 12))
 
     async def test_a_refused_owner_is_not_offered_again_and_says_so_when_asked(self):

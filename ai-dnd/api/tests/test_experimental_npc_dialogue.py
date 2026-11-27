@@ -6,6 +6,7 @@ import copy
 import json
 import unittest
 import uuid
+from typing import Any
 from unittest.mock import patch
 
 import game
@@ -1472,7 +1473,8 @@ class UsableReadingTwins(unittest.IsolatedAsyncioTestCase):
     sensitive_state = staticmethod(ExperimentalNpcDialogueTests.sensitive_state)
 
     async def campaign_with_npc(self, **kwargs):
-        made = await ExperimentalNpcDialogueTests.campaign_with_npc(self, **kwargs)
+        parent: Any = ExperimentalNpcDialogueTests  # its set-up runs on this case
+        made = await parent.campaign_with_npc(self, **kwargs)
         self.watch.reset()  # the town's set-up turns read nothing usable; every line of the test itself must
         forbid_unscripted(self)
         return made

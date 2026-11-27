@@ -12,6 +12,7 @@ import json
 import re
 import unittest
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import action_economy as ae
@@ -71,7 +72,7 @@ def valid_scene_state():
 def world(**changes):
     state = valid_scene_state()
     for path, value in changes.items():
-        target = state
+        target: Any = state
         keys = path.split("__")
         for key in keys[:-1]:
             target = target[int(key)] if isinstance(target, list) else target[key]
@@ -239,7 +240,8 @@ def two_daggers(s, n):
 
 
 def light_pair():
-    s, n = armed("Shortsword")
+    s, person = armed("Shortsword")
+    n = cast("dict[str, Any]", person)
     s.world_state["inventory"].append("Dagger")
     s.world_state["equipment"]["off_hand"] = "dagger"
     with patch("game.roll_attack", return_value=10), patch.object(s.rng, "randint", return_value=3):

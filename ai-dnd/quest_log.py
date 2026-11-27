@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import living_world
@@ -213,7 +214,7 @@ def _players_job(thread: Any) -> bool:
 
 
 def _open_work_trails(
-    world: dict[str, Any], state: dict[str, Any], pointed: set[Any],
+    world: dict[str, Any], state: Mapping[str, Any], pointed: set[Any],
 ) -> list[dict[str, Any] | None]:
     """(4) Work heard of or offered with terms; it falls once taken."""
     found = []

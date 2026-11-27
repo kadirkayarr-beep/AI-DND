@@ -13,6 +13,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from typing import Any, cast
 
 import dialogue_runtime
 import game
@@ -42,7 +43,7 @@ class TestOldSaveVersionsAreRefused(unittest.TestCase):
         for version in (1, 2, 3):
             with self.subTest(version=version):
                 session = game.create_session(seed=2601)
-                payload = session.serialize_game_state()
+                payload = cast("dict[str, Any]", session.serialize_game_state())
                 before = copy.deepcopy(payload)
                 payload["version"] = version
                 payload["player"].pop("weapon_proficiencies", None)
@@ -66,7 +67,7 @@ class TestCombatShape(unittest.TestCase):
     def test_a_new_campaign_combat_is_schema_three(self):
         session = game.create_session(seed=2603)
         self.assertEqual(session.world_state["combat"]["schema_version"], 3)
-        self.assertEqual(session.ensure_combat_state()["schema_version"], 3)
+        self.assertEqual(cast("dict[str, Any]", session.ensure_combat_state())["schema_version"], 3)
 
     def test_an_older_combat_shape_is_refused_not_migrated(self):
         for schema in (None, 1, 2):
@@ -111,6 +112,8 @@ class TestSpellbookWithoutMigration(unittest.TestCase):
 
 
 class TestSpellbookRoute(EconomicHttpFixture):
+    http: Any  # set by the fixture's asyncSetUp
+
     async def asyncSetUp(self):
         with fixed_town(self, 26501):
             await super().asyncSetUp()
@@ -165,12 +168,20 @@ class TestDialogueModeIsFreeOrUnset(unittest.TestCase):
 
 
 class TestNewCampaignFullRoundTrip(unittest.IsolatedAsyncioTestCase):
+    http: Any  # the five below are set by CommitBoundaryTests.asyncSetUp, run on this case
+    created: Any
+    session: Any
+    store: Any
+    cid: Any
+
     async def asyncSetUp(self):
+        parent: Any = r04.CommitBoundaryTests
         with fixed_town(self, 26601):
-            await r04.CommitBoundaryTests.asyncSetUp(self)
+            await parent.asyncSetUp(self)
 
     async def asyncTearDown(self):
-        await r04.CommitBoundaryTests.asyncTearDown(self)
+        parent: Any = r04.CommitBoundaryTests
+        await parent.asyncTearDown(self)
 
     post = r04.CommitBoundaryTests.post
     live_facts = r04.CommitBoundaryTests.live_facts

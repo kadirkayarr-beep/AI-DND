@@ -26,7 +26,7 @@ from api.campaign_journal import (
     empty_campaign_journal,
 )
 from api.character_creation import configure_character
-from api.dnd_2024_rules import CharacterCreationError
+from dnd_2024_rules import CharacterCreationError
 from api.schemas import CharacterCreateInput
 from api.lore_authority import (
     PRODUCTION_REGISTRY,

@@ -20,6 +20,7 @@ import weapon_attack
 import equipment_economy
 import talk_mode
 import tr_case
+from typing import Any
 from core_resolution import resolution_action_scope
 
 
@@ -110,7 +111,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
     """
     import town_knowledge
     import world_threads
-    session = game._session()
+    session: Any = game._session()  # the game session: its attributes come from the engine parts and are not typed
     world = session.world_state
     if interaction_mode == "ask_dm" or world_threads.view(world) is None or world.get("combat", {}).get("active"):
         return None
@@ -789,7 +790,7 @@ def _tell_the_coin(result):
 
     It writes no coin. The coin in hand and the counter's hold on it end here, whatever the owner did.
     """
-    session = game._session()
+    session: Any = game._session()  # the game session: its attributes come from the engine parts and are not typed
     try:
         pending = getattr(session, "_spoken_coin_proposal", None)
         if pending is not None:
@@ -1563,7 +1564,7 @@ def _coin_without_a_reading(player_input, target_id, listed):
     import money_owner
     import shop_trade
     import world_reactions
-    session = game._session()
+    session: Any = game._session()  # the game session: its attributes come from the engine parts and are not typed
     amount = front_proposal.coin_in(None, player_input, moves=True)  # `moves`: the words' figure stands with no reading
     if not amount:
         # D-403: coin with no figure asks how much
