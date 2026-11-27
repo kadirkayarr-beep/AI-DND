@@ -1,0 +1,26 @@
+"""Type-checker view of the engine module alias (api/dnd_2024_rules.py); explicit re-exports of the names importers use."""
+from dnd_2024_rules import ABILITY_KEYS as ABILITY_KEYS
+from dnd_2024_rules import ALIGNMENTS as ALIGNMENTS
+from dnd_2024_rules import ARMOR_CLASS_RULES as ARMOR_CLASS_RULES
+from dnd_2024_rules import ARMOR_NAME_ALIASES as ARMOR_NAME_ALIASES
+from dnd_2024_rules import ARTISAN_TOOLS as ARTISAN_TOOLS
+from dnd_2024_rules import BACKGROUND_DEFINITIONS as BACKGROUND_DEFINITIONS
+from dnd_2024_rules import BACKGROUND_OPTION_B_GP as BACKGROUND_OPTION_B_GP
+from dnd_2024_rules import CLASS_DEFINITIONS as CLASS_DEFINITIONS
+from dnd_2024_rules import CharacterCreationError as CharacterCreationError
+from dnd_2024_rules import ORIGIN_FEATS as ORIGIN_FEATS
+from dnd_2024_rules import SKILL_DEFINITIONS as SKILL_DEFINITIONS
+from dnd_2024_rules import SPECIES_DEFINITIONS as SPECIES_DEFINITIONS
+from dnd_2024_rules import SPELLS_CATALOG as SPELLS_CATALOG
+from dnd_2024_rules import STANDARD_LANGUAGES as STANDARD_LANGUAGES
+from dnd_2024_rules import armor_class_total as armor_class_total
+from dnd_2024_rules import calculate_derived_stats as calculate_derived_stats
+from dnd_2024_rules import canonical_origin_feat_name as canonical_origin_feat_name
+from dnd_2024_rules import get_character_creation_catalog as get_character_creation_catalog
+from dnd_2024_rules import get_equipment_armor_and_shield as get_equipment_armor_and_shield
+from dnd_2024_rules import get_expertise_choice_count as get_expertise_choice_count
+from dnd_2024_rules import get_modifier as get_modifier
+from dnd_2024_rules import proficiency_bonus_for_level as proficiency_bonus_for_level
+from dnd_2024_rules import roll_4d6_drop_lowest as roll_4d6_drop_lowest
+from dnd_2024_rules import validate_ability_scores as validate_ability_scores
+from dnd_2024_rules import validate_background_bonuses as validate_background_bonuses

@@ -914,3 +914,29 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 |---|---|---|
 | `ai-dnd/api/tests/engine_split_locks/patch_census.json` (D-638) | Degisiklik yok: kilit G2.8 (a6dce579) ile zaten tazelenmisti, `test_the_lock_equals_a_fresh_scan` dalga ucunda yesil (rf2-red) | kilit tazelendi, hala tam |
 | `ai-dnd/api/tests/test_spoken_promises.py` `CheckIsNotSpeech` | `test_a_stock_check_line_swapped_for_their_words_is_not_said_twice` -> `test_a_lost_persuasion_is_told_in_their_own_outcome_line_once`. Kok neden G2.4 (2a66f2ff, D-226): kaybedilen ikna denemesinde reddedilen model cevabinin yerine artik kisinin kendi sonuc cumlesi (`interaction_adventure.social_outcome_line`) gosteriliyor; eski "genel kontrol cumlesi stok kuralla degisir, is yedek cumlesi bir kez" yolu Persuasion/Intimidation/Deception icin artik ulasilamaz. Yeni test zari 1'e sabitleyip anlatimin tam olarak o cumle oldugunu, is yedeginin ve reddedilen sozlerin eklenmedigini iddia eder | gevşetme olabilir (stok-degisim kuralinin (`_speech_after_check` stock_swapped) uctan uca korumasi bu testten ayrildi; baska beceriler icin ulasilabilir mi dogrulanmadi) |
+
+## DK2.A (borc-sifirlama): kapi buyumesi, A seridi
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `test_d317_shopkeeper_purse.py` | Sinif adlari `Test` oneki aldi: `AShopkeeperOnlyBecauseOfARole`, `CoinWithNoFigureAsksTheAmount`, `TheAskIsSaidOnce`, `ACoinLineWhoseListCouldNotBeBuilt` (vulture "kullanilmayan sinif" bulgusu bitsin diye); test govdeleri ayni | yeniden adlandirma, iddia ayni |
+| `test_quest_log_trails_g213.py` | `TrailWhoAndTwice` -> `TestTrailWhoAndTwice`, `OfferedJobShows` -> `TestOfferedJobShows`; govdeler ayni | yeniden adlandirma, iddia ayni |
+| `test_equipment_apply_pin.py` | `EquipmentApplyPin` -> `TestEquipmentApplyPin`; oturum artik `game.create_session(seed=20261711)` ile aciliyor (tohumsuz oturum bekcisi `test_unseeded_sessions` icin); iddialar ayni | yeniden adlandirma + tohum, iddia ayni |
+| `test_start_options_models.py` | Yeni: Wizard/Cleric baslangic secenekleri ve seviye paketleri model alanlarindan okunur, bilinmeyen anahtar reddedilir | ekleme |
+
+## DK2.B (borc-sifirlama): kapi buyumesi, B seridi ve K5 kirmizilari
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `test_g220_journey_towns.py` `MessengerChainIsBoundToItsTown` (iki test) | Kok neden G2.13 (D-337): teklif edilen is izi (mühürlü mektup) her kasabada varista duyuluyor. Eski: liman ilani olmayan kasabada varista duyulan satirlar tam `[]`; liman kasabasinda tam `[liman ilani]`. Yeni: ayni iki iddia tam liste olarak, ama `[OFFERED_LETTER]` ve `[liman ilani, OFFERED_LETTER]` (ayni siki `assertEqual`, sira dahil). `world_threads` baglantilarini okuyan "arayanlar" kodu `_callers_in_town` yardimcisina tasindi (kosullar ve secim ayni; eksik dunya/konum/baglanti artik `self.fail`) | gevşetme olabilir (beklenen "varista duyulan" kumesinin siniri degisti: bos liste artik sabit mektup satirini icerir; mektup metni sabit `OFFERED_LETTER` olarak tek yerde) |
+| `test_g220_journey_towns.py` | Sinif `MessengerChainIsBoundToItsTown` -> `MessengerChainIsBoundToItsTownTests` | yeniden adlandirma, iddia ayni |
+| `test_g212_spell_rows.py` | `RunningSpellReachesNextTurn` -> `...Tests`, `EightSpellsReadByTurkishName` -> `...Tests`; `game.build_world_context(session=s)` cagrilari yerel `world_context` takma adina (tur notu ile) tasindi; ayni islev, ayni iddialar | yeniden adlandirma + tip duzeltmesi, iddia ayni |
+| `test_town_seed.py` | `FixedTownNeedsNoRunner` -> `FixedTownNeedsNoRunnerTests` | yeniden adlandirma, iddia ayni |
+| `test_unseeded_sessions.py` | `UnseededSessions` -> `UnseededSessionsTests`; yardimci `_is_unseeded_session` donus tipi `TypeGuard[ast.Call]` | yeniden adlandirma + tip, iddia ayni |
+| `test_no_real_ollama.py` | Sinif `RealOllamaIsRefused` -> `RealOllamaIsRefusedTests`. Bekci kurulumu `patch.object(...).start()` yerine `setattr` dongusu (baska testin `patch.stopall()` bekciyi siliyordu, D-292); yeniden iceri alinca cift sarmaz. Yeni test `test_the_guard_survives_a_patch_stopall_from_another_module` | bekci guclendi, zayiflamadi; ekleme |
+| `test_ci_discovery_guards.py` | `assert match, name` -> `AssertionError` firlatan `if`; `[test.id() for test in loaded]` -> ic ice suite'leri duzlestiren `_case_ids(loaded)`; sahte sonuc nesnesi `types.SimpleNamespace` -> gercek `unittest.TestResult` (ayni alanlar). Ayni korunan-testler-kosuyor iddiasi | tip/bandit duzeltmesi, iddia ayni (duzlestirme, ic ice suite'te de kimlik listesini tam ister) |
+| `test_engine_routing.py` | `routing_audit.__doc__` iddiasi `sys.modules[audit.__module__].__doc__` ustunden; ayni "Known blind spots" ve her kor nokta metni | tip duzeltmesi, iddia ayni |
+| `test_g210_creation_hardening.py`, `test_g212_wizard_cleric_start_http.py`, `test_history_paged_read.py`, `test_engine_move_tool.py`, `test_engine_probe_tools.py`, `claim_race.py`, `receipt_archive_fixture.py` | Sinif duzeyi/yerel tip bildirimleri; `test_history_paged_read.py` `SpyCursor` artik `sqlite3.Cursor` alt sinifi (sarmalayici yerine); kaydettigi `fetchall` sorgu listesi ayni | tip duzeltmesi, iddia ayni |
+| `test_dk2b_rules_split.py` | Yeni: oyun kurali iletilerinin metni ve bolunen yardimcilarin davranisi `dnd_2024_rules` icin sabitlendi (11 test; "must" -> "MUST" kirma denemesinde kirmizi) | ekleme |
+
+Not: `test_roadmap_b04` slot 2'de 5 ortam hatasi veriyor (kok dosyalar slota tasinmiyor); kod bozulmasi degil, kok dosyali makinede dogrulanmadi.
