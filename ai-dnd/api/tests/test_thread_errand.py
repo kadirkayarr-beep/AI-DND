@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import patch
 
 import equipment_economy
+import game
 import item_transfers
 import living_world
 import local_places
@@ -354,6 +355,26 @@ class ErrandTable(unittest.IsolatedAsyncioTestCase):
         await self.line("vazgeçtim, gidiyorum", "Sen bilirsin.")
         self.assertEqual(self.status(), "abandoned")
         self.assertEqual(self.parcel_owner(), [self.owner["id"]])
+
+    async def test_the_thread_written_flag_does_not_outlive_its_turn(self):
+        await self.job()
+        self.session.thread_wrote = True
+        game._clear_turn_transients(self.session)
+        self.assertFalse(self.session.thread_wrote)
+
+    async def test_a_gate_that_broke_half_way_does_not_count_as_having_written(self):
+        await self.job()
+        seen = []
+        restore = self.session._restore_runtime_snapshot
+
+        def spy(snapshot):
+            seen.append(self.session.thread_wrote)
+            return restore(snapshot)
+
+        with patch.object(game, "_carry_out_thread_turn", side_effect=RuntimeError("boom")),                 patch.object(self.session, "_restore_runtime_snapshot", spy):
+            await self.line("olur", "Tamam.")
+        self.assertTrue(seen)
+        self.assertIs(seen[0], False)
 
     async def test_a_bare_word_about_something_else_makes_the_owner_ask(self):
         await self.job()

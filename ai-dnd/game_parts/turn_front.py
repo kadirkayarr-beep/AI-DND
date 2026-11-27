@@ -140,6 +140,7 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
         raise
     except Exception:
         town_knowledge.log_failure()
+        session.thread_wrote = False  # the gate wrote nothing that survives, so a stock line is still re-asked
         if saved is not None:  # D-011: a writer that broke half way leaves no coin, hour or item of it behind
             session._restore_runtime_snapshot(saved)  # in place: the turn above still holds these very dicts
         session._thread_turn = None
@@ -787,6 +788,7 @@ def _clear_turn_transients(session) -> None:
     session._bribe_held_out = 0
     session._counter_held = None
     session._economic_turn_key = None
+    session.thread_wrote = False  # a thread decision's flag lives for its own turn only
     session._speech_repair_calls = 0  # D-332: the repair call counts into this turn's model calls only; a flag-off turn has no begin()
 
 def _tell_the_coin(result):
