@@ -353,21 +353,28 @@ class RoadmapB04Tests(unittest.TestCase):
 
 
 class PythonDependencyDeclarationTests(unittest.TestCase):
-    """D-587 / D-593: the Python lock is past the certifi advisory and every imported package is declared."""
+    """D-587 / D-593: certifi is locked past the advisory; imports are declared."""
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.pyproject = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
-        cls.lock = tomllib.loads((REPO / "uv.lock").read_text(encoding="utf-8"))
-        cls.workflow = (REPO / ".github" / "workflows" / "ai-dnd-ci.yml").read_text(encoding="utf-8")
+        """Read the manifests the contract is about."""
+        project = (REPO / "pyproject.toml").read_text(encoding="utf-8")
+        lock = (REPO / "uv.lock").read_text(encoding="utf-8")
+        cls.pyproject = tomllib.loads(project)
+        cls.lock = tomllib.loads(lock)
+        workflow = REPO / ".github" / "workflows" / "ai-dnd-ci.yml"
+        cls.workflow = workflow.read_text(encoding="utf-8")
 
     def declared(self, group: list[str]) -> set[str]:
+        """Return the lower-cased package names of a requirement list."""
         return {re.split(r"[<>=!~ \[]", item, maxsplit=1)[0].lower() for item in group}
 
     def test_locked_certifi_is_past_pysec_2026_4320(self) -> None:
         """Part of the D-587 / D-593 dependency contract."""
-        version = next(p["version"] for p in self.lock["package"] if p["name"] == "certifi")
-        self.assertGreaterEqual(tuple(int(part) for part in version.split(".")), (2026, 10, 18))
+        packages = {p["name"]: p["version"] for p in self.lock["package"]}
+        version = packages["certifi"]
+        parts = tuple(int(part) for part in version.split("."))
+        self.assertGreaterEqual(parts, (2026, 10, 18))
 
     def test_pydantic_and_starlette_are_declared_direct_dependencies(self) -> None:
         """Part of the D-587 / D-593 dependency contract."""
@@ -376,8 +383,10 @@ class PythonDependencyDeclarationTests(unittest.TestCase):
 
     def test_pypdf_is_declared_as_a_development_dependency(self) -> None:
         """Part of the D-587 / D-593 dependency contract."""
-        self.assertIn("pypdf", self.declared(self.pyproject["dependency-groups"]["dev"]))
-        self.assertNotIn("pypdf", self.declared(self.pyproject["project"]["dependencies"]))
+        dev = self.declared(self.pyproject["dependency-groups"]["dev"])
+        self.assertIn("pypdf", dev)
+        runtime = self.declared(self.pyproject["project"]["dependencies"])
+        self.assertNotIn("pypdf", runtime)
 
     def test_ci_audits_and_checks_python_dependencies(self) -> None:
         """Part of the D-587 / D-593 dependency contract."""
