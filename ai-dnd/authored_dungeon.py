@@ -1,7 +1,7 @@
 """Opt-in authored room/exit fixture; no geometry, model or parallel position owner."""
 import copy
-import turn_close
 
+import turn_close
 from combat_lifecycle import CombatRequestError
 
 KEY = "authored_dungeon_v1"

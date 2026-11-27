@@ -28,10 +28,10 @@ import name_catalog
 import npc_statements
 import relationships
 import town_rumours
+import turn_close
 import vouching
 import world_happenings
 import world_threads
-import turn_close
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
