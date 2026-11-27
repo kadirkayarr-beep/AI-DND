@@ -11,7 +11,7 @@ import spatial_rules
 import tr_names
 import weapon_attack as attacks
 from core_resolution import resolve_attack_roll
-from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG, proficiency_bonus_for_level
+from dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG, proficiency_bonus_for_level
 
 # (level, range ft, die, damage type). 4C.4b first cut, page-cited K07 leaves in content/manifest/rule-oracles.json:
 # Ray of Frost PDF 310, Shocking Grasp 315 (Touch = 5 ft reach), Toll the Dead 333, Healing Word 283, Bless 246.

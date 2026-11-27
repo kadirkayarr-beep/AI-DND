@@ -4949,7 +4949,7 @@
  },
  "get_expertise_choice_count": {
   "kind": "function",
-  "module": "api.dnd_2024_rules",
+  "module": "dnd_2024_rules",
   "session_bound": false,
   "signature": "(character_class: 'str', level: 'int') -> 'int'"
  },

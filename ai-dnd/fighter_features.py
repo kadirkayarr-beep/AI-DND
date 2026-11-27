@@ -13,8 +13,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import character_progression as core
-from api.dnd_2024_rules import UNOFFERED_FIGHTING_STYLES
 from combat_lifecycle import CombatRequestError, player_incapacitated
+from dnd_2024_rules import UNOFFERED_FIGHTING_STYLES
 
 logger = logging.getLogger(__name__)
 

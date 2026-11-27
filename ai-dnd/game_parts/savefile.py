@@ -1,7 +1,7 @@
 import game
 import action_economy
 import adventure
-from api.dnd_2024_rules import get_expertise_choice_count
+from dnd_2024_rules import get_expertise_choice_count
 import campaign_time
 import copy
 import equipment_economy
@@ -109,7 +109,7 @@ def _origin_choices_valid(choices):
     for key in game._ORIGIN_TEXT_KEYS:
         if key in choices and not (choices[key] is None or (type(choices[key]) is str and 0 < len(choices[key]) <= 60)):
             return False
-    from api.dnd_2024_rules import BACKGROUND_DEFINITIONS
+    from dnd_2024_rules import BACKGROUND_DEFINITIONS
     if choices.get("background") is not None and "background" in choices and choices["background"] not in BACKGROUND_DEFINITIONS:
         return False  # a background the rules do not know is refused, never kept as free text
     bonuses = choices.get("background_ability_bonuses")

@@ -38,7 +38,7 @@ def source_spell_ids(class_name: str, spell_level: int) -> list[str]:
 
 
 def catalog_ids(class_name: str, field: str) -> list[str]:
-    from api.dnd_2024_rules import SPELLS_CATALOG
+    from dnd_2024_rules import SPELLS_CATALOG
     return [spell["id"] for spell in SPELLS_CATALOG[class_name][field]]
 
 

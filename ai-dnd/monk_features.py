@@ -11,8 +11,8 @@ import logging
 from typing import Any
 
 import character_progression as core
-from api.dnd_2024_rules import CharacterCreationError, get_equipment_armor_and_shield
 from combat_lifecycle import CombatRequestError
+from dnd_2024_rules import CharacterCreationError, get_equipment_armor_and_shield
 
 logger = logging.getLogger(__name__)
 

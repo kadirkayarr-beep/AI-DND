@@ -708,3 +708,13 @@ Dal `task/borc-g21-20261126`. Yalniz test kodu degisti; motor kodu ayni.
 |---|---|---|
 | `ai-dnd/api/tests/test_coin_writers.py` `WRITERS` | `api/character_creation.py:configure_character` -> `api/character_creation.py:_write_world_gear` (D-540: `configure_character` kucuk parcalara bolundu; baslangic cebini yazan islev artik `_write_world_gear`) | gevşetme olabilir (sabitlenen islev adi degisti; yazici sayisi ayni, yine tek yazici) |
 | yeni testler | `ai-dnd/api/tests/test_g210_creation_hardening.py` ve `g210_creation_golden.json` (50 vakalik davranis kaydi, D-540; D-319, D-313, D-539, D-314, D-385, D-316) | ekleme |
+
+## G2.11 (borc-sifirlama): katman dongusu ve motor -> api kenarlari
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/api/tests/engine_split_locks/allowed_imports.json`, `surface.json` | `api.dnd_2024_rules` motora indi (`ai-dnd/dnd_2024_rules.py`); izin listesinde ad degisti, `get_expertise_choice_count` yuzey satirinin `module` alani `dnd_2024_rules` oldu. Eski yol ayni modul nesnesi olarak kalir (`sys.modules` takma adi), yama hedefleri calisir | ad guncellemesi, gevsetme degil |
+| `content/manifest/phb2024.json`, `legacy-compatibility.json`, `docs/acceptance/content-task-index.json`, `tools/content/check_manifest.py` `RESOLVER_FILES`, `ai-dnd/api/tests/test_roadmap_b04.py` | `existing_owner` ve cozucu dosya yolu `ai-dnd/api/dnd_2024_rules.py` -> `ai-dnd/dnd_2024_rules.py` (dosya tasindi; iddialar ayni, satir numaralari ayni) | yol guncellemesi |
+| `docs/agents/kalite-taramasi-20261125/importlinter.ini` | "Engine packages do not import api" sozlesmesine `ignore_imports` listesi (21 dogrudan kenar: lore_authority, ollama_adapter, opening_narrative, world_metadata). Sozlesme artik gecer; liste yalniz kucullur, `api/tests/test_layering.py` listeyi eşit tutar. **gevsetme olabilir**: sozlesme "kirik" yerine "listeli istisnalarla gecer" oldu | gevsetme olabilir |
+| kalan 6 duz motor -> api kenari (`arrival_narration`, `front_proposal` -> `api.ollama_adapter`; `character_progression` -> `api.character_creation`; `live_integration_test`, `live_phase_c_narrative_smoke` x2) | Kaldirilamadi: model kullanim sayaci ve karakter olusturma icin port katmani gerekir (D-583 satiri `kismen` kalir); canli betikler api'yi bilerek surer. `test_layering.FLAT_EDGES_LEFT` listeler, kaldirilan kenar listeden cikmali | kismen (R-D583) |
+| yeni test | `ai-dnd/api/tests/test_layering.py` (routes bagimsizligi, motor -> api kenar listeleri, eski yol ayni modul) | ekleme |

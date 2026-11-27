@@ -230,7 +230,7 @@ def named_skill(player_input):
 
     The skill word and the check word stand side by side, or the skill stands in brackets after an ability word
     ("Güç (Atletizm)"): "tip", "tarih", "doğa" and "kontrol" far apart in a line are everyday words."""
-    from api.dnd_2024_rules import SKILL_DEFINITIONS
+    from dnd_2024_rules import SKILL_DEFINITIONS
     if not isinstance(player_input, str) or "?" in player_input:
         return None
     text = game._normalize_turkish_typos(player_input)

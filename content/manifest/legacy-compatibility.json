@@ -15,7 +15,7 @@
    "source": {
     "book": "Systems Reference Document 5.1 (2016)",
     "kind": "citation recorded by the existing resolver, not re-read in B04",
-    "citation_location": "ai-dnd/api/dnd_2024_rules.py:506",
+    "citation_location": "ai-dnd/dnd_2024_rules.py:506",
     "page_reference_status": "NOT_READ_IN_B04",
     "phb2024_text_mentions_pdf_pages": [],
     "distinct_from": "phb2024"
@@ -23,11 +23,11 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "existing_owner": "ai-dnd/dnd_2024_rules.py",
     "basis": "static_name_match",
     "existing_line": 498,
     "scanned": [
-     "ai-dnd/api/dnd_2024_rules.py",
+     "ai-dnd/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
     ]
    },
@@ -57,7 +57,7 @@
    "source": {
     "book": "Systems Reference Document 5.1 (2016)",
     "kind": "citation recorded by the existing resolver, not re-read in B04",
-    "citation_location": "ai-dnd/api/dnd_2024_rules.py:524",
+    "citation_location": "ai-dnd/dnd_2024_rules.py:524",
     "page_reference_status": "NOT_READ_IN_B04",
     "phb2024_text_mentions_pdf_pages": [],
     "distinct_from": "phb2024"
@@ -65,11 +65,11 @@
    "rights_ref": "DEC-2026-10-26-SOURCE-USE-SCOPE",
    "status": "INVENTORIED",
    "resolver": {
-    "existing_owner": "ai-dnd/api/dnd_2024_rules.py",
+    "existing_owner": "ai-dnd/dnd_2024_rules.py",
     "basis": "static_name_match",
     "existing_line": 516,
     "scanned": [
-     "ai-dnd/api/dnd_2024_rules.py",
+     "ai-dnd/dnd_2024_rules.py",
      "ai-dnd/spell_scope.py"
     ]
    },

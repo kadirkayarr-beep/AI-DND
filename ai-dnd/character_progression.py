@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from api.dnd_2024_rules import (  # noqa: F401
+from dnd_2024_rules import (  # noqa: F401
     ARMOR_CLASS_RULES,
     CLASS_DEFINITIONS,
     armor_class_total,
@@ -411,7 +411,7 @@ def _check_detached_asi_consistency(*, scores: Any, base_scores: Any,
     Rolled provenance is unsupported: stored scores are not a verified dice pool.
     """
     import feat_rules
-    from api.dnd_2024_rules import validate_ability_scores, validate_background_bonuses
+    from dnd_2024_rules import validate_ability_scores, validate_background_bonuses
 
     def reject(reason):
         return {"consistent": False, "reason": reason}

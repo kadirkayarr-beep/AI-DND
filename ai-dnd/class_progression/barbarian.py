@@ -39,7 +39,7 @@ def _validate_primal_knowledge(character):
         if "primal_knowledge_choice" in character:
             raise ValueError("Unearned Primal Knowledge choice.")
         return
-    from api.dnd_2024_rules import SKILL_DEFINITIONS
+    from dnd_2024_rules import SKILL_DEFINITIONS
     prior = record.get("prior_proficient_skills") if type(record) is dict else None
     skill = record.get("skill") if type(record) is dict else None
     if (type(record) is not dict or set(record) != {"class_level", "skill", "prior_proficient_skills"}
@@ -82,7 +82,7 @@ def _barbarian_three_prerequisite(session):
         barbarian_rage.validate(session.world_state, character, getattr(session, "_persisted_engine_format", 4))
         if "rage_v1" not in session.world_state:
             return "selected_subclass_rage_capability_required"
-        from api.dnd_2024_rules import SKILL_DEFINITIONS
+        from dnd_2024_rules import SKILL_DEFINITIONS
         skills = character.get("proficient_skills")
         if (type(skills) is not list or any(type(x) is not str or x not in SKILL_DEFINITIONS for x in skills)
                 or len(set(skills)) != len(skills)):
@@ -231,7 +231,7 @@ def fast_movement_bonus_ft(character: Any, world: Any) -> int:
         return FAST_MOVEMENT_FT
     if type(armor) is not str:
         return 0
-    from api.dnd_2024_rules import ARMOR_CLASS_RULES, ARMOR_NAME_ALIASES
+    from dnd_2024_rules import ARMOR_CLASS_RULES, ARMOR_NAME_ALIASES
     rule = ARMOR_CLASS_RULES.get(ARMOR_NAME_ALIASES.get(armor, armor))
     return FAST_MOVEMENT_FT if rule is not None and rule["category"] in ("light", "medium") else 0
 

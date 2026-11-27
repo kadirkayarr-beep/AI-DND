@@ -38,7 +38,7 @@ def catalog() -> dict[str, dict[str, Any]]:
 
 
 def _class_definition(character: dict[str, Any]) -> dict[str, Any]:
-    from api.dnd_2024_rules import CLASS_DEFINITIONS
+    from dnd_2024_rules import CLASS_DEFINITIONS
     return CLASS_DEFINITIONS.get(character.get("class"), {})
 
 
