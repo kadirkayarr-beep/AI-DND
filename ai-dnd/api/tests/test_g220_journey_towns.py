@@ -23,7 +23,7 @@ WAIT_STEPS = (7, 8)
 
 
 class MessengerChainIsBoundToItsTown(JourneyCase):
-    async def _chain(self, town: int, front: bool) -> dict[int, tuple[str, tuple[str, ...]]]:
+    async def _chain(self, town: int, *, front: bool) -> dict[int, tuple[str, tuple[str, ...]]]:
         scenario = load_scenario(CHAIN)
         setup = {**scenario.setup, "campaign_seed": town, "front_proposal": front}
         results = await self.run_scenario(dataclasses.replace(scenario, setup=setup))
@@ -38,7 +38,7 @@ class MessengerChainIsBoundToItsTown(JourneyCase):
         self.assertEqual(scenario.setup["campaign_seed"], CHAIN_TOWN)
         for front in (False, True):
             with self.subTest(front=front):
-                results = await self._chain(CHAIN_TOWN, front)
+                results = await self._chain(CHAIN_TOWN, front=front)
                 self.assertEqual({i: r for i, r in results.items() if r[0] != "pass"}, {})
                 self.assertEqual(self._heard_at_arrival(HARBOUR_STEP), [])
                 await self.asyncTearDown()
@@ -47,7 +47,7 @@ class MessengerChainIsBoundToItsTown(JourneyCase):
     async def test_town_eleven_hears_a_posting_at_the_harbour_and_sends_its_callers_later(self):
         for front in (False, True):
             with self.subTest(front=front):
-                results = await self._chain(OTHER_TOWN, front)
+                results = await self._chain(OTHER_TOWN, front=front)
                 self.assertEqual(results[HARBOUR_STEP][0], "new_break")
                 self.assertEqual(self._heard_at_arrival(HARBOUR_STEP),
                                  ["Şorven İskelesi kullanım dışı halatlarını ayıracak yardımcı aranıyor."])
