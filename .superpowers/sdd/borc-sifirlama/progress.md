@@ -97,3 +97,5 @@ REDFIX2 (D-638, D-654, D-657 closed; origin of spoken_promises red = G2.4 2a66f2
 Task DK2.B: complete (branch task/borc-dk2b-20261127, head 7edbf454e95f92b5dea30c0e94f8bd0b938d8a16, merge 536ea2f8adb4a7aa3eabd2a23e93540e0717adbb)
 Task DK2.A: complete (branch task/borc-dk2a-20261127, head 638fde479100f93647c22e8bf109bc88e5d5fc74, merge d9886067814a7bd8c82f98f92ff0bd2af1bb392f)
 Task DK2.C: complete (head ce135b07aab2492229c5d1953e35e451f06de6ee, merge f4e6793d07f3d0bf37855caea4293b552a04f724)
+
+Task DK2.D: complete (head c7a50985, merge 9fc2887d)
