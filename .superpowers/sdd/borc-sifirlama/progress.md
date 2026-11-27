@@ -99,3 +99,4 @@ Task DK2.A: complete (branch task/borc-dk2a-20261127, head 638fde479100f93647c22
 Task DK2.C: complete (head ce135b07aab2492229c5d1953e35e451f06de6ee, merge f4e6793d07f3d0bf37855caea4293b552a04f724)
 
 Task DK2.D: complete (head c7a50985, merge 9fc2887d)
+- Task DK2.E: complete (patch census report regenerated after CI red run 46081023223; lock unchanged). Ruling: no separate review — generated file from the repo tool, one test checks it — cost if wrong: CI red again.
