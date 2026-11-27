@@ -83,7 +83,7 @@ class SourceCorrectionsTests(unittest.TestCase):
                     with tempfile.TemporaryDirectory() as folder:
                         path = Path(folder)/'synthetic-legacy.json'
                         path.write_text(json.dumps(session.serialize_game_state()), encoding='utf-8')
-                        restored = game.create_session()
+                        restored = game.create_session(seed=1)
                         self.assertTrue(restored.load_game(path))
                     self.assertEqual(restored.world_state['inventory'], old_items)
                     self.assertEqual(restored.world_state.get('currency', {}), expected_currency)

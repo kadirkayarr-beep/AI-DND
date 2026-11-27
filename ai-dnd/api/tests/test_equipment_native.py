@@ -16,7 +16,7 @@ TOWN_SEED = 8160
 
 class NativeEquipmentTests(unittest.TestCase):
     def setUp(self):
-        self.session = game.create_session()
+        self.session = game.create_session(seed=1)
         self.session.world_state["location"] = "tavern"
 
     def command(self, text):
@@ -178,7 +178,7 @@ class NativeEquipmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "legacy.json"
             self.session.save_game(path)
-            restored = game.create_session()
+            restored = game.create_session(seed=1)
             self.assertTrue(restored.load_game(path))
         self.assertEqual(restored.world_state["inventory"],
                          ["Kutsal Sembol", "15 Altın", "Dua Kitabı"])
@@ -195,7 +195,7 @@ class NativeEquipmentTests(unittest.TestCase):
              "Weaver's Tools"),
         ):
             for option, expected_gp in (("A", gp), ("B", 50)):
-                session = game.create_session()
+                session = game.create_session(seed=1)
                 configure_character(
                     session, mode="custom", name="Galan", species="Human",
                     character_class="Fighter", background=background,

@@ -71,7 +71,7 @@ def operations(world):
 
 class KeepTheChange(unittest.TestCase):
     def setUp(self):
-        self.s = game.create_session()
+        self.s = game.create_session(seed=1)
         self.w = tavern(self.s)
         self.reply = open_offer(self.s)
 
@@ -196,7 +196,7 @@ class KeepTheChange(unittest.TestCase):
         sold: dict[str, list[int]] = {}
         refused: dict[str, int] = {}
         for setup in (tipped, tipped_short_purse, tip_declined, plain_tender, gold_kept):
-            session = game.create_session()
+            session = game.create_session(seed=1)
             tavern(session)
             setup(session)
             tavern_as_set = snapshot(session.world_state)

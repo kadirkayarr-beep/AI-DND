@@ -279,7 +279,7 @@ class EventEdgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "travel.json"
             session.save_game(path)
-            restored = game.create_session()
+            restored = game.create_session(seed=1)
             restored.load_game(path)
             self.assertEqual(restored.world_state["journey"], session.world_state["journey"])
             with patch.object(restored.rng, "randint", side_effect=AssertionError("No second midpoint roll")):

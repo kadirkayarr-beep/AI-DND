@@ -252,7 +252,7 @@ class StartupSafetyTests(unittest.TestCase):
         store.create_campaign(
             str(uuid.uuid4()),
             "Owned",
-            game.create_session(),
+            game.create_session(seed=1),
             principal=TEST_PLAYER,
         )
         app = create_app(
