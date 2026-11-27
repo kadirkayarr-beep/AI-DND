@@ -139,30 +139,35 @@ def _routes_reaching_routes() -> list[str]:
     ]
 
 
-class RoutesDoNotReachEachOther(unittest.TestCase):
+class TestRoutesDoNotReachEachOther(unittest.TestCase):
     """Contract api.routes_* modules do not import each other."""
 
     def test_no_routes_module_reaches_another_routes_module(self) -> None:
         """No chain of imports joins two routes modules."""
-        self.assertEqual(_routes_reaching_routes(), [])
+        if _routes_reaching_routes() != []:
+            self.fail("_routes_reaching_routes() differs from []")
 
 
-class EngineDoesNotImportApi(unittest.TestCase):
+class TestEngineDoesNotImportApi(unittest.TestCase):
     """Contract engine packages do not import api, with the listed edges still open."""
 
     def test_flat_engine_edges_are_only_the_listed_ones(self) -> None:
         """A removed edge must leave the list; a new edge fails."""
-        self.assertEqual(_flat_edges(), FLAT_EDGES_LEFT)
+        if _flat_edges() != FLAT_EDGES_LEFT:
+            self.fail("_flat_edges() differs from FLAT_EDGES_LEFT")
 
     def test_engine_package_edges_are_only_the_listed_ones(self) -> None:
         """The list matches the ignore_imports list of importlinter.ini."""
-        self.assertEqual(_package_edges(), PACKAGE_EDGES_LEFT)
+        if _package_edges() != PACKAGE_EDGES_LEFT:
+            self.fail("_package_edges() differs from PACKAGE_EDGES_LEFT")
 
     def test_rules_module_is_in_the_engine_and_the_old_path_is_the_same(self) -> None:
         """A patch on the old api path still reaches the engine."""
         engine_side = importlib.import_module("dnd_2024_rules")
-        self.assertIs(importlib.import_module("api.dnd_2024_rules"), engine_side)
-        self.assertEqual(engine_side.__name__, "dnd_2024_rules")
+        if importlib.import_module("api.dnd_2024_rules") is not engine_side:
+            self.fail("old api path is not the engine module")
+        if engine_side.__name__ != "dnd_2024_rules":
+            self.fail("engine module has the wrong name")
 
 
 if __name__ == "__main__":
