@@ -899,3 +899,11 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/api/tests/test_trails.py` `test_an_unread_letter_is_no_trail` | `trails == []` yerine `trails == [teklifte duran islerin kendi satirlari]`: okunmamis mektup hala iz eklemez, ama teklif edilmis baska is artik iz | gevsetme olabilir |
 | `ai-dnd/api/tests/test_real_lead_fallback.py` `test_a_live_armorer_workshop_lead_survives_the_empty_speech_reply` | D-336: yedek satir iz yazmaz kontrolu eklendi (var olan assert'ler ayni) | ekleme |
 | yeni testler | `test_quest_log_trails_g213`: sahibin izinde `who`, ayni soz bir iz, teklif edilmis is ucret ve gunle gorunur | ekleme |
+
+## G2.15 (D-516, D-549, D-552)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/scripts/quality_gate/size_lock.json` | `living_world.py::ensure_scene_state`, `weapon_attack.py::prepare` ve `weapon_attack.py::_resolve` satirlari silindi (islevler 151 satirin altina indi); hicbir sayi yukselmedi | kucultme |
+| yeni testler | `test_g215_long_function_split`: sahne durumu dogrulayicisi (45 durum) ve silah saldirisi hazirla/coz (50 durum) bolmeden once alinmis sha256 ile ayni; `test_g215_shrink_rows`: `size_budget.json` her kilitli dev islev icin belgede kucultme satiri | ekleme |
+| `docs/agents/kalite-taramasi-20261124.md` | D-552 kucultme plani tablosu eklendi (14 motor kilidi satiri) | ekleme |
