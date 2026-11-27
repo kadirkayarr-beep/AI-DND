@@ -39,6 +39,7 @@ import tr_case
 import name_catalog
 import npc_statements
 import grounded_places
+import turn_close
 
 KEY = "grounded_actions"
 SCHEMA_VERSION = 1
@@ -3156,7 +3157,7 @@ def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
     else:  # the end of the short road: the hours are really walked, and nothing is found that is not there
         _Run(session, player_input).spend(_ROAD_END_SECONDS)
         text, status, changes = _road_on_alone(flags), "walked", ["campaign_time"]
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(session.world_state)
     return {"messages": session.messages, "narration": text, "model_calls": 1,
             "action_result": {"action": "travel", "status": status, "success": status == "walked",
                               "state_changes": changes, "direct_response": text}}
@@ -3719,8 +3720,7 @@ def _overall(results) -> str:
 
 def _bookkeeping(run: _Run, narration: str, action_result: dict[str, Any]) -> dict[str, Any]:
     session = run.session
-    flags = run.world.setdefault("flags", {})
-    flags["turn_index"] = int(flags.get("turn_index", 0)) + 1
+    turn_close.advance(run.world)
     changed = [key for key in sorted(set(run.before) | set(run.world))
                if key not in {"flags", KEY, npc_statements.KEY} and run.before.get(key) != run.world.get(key)]
     action_result.setdefault("state_changes", changed)

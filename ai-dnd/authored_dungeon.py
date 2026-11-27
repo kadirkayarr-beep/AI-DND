@@ -1,5 +1,6 @@
 """Opt-in authored room/exit fixture; no geometry, model or parallel position owner."""
 import copy
+import turn_close
 
 from combat_lifecycle import CombatRequestError
 
@@ -79,9 +80,8 @@ def native_request(message, session=None):
 
 
 def _reply(session, message, narration, action, **details):
-    session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
-    session.messages.extend([{"role": "user", "content": message},
-                             {"role": "assistant", "content": narration}])
+    turn_close.advance(session.world_state)
+    turn_close.record_exchange(session.messages, message, narration)
     return {"messages": session.messages, "narration": narration, "model_calls": 0,
             "action_result": {"action": action, "status": "resolved", "success": True, **details}}
 

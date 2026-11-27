@@ -37,6 +37,8 @@ TURN_FILES = (
     "game_parts/turn.py", "game_parts/turn_front.py", "game_parts/places.py",
     "game_parts/living_world_turn.py", "api/routes_turn.py", "api/routes_undo.py",
     "api/routes_economic.py", "api/main.py",
+    "authored_dungeon.py", "pocket.py", "bound_text.py", "town_knowledge.py",
+    "world_threads.py", "bold_acts.py", "grounded_action.py",
 )
 
 
@@ -136,13 +138,14 @@ class TurnRollbackSites(unittest.IsolatedAsyncioTestCase):
         await self.assert_site("serialize_combat_result", CombatResultSerializationError("x"), 500,
                                "engine_error", "The combat result could not be verified safely.")
 
-    async def test_every_turn_end_increments_once_and_undo_restores_it(self):
-        """D-581, D-502: a close moves the index once and adds one pair; Undo restores both."""
+    async def test_every_turn_end_increments_once_and_undo_restores_it(self) -> None:
+        """D-581, D-502: a close moves the index once, adds one pair; Undo restores."""
         def closing_turn(message: str, **_kwargs: object) -> dict[str, object]:
             turn_close.advance(self.session.world_state)
-            turn_close.record_exchange(self.session.messages, message, "The door creaked.")
-            result = {"action": "world_interaction", "status": "resolved", "success": True,
-                      "state_changes": []}
+            turn_close.record_exchange(
+                self.session.messages, message, "The door creaked.")
+            result = {"action": "world_interaction", "status": "resolved",
+                      "success": True, "state_changes": []}
             return {"narration": "The door creaked.", "action_result": result}
 
         index_before = self.session.world_state.get("flags", {}).get("turn_index", 0)
@@ -166,12 +169,14 @@ class TurnRollbackSites(unittest.IsolatedAsyncioTestCase):
     def test_no_hand_written_turn_index_increment(self) -> None:
         """Check that turn_close.advance alone moves turn_index (D-581, D-502)."""
         root = Path(__file__).resolve().parents[2]
-        trees = {name: ast.parse((root / name).read_text(encoding="utf-8")) for name in TURN_FILES}
+        trees = {name: ast.parse((root / name).read_text(encoding="utf-8"))
+                 for name in TURN_FILES}
         found = [f"{name}:{node.lineno}" for name, tree in trees.items()
                  for node in ast.walk(tree) if moves_turn_index(node)]
         self.assertEqual(found, [], "turn_index is moved only by turn_close.advance")
 
     def test_advance_and_record_exchange(self) -> None:
+        """Check the counter moves by one and the pair is written as given."""
         self.assertEqual(turn_close.advance({"flags": {"turn_index": 4}}), 5)
         self.assertEqual(turn_close.advance({}), 1)
         messages: list[dict[str, str]] = []

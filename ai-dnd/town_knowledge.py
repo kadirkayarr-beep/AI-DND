@@ -31,6 +31,7 @@ import town_rumours
 import vouching
 import world_happenings
 import world_threads
+import turn_close
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -198,9 +199,8 @@ def board_turn(session: Any, text: Any) -> dict[str, Any] | None:
     shown = read_board(world)
     if shown is None:
         return None
-    flags = world.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": shown}])
+    turn_close.advance(world)
+    turn_close.record_exchange(session.messages, text, shown)
     return {"messages": session.messages, "narration": shown, "model_calls": 0,
             "action_result": {"action": "read_board", "status": "resolved", "success": True,
                               "state_changes": ["world_threads"], "direct_response": shown}}

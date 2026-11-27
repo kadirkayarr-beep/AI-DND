@@ -12,6 +12,7 @@ import living_world
 import tr_case
 import shop_trade
 import world_threads
+import turn_close
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -509,9 +510,8 @@ def _receipt(session, text: str, line: str) -> dict[str, Any]:
     import bound_text
     read_out = bound_text.paper_words(session, text)  # 'alıp okuyorum': the taking made it readable
     line = f"{line} {read_out}" if read_out else line
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": line}])
+    turn_close.advance(session.world_state)
+    turn_close.record_exchange(session.messages, text, line)
     return {"messages": session.messages, "narration": line, "model_calls": 0,
             "action_result": {"action": "pocket", "status": "resolved", "success": True,
                               "state_changes": ["inventory"], "direct_response": line}}
