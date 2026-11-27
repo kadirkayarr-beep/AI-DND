@@ -1,7 +1,6 @@
 """G2.17: CI discovery and lock guards (D-342, D-340, D-341, D-500, D-553, D-346, D-467).
 
-Checks that CI runs what the debt rows say it runs. The script `test_regression.py` runs here in-process; the
-engine start probe and the protected persistence tests run in child processes, so CI runs them (workflow text is checked).
+Checks that CI runs what the debt rows say it runs. The engine start probe and the protected persistence tests run in child processes, so CI runs them (workflow text is checked).
 """
 from __future__ import annotations
 
@@ -10,7 +9,7 @@ import io
 import json
 import os
 import re
-import runpy
+import subprocess  # nosec B404 - fixed argv list, no shell
 import sys
 import tempfile
 import types
@@ -18,11 +17,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from api.tests.guard_bound import CHILD_PROCESS, guard_bound
+from scripts import protected_tests_run
+from scripts.quality_gate import size_lock_shrink
+
 ROOT = Path(__file__).resolve().parents[2]
 REPO = ROOT.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-
-from quality_gate import size_lock_shrink  # noqa: E402
 
 CI = (REPO / ".github" / "workflows" / "ai-dnd-ci.yml").read_text(encoding="utf-8")
 QUALITY = (REPO / ".github" / "workflows" / "ai-dnd-quality.yml").read_text(encoding="utf-8")
@@ -37,16 +37,7 @@ def _job(text: str, name: str) -> str:
     return match.group(1)
 
 
-class RegressionScript(unittest.TestCase):
-    def test_the_script_passes_all_thirty_when_run_as_a_script(self):
-        # D-342: unittest collects nothing from test_regression.py; it only counts when run as a script.
-        # CI runs the script with the front reading off (the default); under the flag one test fails (park G2.17-1).
-        out = io.StringIO()
-        with mock.patch.dict(os.environ, {"AI_DND_FRONT_PROPOSAL": "0"}), contextlib.redirect_stdout(out),                 self.assertRaises(SystemExit) as done:
-            runpy.run_path(str(REGRESSION), run_name="__main__")
-        self.assertEqual(done.exception.code, 0, re.findall(r"Results: .*|  - test_.{0,300}", out.getvalue()) or out.getvalue()[-1500:])
-        self.assertIn("Results: 30 passed, 0 failed out of 30", out.getvalue())
-
+class TestRegressionScript(unittest.TestCase):
     def test_the_script_starts_every_session_with_a_fixed_seed(self):
         self.assertEqual(re.findall(r"create_session\(\s*\)", REGRESSION.read_text(encoding="utf-8")), [])
 
@@ -55,7 +46,7 @@ class RegressionScript(unittest.TestCase):
         self.assertNotIn("sys.modules", re.sub(r"assert sys\.modules\[\"game\"\][^\n]*", "", REGRESSION.read_text(encoding="utf-8")))
 
 
-class CiWorkflowSteps(unittest.TestCase):
+class TestCiWorkflowSteps(unittest.TestCase):
     def test_ci_runs_the_regression_script_and_demands_thirty_passes(self):
         gate = _job(CI, "bounded-gate")
         self.assertIn("python test_regression.py", gate)
@@ -75,31 +66,35 @@ class CiWorkflowSteps(unittest.TestCase):
         self.assertIn("scripts/protected_tests_run.py", gate)
 
 
-class ProtectedTestsRun(unittest.TestCase):
+class TestProtectedTestsRun(unittest.TestCase):
     def test_the_nine_protected_tests_exist_and_are_named_once(self):
-        import protected_tests_run as run
+        run = protected_tests_run
         self.assertEqual(len(run.PROTECTED), 9)
         self.assertEqual(len(set(run.PROTECTED)), 9)
         for name in run.PROTECTED:
             loaded = unittest.defaultTestLoader.loadTestsFromName(name)
             self.assertEqual([test.id() for test in loaded], [name], name)
 
+    @staticmethod
+    def result(tests_run, skipped=(), failures=(), errors=()):
+        return types.SimpleNamespace(testsRun=tests_run, skipped=list(skipped), failures=list(failures), errors=list(errors))
+
     def test_a_skip_a_failure_or_a_short_count_is_a_problem(self):
-        import protected_tests_run as run
-        clean = unittest.TestResult()
-        clean.testsRun = 9
-        self.assertEqual(run.problems(clean, 9), [])
-        skipped = unittest.TestResult()
-        skipped.testsRun = 9
-        skipped.skipped.append((object(), "guard-bound"))
-        self.assertEqual(run.problems(skipped, 9), ["1 skipped"])
-        failed = unittest.TestResult()
-        failed.testsRun = 8
-        failed.errors.append((object(), "boom"))
-        self.assertEqual(run.problems(failed, 9), ["1 failed", "ran 8, expected 9"])
+        run = protected_tests_run
+        self.assertEqual(run.problems(self.result(9), 9), [])
+        self.assertEqual(run.problems(self.result(9, skipped=[("t", "guard-bound")]), 9), ["1 skipped"])
+        self.assertEqual(run.problems(self.result(8, errors=[("t", "boom")]), 9), ["1 failed", "ran 8, expected 9"])
+
+    @guard_bound(CHILD_PROCESS)
+    def test_the_script_loads_its_tests_when_run_the_way_ci_runs_it(self):
+        # A script run has scripts/ first on sys.path; it must still find `api` and `game` (review of G2.17).
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        done = subprocess.run([sys.executable, "scripts/protected_tests_run.py", "--load-only"], cwd=ROOT, env=env,  # nosec B603
+                              capture_output=True, text=True, timeout=120, check=False)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
 
-class SizeBudgetShrinkCheck(unittest.TestCase):
+class TestSizeBudgetShrinkCheck(unittest.TestCase):
     @staticmethod
     def budget(files=None, long_functions=None, part_max=2500):
         return {"files": files or {}, "part_max": part_max, "slack": 50, "long_function_min": 151,
@@ -125,7 +120,7 @@ class SizeBudgetShrinkCheck(unittest.TestCase):
         self.assertEqual(self.run_cli(self.budget(files={"game.py": 1148}, long_functions={"game_parts/a.py::f": 200, "game_parts/a.py::g": 160}), old), 1)
 
 
-class LockEntries(unittest.TestCase):
+class TestLockEntries(unittest.TestCase):
     def test_the_big_economy_files_have_a_size_lock_entry(self):
         # D-500: without an entry a file may grow to part_max (2500) unnoticed.
         lock = json.loads(SIZE_LOCK.read_text(encoding="utf-8"))["files"]
@@ -135,7 +130,7 @@ class LockEntries(unittest.TestCase):
             self.assertGreaterEqual(lock[name], size, name)
 
 
-class SmokeScriptDigests(unittest.TestCase):
+class TestSmokeScriptDigests(unittest.TestCase):
     SCRIPTS = ("live_narration_smoke.py", "live_phase_c_narrative_smoke.py", "acceptance_test.py")
 
     def test_saves_and_scripts_share_one_digest_function(self):

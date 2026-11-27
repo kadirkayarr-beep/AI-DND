@@ -1,10 +1,16 @@
 """D-467: the nine save and move protection tests that every guarded slot run skips must run, unskipped, in CI.
 
-Usage (from ai-dnd/): python scripts/protected_tests_run.py
+Usage (from ai-dnd/): python scripts/protected_tests_run.py [--load-only]
 Exit 0 = all nine ran and passed, 1 = a skip, a failure, or a different count.
+--load-only only imports the nine tests (exit 1 if one cannot be imported).
 """
 import sys
 import unittest
+from pathlib import Path
+
+# A script run puts scripts/ on sys.path, not ai-dnd/; the tests import `api` and `game` from ai-dnd/.
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 PROTECTED = (
     "api.tests.test_engine_parts_pilot.PilotRollD20.test_both_import_orders_work_in_a_fresh_interpreter",
@@ -30,8 +36,17 @@ def problems(result: unittest.TestResult, expected: int) -> list[str]:
     return out
 
 
+def _flat(suite: unittest.TestSuite) -> list[unittest.TestCase]:
+    return [leaf for part in suite for leaf in (_flat(part) if isinstance(part, unittest.TestSuite) else [part])]
+
+
 def main() -> int:
     suite = unittest.defaultTestLoader.loadTestsFromNames(PROTECTED)
+    if "--load-only" in sys.argv:
+        broken = [t.id() for t in _flat(suite) if type(t).__name__ == "_FailedTest"]
+        for name in broken:
+            print(f"PROTECTED TESTS: cannot load {name}")
+        return 1 if broken or len(_flat(suite)) != len(PROTECTED) else 0
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     found = problems(result, len(PROTECTED))
     for line in found:
