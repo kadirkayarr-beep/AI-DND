@@ -399,5 +399,10 @@ class PythonDependencyDeclarationTests(unittest.TestCase):
         self.assertEqual("jwt", mapping["pyjwt"])
         self.assertEqual("yaml", mapping["pyyaml"])
 
+    def test_root_package_json_drops_the_unused_replit_connectors_sdk(self) -> None:
+        """D-593: nothing imports @replit/connectors-sdk, so the root drops it."""
+        manifest = json.loads((REPO / "package.json").read_text(encoding="utf-8"))
+        self.assertNotIn("@replit/connectors-sdk", manifest.get("dependencies", {}))
+
 if __name__ == "__main__":
     unittest.main()
