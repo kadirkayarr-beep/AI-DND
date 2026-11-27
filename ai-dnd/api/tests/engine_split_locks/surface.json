@@ -1455,12 +1455,6 @@
   "session_bound": true,
   "signature": "(intent, player_input, npc_target=None, target_id=None, *, check_feature=None, check_evidence=None)"
  },
- "_existing_local_tavern": {
-  "kind": "function",
-  "module": "game_parts.places",
-  "session_bound": true,
-  "signature": "(parent_location_id)"
- },
  "_experimental_npc_dialogue_context": {
   "kind": "function",
   "module": "game_parts.dialogue",
@@ -1562,12 +1556,6 @@
   "module": "game_parts.narration",
   "session_bound": true,
   "signature": "(narration, accepted_keys, rejected_names)"
- },
- "_filter_unsupported_lore_paragraphs": {
-  "kind": "function",
-  "module": "game_parts.lore",
-  "session_bound": true,
-  "signature": "(narration, lore_claims, lore_context, world_state)"
  },
  "_finalize_player_death": {
   "kind": "function",

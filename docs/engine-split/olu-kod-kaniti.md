@@ -86,3 +86,5 @@ Durum (2026-11-22): Kadir sohbette "10. sil" dedi. Denetleyicinin kararı: bu ce
 | `resolve_skill_check` | `api.core_resolution` | hayır | evet | yok | kalsın (yüzey kaydı) |
 
 `game` satırı: `game.py` doğrudan çalıştırılınca (`if __name__ == "__main__":` bloğu) motoru `game` adıyla yükleyen satır. `game_parts/__init__.py` ve `game_parts/terminal.py` de `import game` yapıyor, bu yüzden dört koşula göre silinebilir görünüyor. Doğrulamadım: `game.py`'yi bu satır olmadan çalıştırıp denemedim.
+
+Durum (2026-11-27, G2.25): S28 a (toplu kabul). `_filter_unsupported_lore_paragraphs` ve `_existing_local_tavern` silindi; uc niyet satiri `d6befd7c` ile zaten silinmisti. `game` satiri (`__main__` bolugundeki `import game`) SILINMEDI: `test_engine_routing` R2 (guard sekli) ve R13 (`game_parts/__init__.py`) ile `test_engine_surface` (`game` her parcanin globals'inda) onu istiyor; kilidi gevsetmeden silinemez. `test_game_header_f401_gate` bu tek ice aktarmayi acikca muaf tutar.

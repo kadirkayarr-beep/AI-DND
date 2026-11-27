@@ -105,11 +105,6 @@ def feat_status(character: dict[str, Any], feat: str, source: str) -> dict[str, 
     return {"eligible": not reasons, "reasons": reasons}
 
 
-def eligible_feats(character: dict[str, Any], source: str) -> list[str]:
-    """Feats the character may take from `source` (background, species, class_asi, fighting_style, any), in catalog order."""
-    return [name for name in catalog() if feat_status(character, name, source)["eligible"]]
-
-
 def _default_source(category: str) -> str:
     return {"origin": "background", "fighting_style": "fighting_style"}.get(category, "class_asi")
 

@@ -496,6 +496,14 @@ def _bodies_here_context(world_state):
     bodies = fallen.here(world_state)
     return {"bodies_here": [living_world.public_npc_name(npc) for npc in bodies[:4]]} if bodies else {}
 
+# SECURITY: LLM01/LLM07 (Prompt Injection, prompt-construction layer; System Prompt Leakage)
+# Level: B (Moderate) | Pattern: system_prompt_template (untrusted delimiter)
+# Applied by: llm-secure-patterns v1.0.0 / System Prompt Design | 2026-10-22
+# Behavioral hint to the model, not an enforced boundary. The player's text is
+# shown verbatim (never edited), so a faithful quote of it still equals the
+# original input that interaction_adventure.resolve_conversation compares with.
+# The boundary id is a digest of that exact text, so the text cannot contain its
+# own matching closing tag; look-alike tags inside it stay inert text.
 def _untrusted_player_block(prefix, text):
     """Show player text verbatim in a block whose boundary the text cannot forge."""
     raw = str(text)

@@ -864,3 +864,16 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/scripts/quality_gate/baselines/knip.json`, `fallow.json`, `docs/acceptance/source-baseline.json` | Silinen dosya ve paketlerin taban satirlari cikti (yalniz kuculme); kilit dosyasi ozeti yeni kilide guncellendi | kuculme |
 | yeni test | `tests/g222-shadcn-cleanup.test.mjs` (ui dosyalari ulasilabilir, Radix paketleri kullanilir, toast sistemi yok, galeri yalniz DEV, kontrolculer lib'de); `package.json` `test:standard` listesine eklendi | ekleme |
 | G2.23 `ai-dnd/api/tests/test_roadmap_b04.py` | Yeni sinif `PythonDependencyDeclarationTests` (6 test): ruff PT009 127 -> 136 (unittest tarzi assert; duz assert S101 verirdi, dosya duzeni ayni). Sinif kok pyproject/uv.lock/package.json okur, slotta kosmaz, yalniz worktree/CI | ekleme |
+
+## G2.25 (borc-sifirlama): game.py basligi ve olu kod tablosu (D-445, D-490, D-492, D-555, D-507, D-523)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/game.py` | 15 bos bolum basligi (`IRK OZELLIKLERI` ... `AC`, sondaki `MACERA`) kaldirildi; `SECURITY LLM01/LLM07` yorum blogu `game_parts/text_rules_a.py` icinde `_untrusted_player_block` ustune tasindi (8 satir, ayni metin). Yorum sayisi azaldi, `ast.dump` ayni (yalniz silinen ice aktarmalar disinda); `game.py` ve `text_rules_a.py` icin elle karsilastirildi | yorum sayisi degisti |
+| `ai-dnd/api/tests/engine_split_locks/size_budget.json` | `game.py` 1148 -> 1100 (yalniz kuculme) | kuculme |
+| `ai-dnd/api/tests/engine_split_locks/surface.json`, `scripts/engine_split/batches/{lore,places-1}.txt`, `vulture_whitelist.py` | `_filter_unsupported_lore_paragraphs` ve `_existing_local_tavern` silindi (S28 a, Kadir 2026-11-22 "10. sil"): islevler, yuzey girdileri, parti satirlari, iki beyaz liste satiri | kuculme |
+| `ai-dnd/api/tests/engine_split_locks/patch_census.json`, `docs/engine-split/patch-census.md` | `python scripts/engine_split/patch_census.py --write`: `d0c70ec0` (REDFIX) `test_thread_errand.py` icine `game._carry_out_thread_turn` yamasi koymus ama kilit yenilenmemisti; kilit ve rapor taze taramaya esitlendi (+1 hedef) | yenileme (bayat kilit) |
+| `ai-dnd/api/tests/test_bounded_encounter.py` `test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources` | Kurulum satiri `action_economy.use_species_bonus(...)` yerine `ensure(session)["player"]["bonus_action_spent"] = True`: ortak Bonus Action'i tuketme ayni, sinanan davranis ve assert'ler ayni; silinen islev yalniz bu satirdan cagriliyordu | kurulum degisti, esit siki |
+| `ai-dnd/api/tests/test_roadmap_c03.py` yardimci `eligible` (51 kullanim) | `feat in eligible_feats(...)` yerine `feat in catalog() and feat_status(...)["eligible"]`: ayni sonuc (silinen islev tam bunu yapiyordu) | yardimci degisti, esit siki |
+| `ai-dnd/api/tests/test_roadmap_c01.py` `test_a_registered_resolver_runs_only_for_a_complete_entry` | `register_resolver(...)` yerine `_RESOLVERS[...] = ...` (testin kendi `finally` bolumu zaten `_RESOLVERS.pop` kullaniyordu) | kurulum degisti, esit siki |
+| `ai-dnd/api/tests/test_game_header_f401_gate.py` | yeni (5 test): `game.py` kullanilmayan ice aktarmalari yuzey kaydinda olmali, `game_parts` hicbir kullanilmayan ice aktarma tasimaz (yalniz `import game` muaf), bos bolum basligi yok, SECURITY notu `_untrusted_player_block` ustunde | ekleme |

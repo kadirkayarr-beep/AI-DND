@@ -10,5 +10,3 @@
 # --- Section A: game.py imports. Spot check 2026-11-24: only roll_initiative_npc has dynamic use (tests patch game.X); the other 4 are real unused imports. Owner = 4c. ---
 adventure_director  # unused import (ai-dnd/game.py:28)
 roll_initiative_npc  # unused import (ai-dnd/game.py:79)
-_existing_local_tavern  # unused import (ai-dnd/game.py:275)
-_filter_unsupported_lore_paragraphs  # unused import (ai-dnd/game.py:293)

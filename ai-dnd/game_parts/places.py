@@ -875,20 +875,6 @@ def _engine_location_parent(location_id):
     parent = location.get("parent_location_id") if isinstance(location, dict) else None
     return parent if isinstance(parent, str) and parent in world_state.get("locations", {}) else None
 
-def _existing_local_tavern(parent_location_id):
-    locations = game._session().world_state.get("locations", {})
-    if not isinstance(locations, dict):
-        return None
-    return next(
-        (
-            location for location in locations.values()
-            if isinstance(location, dict)
-            and location.get("parent_location_id") == parent_location_id
-            and location.get("scene_kind") == "tavern"
-        ),
-        None,
-    )
-
 def _resolve_explicit_local_scene_parent(
     parent_location_id, player_input, *, fallback_single=True
 ):
