@@ -818,3 +818,13 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/api/tests/test_engine_gate_boot.py` `_engine_import` | `import_module("game")` bos ad ve `builtins.__import__("game")` de gorulur (D-434) | siklastirma |
 | `docs/engine-split/patch-census.md` | Yeniden uretildi (test dosyalari degisti); kilit `patch_census.json` icerigi ayni. Yeni test rapor ile taze taramayi karsilastirir (D-427; yuvada docs yok, orada atlanir) | ekleme |
 | yeni testler | `test_engine_routing.py` (D-349 kabul edilen kor noktalar), `test_engine_move_check.py` (D-431, D-432), `test_engine_move_tool.py` (D-475 a, b, c, d), `test_engine_probe_tools.py` (D-363, D-435), `test_engine_patch_census.py` (D-427), `test_engine_gate_boot.py` (D-359, D-434) | ekleme |
+
+## G2.9 (borc-sifirlama): ekonomi cekirdegi (D-317, D-403, D-501)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_d170_purse.py` `test_an_uncounted_shopkeeper_has_the_shops_cash`, `ai-dnd/api/tests/test_d207_written_purse.py` `test_a_shopkeeper_opens_with_the_till` | Sinir yeniden tanimlandi (D-317): 1000 bakir kasa artik yalniz `world["shops"]` icinde `shopkeeper_id` olan kisiye; rolu yalniz "Shopkeeper" yazan, dukkani olmayan kisi 5-40 bakir. Test dukkan kaydini kurup 1000'i ayni siklikla sinar, rol-tek durumu 5-40 olarak ekler | yeniden yazim, **gevsetme olabilir** (esik rolden dukkan kaydina tasindi) |
+| `ai-dnd/api/tests/test_coin_writers.py` `WRITERS` | `equipment_economy.py:_apply` yerine `equipment_ops.py:_buy`, `_sell`, `_reward` (D-501 bolme, ayni yazicilar) ve yeni `game_parts/coin.py:create_shop_from_proposal` (D-317: yeni dukkan sahibinin kasasi) | yeniden adlandirma + bir yeni para yazici girdisi, gevsetme degil |
+| `ai-dnd/scripts/quality_gate/size_lock.json`, `baselines/radon.json`, `api/tests/engine_split_locks/size_budget.json` | `equipment_economy.py` 1159 -> 933 ve `::_apply` 230 girdisi silindi; radon `_apply` 119 girdisi silindi, `_front_step` 155 -> 154; `_front_step` uzun islev siniri 235 -> 229. Yalniz kuculdu | sikilastirma |
+| `ai-dnd/api/tests/engine_split_locks/surface.json`, `sensitive.json` | Yeni `game._no_list_fallback` (D-403: liste kurulamayan okuma da paranin kararini verir) kayit altina alindi | ekleme |
+| yeni testler | `test_d317_shopkeeper_purse.py` (D-317, D-403), `test_equipment_apply_pin.py` (D-501 karakterizasyon: her islem icin altin, esya, makbuz metni, Geri Al'da dunyanin degismemesi, kollarin arguman sayisi), `test_front_failed_fallback.py` yeni walk-out ve evet+bozuk-okuma testleri, `test_d317_shopkeeper_purse.py` tek-sefer-sorma testi | ekleme |

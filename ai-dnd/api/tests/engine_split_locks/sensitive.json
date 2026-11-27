@@ -135,6 +135,9 @@
     "_narrator_shop_record": [
       "money"
     ],
+    "_no_list_fallback": [
+      "money"
+    ],
     "_npc_answers_to": [
       "money"
     ],

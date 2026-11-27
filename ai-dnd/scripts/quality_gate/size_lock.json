@@ -14,7 +14,7 @@
   "api/tests/test_weapon_attack.py": 2549,
   "bold_acts.py": 1543,
   "economic_actions.py": 1973,
-  "equipment_economy.py": 1159,
+  "equipment_economy.py": 933,
   "grounded_action.py": 3869,
   "test_sessions.py": 4296
  },
@@ -40,7 +40,6 @@
   "api/tests/playable_living_world_v1_review.py::_validate_narration_review": 163,
   "api/tests/playable_living_world_v1_review.py::_validate_objective_evidence": 392,
   "docs/evidence/v02-20261025/faz7_ah_live.py::main": 272,
-  "equipment_economy.py::_apply": 230,
   "exploration.py::resolve_command": 173,
   "grounded_action.py::_decide": 167,
   "grounded_action.py::plan": 186,
