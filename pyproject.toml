@@ -20,9 +20,6 @@ dev = [
     "pypdf>=7.2.0",
 ]
 
-[tool.uv]
-constraint-dependencies = ["certifi>=2026.10.18"]
-
 [tool.deptry]
 # Repo-local modules (api, game, engine_split, ...) live beside the code, not in the lock, so DEP001 is noise.
 ignore = ["DEP001"]

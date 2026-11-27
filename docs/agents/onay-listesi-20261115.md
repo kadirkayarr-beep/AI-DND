@@ -939,4 +939,10 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `test_g210_creation_hardening.py`, `test_g212_wizard_cleric_start_http.py`, `test_history_paged_read.py`, `test_engine_move_tool.py`, `test_engine_probe_tools.py`, `claim_race.py`, `receipt_archive_fixture.py` | Sinif duzeyi/yerel tip bildirimleri; `test_history_paged_read.py` `SpyCursor` artik `sqlite3.Cursor` alt sinifi (sarmalayici yerine); kaydettigi `fetchall` sorgu listesi ayni | tip duzeltmesi, iddia ayni |
 | `test_dk2b_rules_split.py` | Yeni: oyun kurali iletilerinin metni ve bolunen yardimcilarin davranisi `dnd_2024_rules` icin sabitlendi (11 test; "must" -> "MUST" kirma denemesinde kirmizi) | ekleme |
 
+## DK2.D (borc-sifirlama): CI certifi aktarimi
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `test_roadmap_b04.py` `PythonDependencyDeclarationTests` | `test_locked_certifi_is_past_pysec_2026_4320` degismedi (uv.lock surumunu okur). Yeni: `test_no_unpinned_constraint_reaches_the_hash_pinned_export` (pyproject `[tool.uv] constraint-dependencies` ve uv.lock `[manifest]` olmamali; `--require-hashes` aktarimi bozulmasin) | ekleme |
+
 Not: `test_roadmap_b04` slot 2'de 5 ortam hatasi veriyor (kok dosyalar slota tasinmiyor); kod bozulmasi degil, kok dosyali makinede dogrulanmadi.
