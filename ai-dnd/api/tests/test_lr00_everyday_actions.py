@@ -78,8 +78,16 @@ class EverydayActionTests(unittest.IsolatedAsyncioTestCase):
         text = await self.turn("Marek'in peşinden gidiyorum ama fark ettirmeden, biraz arkadan")
         self.assertIn("Marek", text)
         self.assertEqual(self.session.world_state["location"], location)
-        text = await self.turn("Az önce gördüğüm adamın peşine takılıyorum.")
-        self.assertIn("izini kaybediyorsun", text)
+        # D-243: nobody found, so the fixed "lost trail" line is not the answer; the line goes on to the reading / narrator.
+        before = self.session.world_state["flags"].get("turn_index", 0)
+        self.assertIsNone(everyday_actions.resolve(
+            self.session.world_state, "Az önce gördüğüm adamın peşine takılıyorum.",
+            door=None, reference=lambda _name, _text: False, turn=before + 1,
+        ))
+        response = await self.http.post(
+            self.turn_url, json={"message": "Az önce gördüğüm adamın peşine takılıyorum.", "action_id": str(uuid.uuid4())}
+        )  # the fake model gives no usable reading here, so this may be an honest 503, never the stock line
+        self.assertNotIn("izini kaybediyorsun", response.text)
 
     def test_whistling_and_dancing_are_not_a_stock_line(self):
         self.assertIsNone(everyday_actions.classify("sıkıldım, ıslık çala çala sokakta biraz dans ediyorum"))

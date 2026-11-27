@@ -135,7 +135,7 @@ def resolve(world: dict[str, Any], text: str, *, door: dict[str, Any] | None,
         person = _named_person(world, text, reference) or _person_by_sight(people, text)
         if person is not None:
             return {"kind": kind, "npc_id": person.get("id"), "text": _followed(person, seed)}
-        return {"kind": kind, "npc_id": None, "text": _LOST_TRAIL}
+        return None  # D-243: nobody found; the reading or the narrator answers, no stock line
     return None
 
 
