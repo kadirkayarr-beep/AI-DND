@@ -263,7 +263,8 @@ test("isolated real play UI stays usable at phone and desktop sizes", async (t) 
     assert.ok(Math.abs(openedRollCard.position - readingPositionBeforeCardToggle) <= 2, `expanding result details must not jump the story (${viewport.width}x${viewport.height}: card top ${readingPositionBeforeCardToggle} -> ${openedRollCard.position}, moved ${openedRollCard.position - readingPositionBeforeCardToggle}px)`);
     assert.match(openedRollCard.text, /Atılan zarlar|Kullanılan D20/);
     assert.match(openedRollCard.text, /Orta/);
-    assert.doesNotMatch(openedRollCard.text, /DC\s*\d/i);
+    assert.match(openedRollCard.text, /Zorluk\s*Orta, DC 15/);
+    assert.doesNotMatch(openedRollCard.text.replace(/Zorluk\s*Orta, DC 15/, ''), /DC\s*\d/i, "DC appears only in the difficulty row");
     await press(play.page, " ", "Space", 32);
     await waitForValue(play.page, "document.querySelector('[data-testid=\"skill-check-result\"]')?.open === false");
     const closedRollPosition = await cardTopOf();

@@ -18,7 +18,7 @@ def _world(**extra):
 class PublicInventoryShieldTests(unittest.TestCase):
     def test_creation_shield_without_hand_entry_is_marked_equipped(self):
         labels = equipment_economy.public_inventory(_world())
-        self.assertEqual(labels[0], "Kalkan [item_s1] (kuşanılmış)")
+        self.assertEqual(labels[0], "Kalkan [item_s1] (kuşanılmış) (ikinci el)")
         self.assertEqual(labels[1], "Gürz (Mace) [item_m1]")
         self.assertEqual(labels[2], "Kutsal Sembol [item_c1]")
 
@@ -29,9 +29,10 @@ class PublicInventoryShieldTests(unittest.TestCase):
     def test_hand_held_item_still_marked(self):
         world = _world()
         world["equipment"]["main_hand"] = "item_m1"
+        world["equipment"]["off_hand"] = "item_c1"
         labels = equipment_economy.public_inventory(world)
-        self.assertEqual(labels[1], "Gürz (Mace) [item_m1] (kuşanılmış)")
-        self.assertEqual(labels[0], "Kalkan [item_s1] (kuşanılmış)")
+        self.assertEqual(labels[1], "Gürz (Mace) [item_m1] (kuşanılmış) (ana el)")
+        self.assertEqual(labels[2], "Kutsal Sembol [item_c1] (kuşanılmış) (ikinci el)")
 
     def test_shield_without_identity_does_not_crash(self):
         world = _world()

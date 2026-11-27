@@ -46,7 +46,9 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
     && result.original_ability && ABILITY_ABBREVIATIONS[result.original_ability];
   const featureAbilityLabel = primalKnowledge ? 'Kuvvet (Primal Knowledge)' : null;
   const tacticalMind = result.check_feature === 'tactical_mind' ? availableNumber(result.tactical_mind_roll) : undefined;
-  const difficultyLabel = DIFFICULTY_LABELS[result.difficulty];
+  const difficultyBase = DIFFICULTY_LABELS[result.difficulty];
+  const dc = availableNumber(result.dc);
+  const difficultyLabel = difficultyBase && dc !== undefined ? `${difficultyBase}, DC ${dc}` : difficultyBase;
   const rolls = Array.isArray(result.d20_rolls)
     ? result.d20_rolls.map(availableNumber).filter((roll): roll is number => roll !== undefined)
     : [];

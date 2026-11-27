@@ -199,7 +199,7 @@ export function DetailsPanel({ state }: { state: GameState }) {
 }
 
 export function LeftColumn({ state, catalog, decisionScope = '', conversionBlocked = true, onCommand }: { state: GameState; catalog?: unknown; decisionScope?: string; conversionBlocked?: boolean; onCommand?: (message: string, command: CombatActionInput) => void }) {
-  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} catalog={catalog} walletTotalCp={state.wallet?.total_cp ?? null} /><SpellcastingPanel spellcasting={state.spellcasting} concentration={state.concentration} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
+  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} catalog={catalog} inventory={state.inventory} walletTotalCp={state.wallet?.total_cp ?? null} /><SpellcastingPanel spellcasting={state.spellcasting} concentration={state.concentration} decisionScope={JSON.stringify([decisionScope, state.combat?.combat_id, state.combat?.round, state.combat?.current_turn_index, state.combat?.current_actor_id, state.combat?.active])} conversionBlocked={conversionBlocked} onCommand={onCommand} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
 const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
