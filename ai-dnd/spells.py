@@ -185,6 +185,11 @@ def longer_spell_names(supported: dict[str, str]) -> list[str]:
                    and any(alias in spelling for alias in supported)), key=len, reverse=True)
 
 
+def longer_unsupported_names() -> list[str]:
+    """Return spellings of PHB spells holding a not-yet alias, longest first (D-280)."""
+    return longer_spell_names(dict(_UNSUPPORTED_ALIASES))
+
+
 def without_names(text: str, names: list[str]) -> str:
     """The text with each named longer spell blanked out, so its inner supported name is not read (D-120)."""
     for name in names:

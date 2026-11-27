@@ -11,11 +11,13 @@ import type { CharacterCreateInputBackgroundAbilityBonuses } from './characterCr
 import type { CharacterCreateInputBackgroundEquipmentOption } from './characterCreateInputBackgroundEquipmentOption';
 import type { CharacterCreateInputGiantAncestry } from './characterCreateInputGiantAncestry';
 import type { CharacterCreateInputMode } from './characterCreateInputMode';
+import type { ClericLevelChoices } from './clericLevelChoices';
 import type { FighterLevelChoices } from './fighterLevelChoices';
 import type { MonkLevelChoices } from './monkLevelChoices';
 import type { PaladinLevelChoices } from './paladinLevelChoices';
 import type { RogueLevelChoices } from './rogueLevelChoices';
 import type { SorcererLevelChoices } from './sorcererLevelChoices';
+import type { WizardLevelChoices } from './wizardLevelChoices';
 
 /**
  * Custom mode requires a non-null name, class, and species (race is the older alias for species and is accepted instead of it). Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
@@ -27,7 +29,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | WizardLevelChoices | ClericLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40

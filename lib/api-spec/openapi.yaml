@@ -6911,6 +6911,8 @@ components:
           - $ref: '#/components/schemas/MonkLevelChoices'
           - $ref: '#/components/schemas/RogueLevelChoices'
           - $ref: '#/components/schemas/PaladinLevelChoices'
+          - $ref: '#/components/schemas/WizardLevelChoices'
+          - $ref: '#/components/schemas/ClericLevelChoices'
           - type: 'null'
           title: Level Choices
         name:
@@ -7223,6 +7225,14 @@ components:
         monk_starting_creation:
           anyOf:
           - $ref: '#/components/schemas/MonkStartingCreationOptions'
+          - type: 'null'
+        wizard_starting_creation:
+          anyOf:
+          - $ref: '#/components/schemas/WizardStartingCreationOptions'
+          - type: 'null'
+        cleric_starting_creation:
+          anyOf:
+          - $ref: '#/components/schemas/ClericStartingCreationOptions'
           - type: 'null'
         races:
           additionalProperties: true
@@ -7941,6 +7951,194 @@ components:
       - supported_starting_levels
       - level_2
       title: RogueStartingCreationOptions
+    WizardLevelChoices:
+      properties:
+        '2':
+          $ref: '#/components/schemas/WizardSpellbookChoices'
+        '3':
+          $ref: '#/components/schemas/WizardLevel3Choices'
+        '4':
+          $ref: '#/components/schemas/WizardLevel4Choices'
+        '5':
+          $ref: '#/components/schemas/WizardSpellbookChoices'
+      additionalProperties: false
+      type: object
+      required:
+      - '2'
+      title: WizardLevelChoices
+    ClericLevelChoices:
+      properties:
+        '2':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+        '3':
+          $ref: '#/components/schemas/ClericLevel3Choices'
+        '4':
+          $ref: '#/components/schemas/ClericLevel4Choices'
+        '5':
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+      additionalProperties: false
+      type: object
+      required:
+      - '2'
+      title: ClericLevelChoices
+    WizardStartingSpellbookOptions:
+      properties:
+        spellbook_spell_count:
+          type: integer
+          title: Spellbook Spell Count
+        spellbook_spell_ids:
+          items:
+            type: string
+          type: array
+          title: Spellbook Spell Ids
+      additionalProperties: false
+      type: object
+      required:
+      - spellbook_spell_count
+      - spellbook_spell_ids
+      title: WizardStartingSpellbookOptions
+    WizardStartingLevel3Options:
+      properties:
+        spellbook_spell_count:
+          type: integer
+          title: Spellbook Spell Count
+        spellbook_spell_ids:
+          items:
+            type: string
+          type: array
+          title: Spellbook Spell Ids
+        subclass_options:
+          items:
+            $ref: '#/components/schemas/SorcererSubclassOption'
+          type: array
+          title: Subclass Options
+      additionalProperties: false
+      type: object
+      required:
+      - spellbook_spell_count
+      - spellbook_spell_ids
+      - subclass_options
+      title: WizardStartingLevel3Options
+    WizardStartingLevel4Options:
+      properties:
+        spellbook_spell_count:
+          type: integer
+          title: Spellbook Spell Count
+        spellbook_spell_ids:
+          items:
+            type: string
+          type: array
+          title: Spellbook Spell Ids
+        cantrip_count:
+          type: integer
+          title: Cantrip Count
+        cantrip_ids:
+          items:
+            type: string
+          type: array
+          title: Cantrip Ids
+        supported_asi_choices:
+          items:
+            $ref: '#/components/schemas/LevelUpAsiChoice'
+          type: array
+          title: Supported Asi Choices
+      additionalProperties: false
+      type: object
+      required:
+      - spellbook_spell_count
+      - spellbook_spell_ids
+      - cantrip_count
+      - cantrip_ids
+      - supported_asi_choices
+      title: WizardStartingLevel4Options
+    WizardStartingCreationOptions:
+      properties:
+        supported_starting_levels:
+          items:
+            type: integer
+          type: array
+          title: Supported Starting Levels
+        level_2:
+          $ref: '#/components/schemas/WizardStartingSpellbookOptions'
+        level_3:
+          $ref: '#/components/schemas/WizardStartingLevel3Options'
+        level_4:
+          $ref: '#/components/schemas/WizardStartingLevel4Options'
+        level_5:
+          $ref: '#/components/schemas/WizardStartingSpellbookOptions'
+        effects_pending_by_level:
+          $ref: '#/components/schemas/SorcererEffectsPendingByLevel'
+      additionalProperties: false
+      type: object
+      required:
+      - supported_starting_levels
+      - level_2
+      - level_3
+      - level_4
+      - level_5
+      - effects_pending_by_level
+      title: WizardStartingCreationOptions
+    ClericStartingLevel3Options:
+      properties:
+        subclass_options:
+          items:
+            $ref: '#/components/schemas/SorcererSubclassOption'
+          type: array
+          title: Subclass Options
+      additionalProperties: false
+      type: object
+      required:
+      - subclass_options
+      title: ClericStartingLevel3Options
+    ClericStartingLevel4Options:
+      properties:
+        cantrip_count:
+          type: integer
+          title: Cantrip Count
+        cantrip_ids:
+          items:
+            type: string
+          type: array
+          title: Cantrip Ids
+        supported_asi_choices:
+          items:
+            $ref: '#/components/schemas/LevelUpAsiChoice'
+          type: array
+          title: Supported Asi Choices
+      additionalProperties: false
+      type: object
+      required:
+      - cantrip_count
+      - cantrip_ids
+      - supported_asi_choices
+      title: ClericStartingLevel4Options
+    ClericStartingCreationOptions:
+      properties:
+        supported_starting_levels:
+          items:
+            type: integer
+          type: array
+          title: Supported Starting Levels
+        level_2:
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+        level_3:
+          $ref: '#/components/schemas/ClericStartingLevel3Options'
+        level_4:
+          $ref: '#/components/schemas/ClericStartingLevel4Options'
+        level_5:
+          $ref: '#/components/schemas/BarbarianLevel2Choices'
+        effects_pending_by_level:
+          $ref: '#/components/schemas/SorcererEffectsPendingByLevel'
+      additionalProperties: false
+      type: object
+      required:
+      - supported_starting_levels
+      - level_2
+      - level_3
+      - level_4
+      - level_5
+      - effects_pending_by_level
+      title: ClericStartingCreationOptions
     MonkLevel3Choices:
       type: object
       additionalProperties: false

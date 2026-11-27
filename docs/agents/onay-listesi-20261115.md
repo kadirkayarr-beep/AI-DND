@@ -778,3 +778,13 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/test_combat_v2_authoritative.py` `test_X_inventory_parser_no_op` | eski `ground_items` listesi besleyen alt testler kalkti; ayni iddialar ayni sekilde | ekleme/esit |
 | `ai-dnd/api/tests/engine_split_locks/surface.json`, `scripts/engine_split/batches/places-1.txt`, `scripts/quality_gate/baselines/ruff.json` | silinen ad ve iki betik girdisi cikti | kilit kuculmesi |
 | yeni test | `ai-dnd/api/tests/test_g27_old_inventory_branches.py` (D-504, D-526, D-518, tam tur) | ekleme |
+
+## G2.12 (borc-sifirlama): buyu satirlari ve Wizard/Cleric baslangic 2-5 (D-057, D-280, D-040)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_roadmap_c10_class_tables.py` `test_public_creation_catalog_offers_starting_levels_only_for_the_progressed_classes` | Beklenen `*_starting_creation` anahtar listesine `cleric_starting_creation` ve `wizard_starting_creation` eklendi (siralama alfabetik, ayni siki esitlik). Katalog siniri degisti: iki sinif daha baslangic seviyesi sunuyor | yeniden yazim, **gevsetme olabilir** (sinir tanimi degisti) |
+| `ai-dnd/api/tests/main_openapi_golden.json` | Yalniz ekleme (295 satir): Wizard/Cleric baslangic ve secim modelleri, `CharacterCreateInput.level_choices` birligine iki model, katalog yanitina iki alan | ekleme |
+| `artifacts/ai-dnd-experience/tests/roadmap-c06-barbarian-start2-ui.test.mjs`, `roadmap-c06-barbarian-start45-ui.test.mjs`, `roadmap-c14-fighter-ui.test.mjs`, `roadmap-c15-monk-ui.test.mjs` | Ekranin yeni serbest degiskenleri (`casterStarting`, `isCasterStartClass`, `casterOptions`) vm ortamina eklendi; hicbir iddia degismedi | yeniden yazim, gevsetme degil |
+| `ai-dnd/api/schemas.py` `CharacterCreateInput.fields_must_match_creation_mode` | Barbarian/Fighter/Paladin/Rogue/Monk dallari tek tabloya (`_START_BUNDLES`) toplandi, Wizard ve Cleric tabloya eklendi. Ayni hata iletileri ("... exact level2 to level5 choice bundle ..." sozu geri konuldu, yeni siniflar da ayni soz; testle sabit), ayni sinif/model eslesmesi, ayni "{2: {}} paylasimi" (Fighter, Rogue, Monk, Cleric). Gereksiz `starting_level in (2,3,4,5)` kontrolu kalkti (alan zaten 1-5 ile sinirli, ve `> 1` dalinda). Karmasiklik 43 -> 27 | yeniden duzenleme, davranis ayni (komsu setler yesil) |
+| yeni testler | `test_g212_spell_rows.py` (D-057 x2, D-280 x1), `test_g212_wizard_cleric_start_http.py` (4 test), `artifacts/ai-dnd-experience/tests/prepared-caster-starting.test.mjs` (6 test; `test:standard` listesine eklendi) | ekleme |

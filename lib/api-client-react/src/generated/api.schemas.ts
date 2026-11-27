@@ -3854,6 +3854,20 @@ export interface PaladinLevelChoices {
   '5'?: PaladinLevel5Choices;
 }
 
+export interface WizardLevelChoices {
+  '2': WizardSpellbookChoices;
+  '3'?: WizardLevel3Choices;
+  '4'?: WizardLevel4Choices;
+  '5'?: WizardSpellbookChoices;
+}
+
+export interface ClericLevelChoices {
+  '2': BarbarianLevel2Choices;
+  '3'?: ClericLevel3Choices;
+  '4'?: ClericLevel4Choices;
+  '5'?: BarbarianLevel2Choices;
+}
+
 /**
  * @nullable
  */
@@ -3900,7 +3914,7 @@ export interface CharacterCreateInput {
      * @maximum 5
      */
   starting_level?: number;
-  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | null;
+  level_choices?: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | WizardLevelChoices | ClericLevelChoices | null;
   /**
      * @minLength 1
      * @maxLength 40
@@ -4241,6 +4255,53 @@ export interface MonkStartingCreationOptions {
   level_5?: BarbarianStartingLevel5Options | null;
 }
 
+export interface WizardStartingSpellbookOptions {
+  spellbook_spell_count: number;
+  spellbook_spell_ids: string[];
+}
+
+export interface WizardStartingLevel3Options {
+  spellbook_spell_count: number;
+  spellbook_spell_ids: string[];
+  subclass_options: SorcererSubclassOption[];
+}
+
+export interface WizardStartingLevel4Options {
+  spellbook_spell_count: number;
+  spellbook_spell_ids: string[];
+  cantrip_count: number;
+  cantrip_ids: string[];
+  supported_asi_choices: LevelUpAsiChoice[];
+}
+
+export interface WizardStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: WizardStartingSpellbookOptions;
+  level_3: WizardStartingLevel3Options;
+  level_4: WizardStartingLevel4Options;
+  level_5: WizardStartingSpellbookOptions;
+  effects_pending_by_level: SorcererEffectsPendingByLevel;
+}
+
+export interface ClericStartingLevel3Options {
+  subclass_options: SorcererSubclassOption[];
+}
+
+export interface ClericStartingLevel4Options {
+  cantrip_count: number;
+  cantrip_ids: string[];
+  supported_asi_choices: LevelUpAsiChoice[];
+}
+
+export interface ClericStartingCreationOptions {
+  supported_starting_levels: number[];
+  level_2: BarbarianLevel2Choices;
+  level_3: ClericStartingLevel3Options;
+  level_4: ClericStartingLevel4Options;
+  level_5: BarbarianLevel2Choices;
+  effects_pending_by_level: SorcererEffectsPendingByLevel;
+}
+
 export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
   barbarian_starting_creation?: BarbarianStartingCreationOptions | null;
@@ -4248,6 +4309,8 @@ export interface CharacterCreationCatalogResponse {
   paladin_starting_creation?: PaladinStartingCreationOptions | null;
   rogue_starting_creation?: RogueStartingCreationOptions | null;
   monk_starting_creation?: MonkStartingCreationOptions | null;
+  wizard_starting_creation?: WizardStartingCreationOptions | null;
+  cleric_starting_creation?: ClericStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

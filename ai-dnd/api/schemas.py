@@ -1221,6 +1221,38 @@ class SorcererLevelChoices(BaseModel):
     level_5: LevelUpFiveChoices = Field(default_factory=lambda: None, alias="5")
 
 
+class WizardLevelChoices(BaseModel):
+    """Wizard start 2-5: the earned-level steps (spellbook spells each level, subclass, cantrip and ASI)."""
+
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+    level_2: WizardSpellbookChoices = Field(alias="2")
+    level_3: WizardLevel3Choices = Field(
+        default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None,
+    )
+    level_4: WizardLevel4Choices = Field(
+        default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None,
+    )
+    level_5: WizardSpellbookChoices = Field(
+        default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None,
+    )
+
+
+class ClericLevelChoices(BaseModel):
+    """Cleric start 2-5: levels 2 and 5 take no choice (the Barbarian's empty strict object)."""
+
+    model_config = ConfigDict(extra="forbid", validate_by_alias=True, validate_by_name=False)
+    level_2: BarbarianLevel2Choices = Field(alias="2")
+    level_3: ClericLevel3Choices = Field(
+        default_factory=lambda: None, alias="3", exclude_if=lambda value: value is None,
+    )
+    level_4: ClericLevel4Choices = Field(
+        default_factory=lambda: None, alias="4", exclude_if=lambda value: value is None,
+    )
+    level_5: BarbarianLevel2Choices = Field(
+        default_factory=lambda: None, alias="5", exclude_if=lambda value: value is None,
+    )
+
+
 _MAX_LIST_ITEMS = 40
 _MAX_LIST_ENTRY_CHARS = 100
 
@@ -1244,12 +1276,24 @@ SmallStrings = Annotated[list[str], AfterValidator(_small_list)]
 AbilityMap = Annotated[dict[str, int], AfterValidator(_ability_names_only)]
 
 
+# Class -> (its own strict bundle model, whether the bare {"2": {}} body, which the union resolves to the Barbarian's, is also valid).
+_START_BUNDLES: dict[str, tuple[type[BaseModel], bool]] = {
+    "Barbarian": (BarbarianLevelChoices, False),
+    "Fighter": (FighterLevelChoices, True),
+    "Paladin": (PaladinLevelChoices, False),
+    "Rogue": (RogueLevelChoices, True),
+    "Monk": (MonkLevelChoices, True),
+    "Wizard": (WizardLevelChoices, False),
+    "Cleric": (ClericLevelChoices, True),
+}
+
+
 class CharacterCreateInput(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     mode: Literal["custom", "random"]
     starting_level: int = Field(default=1, ge=1, le=5, strict=True)
-    level_choices: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | None = None
+    level_choices: SorcererLevelChoices | BarbarianLevelChoices | FighterLevelChoices | MonkLevelChoices | RogueLevelChoices | PaladinLevelChoices | WizardLevelChoices | ClericLevelChoices | None = None
     name: str | None = Field(default=None, min_length=1, max_length=40)
     race: str | None = None
     character_class: str | None = Field(default=None, alias="class")
@@ -1296,26 +1340,15 @@ class CharacterCreateInput(BaseModel):
                 raise ValueError("Random creation supports level 1 without level choices only.")
         else:
             if self.starting_level > 1:
-                if self.character_class == "Barbarian":
-                    if self.starting_level not in (2, 3, 4, 5) or not isinstance(self.level_choices, BarbarianLevelChoices):
-                        raise ValueError("Barbarian supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Fighter":
-                    # {"2": {}} is the same strict body for both classes and the union resolves it to the first; nothing else is shared.
-                    shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
-                    if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, FighterLevelChoices)):
-                        raise ValueError("Fighter supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Paladin":
-                    if self.starting_level not in (2, 3, 4, 5) or not isinstance(self.level_choices, PaladinLevelChoices):
-                        raise ValueError("Paladin supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Rogue":
-                    shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
-                    if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, RogueLevelChoices)):
-                        raise ValueError("Rogue supports only the exact level2 to level5 choice bundle for its starting level.")
-                elif self.character_class == "Monk":
-                    # {"2": {}} resolves to the first strict body, and a bundle up to level 2 is shared the same way.
-                    shared_start_two = self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
-                    if self.starting_level not in (2, 3, 4, 5) or not (shared_start_two or isinstance(self.level_choices, MonkLevelChoices)):
-                        raise ValueError("Monk supports only the exact level2 to level5 choice bundle for its starting level.")
+                if self.character_class in _START_BUNDLES:
+                    own, shares_start_two = _START_BUNDLES[self.character_class]
+                    shared_start_two = shares_start_two and self.starting_level == 2 and isinstance(self.level_choices, BarbarianLevelChoices)
+                    if not (shared_start_two or isinstance(self.level_choices, own)):
+                        message = (
+                            f"{self.character_class} supports only the exact level2 to level5 "
+                            "choice bundle for its starting level."
+                        )
+                        raise ValueError(message)
                 elif self.character_class == "Sorcerer":
                     if not isinstance(self.level_choices, SorcererLevelChoices):
                         raise ValueError("Sorcerer requires its own per-level choices.")
@@ -1599,6 +1632,74 @@ class MonkStartingCreationOptions(BaseModel):
     level_5: BarbarianStartingLevel5Options | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
+class WizardStartingSpellbookOptions(BaseModel):
+    """Two spellbook spells a Wizard adds at one start level, from the level's own list."""
+
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spell_count: int
+    spellbook_spell_ids: list[str]
+
+
+class WizardStartingLevel3Options(BaseModel):
+    """Wizard start level 3: the spellbook picks and the subclass to take."""
+
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spell_count: int
+    spellbook_spell_ids: list[str]
+    subclass_options: list[SorcererSubclassOption]
+
+
+class WizardStartingLevel4Options(BaseModel):
+    """Wizard start level 4: spellbook picks, one cantrip and the ASI choices."""
+
+    model_config = ConfigDict(extra="forbid")
+    spellbook_spell_count: int
+    spellbook_spell_ids: list[str]
+    cantrip_count: int
+    cantrip_ids: list[str]
+    supported_asi_choices: list[LevelUpAsiChoice]
+
+
+class WizardStartingCreationOptions(BaseModel):
+    """Every Wizard start level 1-5, or none: the server never offers a partial start."""
+
+    model_config = ConfigDict(extra="forbid")
+    supported_starting_levels: list[int]
+    level_2: WizardStartingSpellbookOptions
+    level_3: WizardStartingLevel3Options
+    level_4: WizardStartingLevel4Options
+    level_5: WizardStartingSpellbookOptions
+    effects_pending_by_level: SorcererEffectsPendingByLevel
+
+
+class ClericStartingLevel3Options(BaseModel):
+    """Cleric start level 3: the subclass to take."""
+
+    model_config = ConfigDict(extra="forbid")
+    subclass_options: list[SorcererSubclassOption]
+
+
+class ClericStartingLevel4Options(BaseModel):
+    """Cleric start level 4: one cantrip and the ASI choices."""
+
+    model_config = ConfigDict(extra="forbid")
+    cantrip_count: int
+    cantrip_ids: list[str]
+    supported_asi_choices: list[LevelUpAsiChoice]
+
+
+class ClericStartingCreationOptions(BaseModel):
+    """Every Cleric start level 1-5, or none; levels 2 and 5 take no pick (the Barbarian's empty object)."""
+
+    model_config = ConfigDict(extra="forbid")
+    supported_starting_levels: list[int]
+    level_2: BarbarianLevel2Choices
+    level_3: ClericStartingLevel3Options
+    level_4: ClericStartingLevel4Options
+    level_5: BarbarianLevel2Choices
+    effects_pending_by_level: SorcererEffectsPendingByLevel
+
+
 class CharacterCreationCatalogResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -1608,6 +1709,8 @@ class CharacterCreationCatalogResponse(BaseModel):
     paladin_starting_creation: PaladinStartingCreationOptions | None = None
     rogue_starting_creation: RogueStartingCreationOptions | None = None
     monk_starting_creation: MonkStartingCreationOptions | None = None
+    wizard_starting_creation: WizardStartingCreationOptions | None = None
+    cleric_starting_creation: ClericStartingCreationOptions | None = None
     races: dict[str, Any]
     classes: dict[str, Any]
     backgrounds: dict[str, Any]

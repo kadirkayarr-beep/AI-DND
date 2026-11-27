@@ -4,6 +4,8 @@ import { changeStartingLevel } from '@/lib/sorcerer-starting-creation';
 import { PaladinStartingLevelControl } from '@/components/paladin-starting-creation';
 import { RogueStartingLevelControl, FighterStartingLevelControl, MonkStartingLevelControl } from '@/components/simple-class-starting-creation';
 import { BarbarianStartingLevelControl } from '@/components/barbarian-starting-creation';
+import { PreparedCasterStartingLevelControl } from '@/components/prepared-caster-starting-creation';
+import type { CasterStarting } from '@/lib/prepared-caster-starting-creation';
 import { classLevelingNote } from '@/lib/campaign-presentation';
 import { ABILITY_NAMES_TR, presentedClassName, portraitStyle, CLASS_PORTRAIT_CELLS, type AbilityKey } from '@/components/character-creation-shared';
 import type { NormalizedCharacterCreationCatalog } from '@/lib/character-catalog-normalizer';
@@ -25,10 +27,11 @@ type ClassStepProps = {
   fighterStartingMetadata: FighterStartingCreationOptions | undefined;
   monkStartingMetadata: MonkStartingCreationOptions | undefined;
   barbarianStartingMetadata: BarbarianStartingCreationOptions | undefined;
+  casterStarting: CasterStarting;
   classPortraitSheet: string;
 };
 
-export function ClassStep({ characterClass, catalog, setCharacterClass, startingDraft, startingMetadata, creating, onRetryOptions, setStartingDraft, paladinStartingMetadata, rogueStartingMetadata, fighterStartingMetadata, monkStartingMetadata, barbarianStartingMetadata, classPortraitSheet }: ClassStepProps) {
+export function ClassStep({ characterClass, catalog, setCharacterClass, startingDraft, startingMetadata, creating, onRetryOptions, setStartingDraft, paladinStartingMetadata, rogueStartingMetadata, fighterStartingMetadata, monkStartingMetadata, barbarianStartingMetadata, casterStarting, classPortraitSheet }: ClassStepProps) {
   return (
     <section className="cc-step-panel">
           <div className="cc-step-header">
@@ -51,6 +54,7 @@ export function ClassStep({ characterClass, catalog, setCharacterClass, starting
                 disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
               {characterClass === 'Monk' && <MonkStartingLevelControl draft={startingDraft} metadata={monkStartingMetadata}
                 disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
+              <PreparedCasterStartingLevelControl characterClass={characterClass} sources={casterStarting} draft={startingDraft} disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />
               {characterClass === 'Barbarian' && <BarbarianStartingLevelControl draft={startingDraft} metadata={barbarianStartingMetadata}
                 disabled={creating} onRetry={onRetryOptions} onChange={level => setStartingDraft(draft => changeStartingLevel(draft, level))} />}
             </div>

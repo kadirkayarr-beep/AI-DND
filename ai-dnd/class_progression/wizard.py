@@ -20,6 +20,16 @@ class Wizard(caster.PreparedCaster):
     subclass = ("evoker", "phb2024:subclass:wizard:evoker")
     keeps_spellbook = True
 
+    def start_level_picks(self) -> dict[int, dict[str, Any]]:
+        """Return the spellbook picks each start level adds, from its own list."""
+        return {
+            level: {
+                "spellbook_spell_count": BOOK_PER_LEVEL,
+                "spellbook_spell_ids": caster.spell_ids_up_to(self.name, level),
+            }
+            for level in range(2, caster.LAST_LEVEL + 1)
+        }
+
     def book_size(self, level):
         return BOOK_AT_CREATION + BOOK_PER_LEVEL * (level - 1)
 
