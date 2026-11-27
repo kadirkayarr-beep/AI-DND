@@ -6,8 +6,8 @@
     "artifacts/ai-dnd-experience/src/App.tsx"
   ],
   "lockfiles": {
-    "pnpm-lock.yaml": "2f944b834e8e434c71c0e93157a57d141d45ae77f6ae802d170f959478435679",
-    "uv.lock": "a202519f1511c017afdd5ea84394c9e5b4579531242e568ff3520714beaa1c22"
+    "pnpm-lock.yaml": "553395a980c88124f04682a073afe89209a476ffff078c29783cae78d5b5f6b0",
+    "uv.lock": "a8e18bf8f13b53d7a7c02ce86912fc4a1ceca6c587375828c84190eb913a0539"
   },
   "test_commands": {
     "api": "cd ai-dnd && python -m unittest api.tests.test_roadmap_<id> -v",
