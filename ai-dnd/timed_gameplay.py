@@ -371,6 +371,14 @@ def _result(action, text, advancement=None, **extra):
     return result
 
 
+def told_arrival(result, started_at):
+    """True for a walk that arrived this turn (D-301): the narrator tells it, and the portrait reads where it began."""
+    arrived = result.get("action") == "travel" and result.get("status") == "completed" and bool(result.get("new_location"))
+    if arrived:
+        result["previous_location"] = started_at
+    return arrived
+
+
 def game_module():
     import game
     return game

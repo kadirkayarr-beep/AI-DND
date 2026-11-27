@@ -615,7 +615,7 @@ def _keep_town_portrait(action_result, narration):
         return
     # First arrival only: a trip that began inside this settlement (or at an unknown place) is a return, not an arrival.
     start = action_result.get("previous_location")
-    if not start or local_places.settlement_of(world, start) == place:
+    if not start or place in (local_places.settlement_of(world, start), world.get("flags", {}).get("starting_settlement_id")):  # D-303: home is never arrived at
         return
     import town_knowledge
     from arrival_narration import _QUOTES

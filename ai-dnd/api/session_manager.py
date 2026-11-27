@@ -412,6 +412,7 @@ class SessionManager:
             )
         locations[entity.entity_id] = canonical_location
         world_state["location"] = entity.entity_id
+        world_state.setdefault("flags", {})["starting_settlement_id"] = entity.entity_id  # D-303: home gets no portrait
 
     def get(self, session_id: str, principal: Principal | None = None) -> ManagedSession:
         owner = self._resolve_principal(principal)

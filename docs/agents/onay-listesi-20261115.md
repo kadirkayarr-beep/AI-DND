@@ -701,3 +701,13 @@ Dal `task/borc-g21-20261126`. Yalniz test kodu degisti; motor kodu ayni.
 | `ai-dnd/api/tests/engine_split_locks/surface.json` | Yeni adlar `_YIELDS`, `_nsd_text_without_awarded_xp`; `_nsd_outcome_failure_critical` imzasina `action_result` eklendi (altin dosya canli yuzeye esitlendi) | ekleme |
 | `ai-dnd/api/tests/test_d251_bold_line_variety.py` | `bold_acts._fresh` -> `bold_acts.fresh_line` (adi acik oldu, baska modulden de cagriliyor); iddialar ayni | eşit sıkılıkta yeniden yazım |
 | yeni test | `ai-dnd/api/tests/test_d226_roll_before_speech.py` (D-226, D-241, D-242, D-251, D-012) | ekleme |
+
+## G2.5 (borc-sifirlama): yolculuk ve varis anlatisi
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/game_parts/turn_exits.py` `_tx_timed_sequence` + `ai-dnd/timed_gameplay.py` `told_arrival` (D-301, Kadir K29) | "X'a gidiyorum" ile biten tamamlanmis yolculuk artik Python'un "X konumuna vardin." satiriyla kapanmaz; anlatici bir cagri daha yapar (varis turu bir model cagrisi daha harcar). Ara durumlar (`started`, `blocked` vb.) hala deterministik | davranis degisikligi (kendi karari Kadir K29) |
+| `ai-dnd/api/tests/test_f04_frozen_narrator_faults.py` `test_D04_location_contradiction_cannot_relocate_player` | zamanli varis artik anlaticiya gidiyor: saglayici dizisi `read + [narration(bad), narration(bad)]`, cagri turleri `['front']*n+['narration']` ve sonra `['front']*n+['narration']*2`; kotu metin yanitta yok iddiasi eklendi | gevşetme olabilir (cagri sayisi sozlesmesi degisti: varis anlaticidan geciyor; reddedilen konum iddiasi ayni siklikta) |
+| `ai-dnd/api/tests/test_f04_frozen_narrator_faults.py` `test_D04_a_go_to_reading_of_a_timed_route_still_walks` | saglayici `reading(...) + [narration('Ormanin kenarina geliyorsun.')]`, `kinds == ['front','narration']` | gevşetme olabilir (ayni neden: varis turu anlaticiya gidiyor; oyuncu yine yuruyor) |
+| `ai-dnd/api/tests/test_town_portrait.py` `test_money_sentence_is_not_in_the_portrait` | `previous_location` HOME, hedef FAR; portre FAR'da denetleniyor. Baslangic yerlesimi (HOME) artik doner donmez portre almaz (D-303) | gevşetme olabilir (portre yazilan yer degisti: baslangic yerlesimi disi; para cumlesi portrede olmasin iddiasi ayni) |
+| yeni test | `ai-dnd/api/tests/test_g25_arrival_story.py` (8 test: D-301, D-309 x2, D-498 x2, D-338, D-296, D-303) | ekleme |
