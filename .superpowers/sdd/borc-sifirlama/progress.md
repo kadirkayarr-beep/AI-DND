@@ -70,3 +70,5 @@ Task G2.18: complete (branch task/borc-g218-20261126, head 42ff0958, merge 38848
 Task REDFIX: complete (branch task/borc-redfix-20261126, head f5afdd7e, merge 15d15998)
 Task G2.19: complete (branch task/borc-g219-20261126, head cccf33e5, merge 1ff0f532)
 Task G2.9: complete (branch task/borc-g29-20261126, head 66418001, merge d2b4bfcc)
+- Ruling (2026-11-27, Kadir asked): every "kısmen" row is open by the plan's closure rule and gets a task. After each wave gate, a "kısmen sweep" task list is built from the register (one task per file area) and runs before the next wave; rows that cannot close without changing behaviour go to Kadir as one wontfix list — plan goal is all rows closed — cost: extra tasks, roughly 1 point per 3 rows.
+Task G2.21: complete (branch task/borc-g221-20261126, head 834321a3, merge cacf1f6d)
