@@ -16,11 +16,13 @@ import type { CharacterCreationCatalogResponseOriginFeats } from './characterCre
 import type { CharacterCreationCatalogResponseRaces } from './characterCreationCatalogResponseRaces';
 import type { CharacterCreationCatalogResponseSkills } from './characterCreationCatalogResponseSkills';
 import type { CharacterCreationCatalogResponseSpellsCatalog } from './characterCreationCatalogResponseSpellsCatalog';
+import type { ClericStartingCreationOptions } from './clericStartingCreationOptions';
 import type { FighterStartingCreationOptions } from './fighterStartingCreationOptions';
 import type { MonkStartingCreationOptions } from './monkStartingCreationOptions';
 import type { PaladinStartingCreationOptions } from './paladinStartingCreationOptions';
 import type { RogueStartingCreationOptions } from './rogueStartingCreationOptions';
 import type { SorcererStartingCreationOptions } from './sorcererStartingCreationOptions';
+import type { WizardStartingCreationOptions } from './wizardStartingCreationOptions';
 
 export interface CharacterCreationCatalogResponse {
   sorcerer_starting_creation?: SorcererStartingCreationOptions | null;
@@ -29,6 +31,8 @@ export interface CharacterCreationCatalogResponse {
   paladin_starting_creation?: PaladinStartingCreationOptions | null;
   rogue_starting_creation?: RogueStartingCreationOptions | null;
   monk_starting_creation?: MonkStartingCreationOptions | null;
+  wizard_starting_creation?: WizardStartingCreationOptions | null;
+  cleric_starting_creation?: ClericStartingCreationOptions | null;
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
   backgrounds: CharacterCreationCatalogResponseBackgrounds;

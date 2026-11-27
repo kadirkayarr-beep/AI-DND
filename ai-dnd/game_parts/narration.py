@@ -1,5 +1,6 @@
 import game
 import logging
+import spell_effects
 import living_world
 import model_phase
 import re
@@ -951,6 +952,7 @@ def build_world_context(npc_target=None):
     known_history = incident_projection.known_history(world_state)
     if known_history:
         context["known_history"] = known_history
+    context.update(spell_effects.scene_view(world_state))
     door = game._current_door()
     if door:
         context["door"] = {key: door.get(key) for key in ("name", "description", "open", "broken")}

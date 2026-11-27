@@ -1043,6 +1043,12 @@
         "$ref": "#/components/schemas/PaladinLevelChoices"
        },
        {
+        "$ref": "#/components/schemas/WizardLevelChoices"
+       },
+       {
+        "$ref": "#/components/schemas/ClericLevelChoices"
+       },
+       {
         "type": "null"
        }
       ],
@@ -1246,6 +1252,16 @@
       "title": "Classes",
       "type": "object"
      },
+     "cleric_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ClericStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
      "equipment_rules": {
       "additionalProperties": true,
       "title": "Equipment Rules",
@@ -1325,6 +1341,16 @@
       "additionalProperties": true,
       "title": "Spells Catalog",
       "type": "object"
+     },
+     "wizard_starting_creation": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WizardStartingCreationOptions"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "required": [
@@ -1402,6 +1428,116 @@
      "asi"
     ],
     "title": "ClericLevel4Choices",
+    "type": "object"
+   },
+   "ClericLevelChoices": {
+    "additionalProperties": false,
+    "description": "Cleric start 2-5: levels 2 and 5 take no choice (the Barbarian's empty strict object).",
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/ClericLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/ClericLevel4Choices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     }
+    },
+    "required": [
+     "2"
+    ],
+    "title": "ClericLevelChoices",
+    "type": "object"
+   },
+   "ClericStartingCreationOptions": {
+    "additionalProperties": false,
+    "description": "Every Cleric start level 1-5, or none; levels 2 and 5 take no pick (the Barbarian's empty object).",
+    "properties": {
+     "effects_pending_by_level": {
+      "$ref": "#/components/schemas/SorcererEffectsPendingByLevel"
+     },
+     "level_2": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "level_3": {
+      "$ref": "#/components/schemas/ClericStartingLevel3Options"
+     },
+     "level_4": {
+      "$ref": "#/components/schemas/ClericStartingLevel4Options"
+     },
+     "level_5": {
+      "$ref": "#/components/schemas/BarbarianLevel2Choices"
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2",
+     "level_3",
+     "level_4",
+     "level_5",
+     "effects_pending_by_level"
+    ],
+    "title": "ClericStartingCreationOptions",
+    "type": "object"
+   },
+   "ClericStartingLevel3Options": {
+    "additionalProperties": false,
+    "description": "Cleric start level 3: the subclass to take.",
+    "properties": {
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/SorcererSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "subclass_options"
+    ],
+    "title": "ClericStartingLevel3Options",
+    "type": "object"
+   },
+   "ClericStartingLevel4Options": {
+    "additionalProperties": false,
+    "description": "Cleric start level 4: one cantrip and the ASI choices.",
+    "properties": {
+     "cantrip_count": {
+      "title": "Cantrip Count",
+      "type": "integer"
+     },
+     "cantrip_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Cantrip Ids",
+      "type": "array"
+     },
+     "supported_asi_choices": {
+      "items": {
+       "$ref": "#/components/schemas/LevelUpAsiChoice"
+      },
+      "title": "Supported Asi Choices",
+      "type": "array"
+     }
+    },
+    "required": [
+     "cantrip_count",
+     "cantrip_ids",
+     "supported_asi_choices"
+    ],
+    "title": "ClericStartingLevel4Options",
     "type": "object"
    },
    "CombatActionInput": {
@@ -7450,6 +7586,29 @@
     "title": "WizardLevel4Choices",
     "type": "object"
    },
+   "WizardLevelChoices": {
+    "additionalProperties": false,
+    "description": "Wizard start 2-5: the earned-level steps (spellbook spells each level, subclass, cantrip and ASI).",
+    "properties": {
+     "2": {
+      "$ref": "#/components/schemas/WizardSpellbookChoices"
+     },
+     "3": {
+      "$ref": "#/components/schemas/WizardLevel3Choices"
+     },
+     "4": {
+      "$ref": "#/components/schemas/WizardLevel4Choices"
+     },
+     "5": {
+      "$ref": "#/components/schemas/WizardSpellbookChoices"
+     }
+    },
+    "required": [
+     "2"
+    ],
+    "title": "WizardLevelChoices",
+    "type": "object"
+   },
    "WizardSpellbookChoices": {
     "additionalProperties": false,
     "description": "Wizard levels 2 and 5: two spells for the spellbook (PHB PDF 164); the step owner checks them against the slotted Wizard lists.",
@@ -7468,6 +7627,142 @@
      "spellbook_spells"
     ],
     "title": "WizardSpellbookChoices",
+    "type": "object"
+   },
+   "WizardStartingCreationOptions": {
+    "additionalProperties": false,
+    "description": "Every Wizard start level 1-5, or none: the server never offers a partial start.",
+    "properties": {
+     "effects_pending_by_level": {
+      "$ref": "#/components/schemas/SorcererEffectsPendingByLevel"
+     },
+     "level_2": {
+      "$ref": "#/components/schemas/WizardStartingSpellbookOptions"
+     },
+     "level_3": {
+      "$ref": "#/components/schemas/WizardStartingLevel3Options"
+     },
+     "level_4": {
+      "$ref": "#/components/schemas/WizardStartingLevel4Options"
+     },
+     "level_5": {
+      "$ref": "#/components/schemas/WizardStartingSpellbookOptions"
+     },
+     "supported_starting_levels": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Supported Starting Levels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "supported_starting_levels",
+     "level_2",
+     "level_3",
+     "level_4",
+     "level_5",
+     "effects_pending_by_level"
+    ],
+    "title": "WizardStartingCreationOptions",
+    "type": "object"
+   },
+   "WizardStartingLevel3Options": {
+    "additionalProperties": false,
+    "description": "Wizard start level 3: the spellbook picks and the subclass to take.",
+    "properties": {
+     "spellbook_spell_count": {
+      "title": "Spellbook Spell Count",
+      "type": "integer"
+     },
+     "spellbook_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Spellbook Spell Ids",
+      "type": "array"
+     },
+     "subclass_options": {
+      "items": {
+       "$ref": "#/components/schemas/SorcererSubclassOption"
+      },
+      "title": "Subclass Options",
+      "type": "array"
+     }
+    },
+    "required": [
+     "spellbook_spell_count",
+     "spellbook_spell_ids",
+     "subclass_options"
+    ],
+    "title": "WizardStartingLevel3Options",
+    "type": "object"
+   },
+   "WizardStartingLevel4Options": {
+    "additionalProperties": false,
+    "description": "Wizard start level 4: spellbook picks, one cantrip and the ASI choices.",
+    "properties": {
+     "cantrip_count": {
+      "title": "Cantrip Count",
+      "type": "integer"
+     },
+     "cantrip_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Cantrip Ids",
+      "type": "array"
+     },
+     "spellbook_spell_count": {
+      "title": "Spellbook Spell Count",
+      "type": "integer"
+     },
+     "spellbook_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Spellbook Spell Ids",
+      "type": "array"
+     },
+     "supported_asi_choices": {
+      "items": {
+       "$ref": "#/components/schemas/LevelUpAsiChoice"
+      },
+      "title": "Supported Asi Choices",
+      "type": "array"
+     }
+    },
+    "required": [
+     "spellbook_spell_count",
+     "spellbook_spell_ids",
+     "cantrip_count",
+     "cantrip_ids",
+     "supported_asi_choices"
+    ],
+    "title": "WizardStartingLevel4Options",
+    "type": "object"
+   },
+   "WizardStartingSpellbookOptions": {
+    "additionalProperties": false,
+    "description": "Two spellbook spells a Wizard adds at one start level, from the level's own list.",
+    "properties": {
+     "spellbook_spell_count": {
+      "title": "Spellbook Spell Count",
+      "type": "integer"
+     },
+     "spellbook_spell_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Spellbook Spell Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "spellbook_spell_count",
+     "spellbook_spell_ids"
+    ],
+    "title": "WizardStartingSpellbookOptions",
     "type": "object"
    }
   }

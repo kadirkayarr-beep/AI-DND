@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {emptyStartingDraft,changeStartingLevel} from '../src/lib/sorcerer-starting-creation.ts';
 import {startingCreationPayload} from '../src/lib/starting-creation-payload.ts';
+import {isCasterStartClass,casterOptions} from '../src/lib/prepared-caster-starting-creation.ts';
 
 // Barbarian creation at selected starting levels 4 and 5. Source values: PHB PDF 51 (rows 4/5) via the server catalog.
 // Behavioural tests only: real functions, real components called as functions, real screen code extracted by AST and run in vm.
@@ -194,7 +195,7 @@ async function screen(){
 test('real screen: the class step opens for Barbarian 4 and 5 only when the live catalog advertises them',async()=>{
   const {evaluate,declaration}=await screen(),read=fn('readBarbarianStartingCreationOptions');
   const stepValid=declaration('isStepValid');
-  const run=(metadata,startingLevel,characterClass='Barbarian')=>evaluate(stepValid,{characterClass,startingDraft:{...emptyStartingDraft(),startingLevel},barbarianStartingMetadata:metadata,fighterStartingMetadata:undefined,startingMetadata:undefined,Boolean})('class');
+  const run=(metadata,startingLevel,characterClass='Barbarian')=>evaluate(stepValid,{characterClass,startingDraft:{...emptyStartingDraft(),startingLevel},barbarianStartingMetadata:metadata,fighterStartingMetadata:undefined,startingMetadata:undefined,casterStarting:{},isCasterStartClass,casterOptions,Boolean})('class');
   for(const level of [1,2,3,4,5])assert.equal(run(read(raw5()),level),true,`level ${level} advertised`);
   assert.equal(run(read(raw4()),5),false);assert.equal(run(read(raw3()),4),false);assert.equal(run(read(raw2()),3),false);
   assert.equal(run(undefined,4),false);assert.equal(run(undefined,1),true);

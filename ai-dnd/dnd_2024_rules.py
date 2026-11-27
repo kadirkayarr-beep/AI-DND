@@ -1128,7 +1128,7 @@ BACKGROUND_OPTION_B_GP = 50
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
     from character_progression import (barbarian_starting_creation_options, fighter_starting_creation_options,
-                                       monk_starting_creation_options, paladin_starting_creation_options, rogue_starting_creation_options, sorcerer_starting_creation_options)
+                                       monk_starting_creation_options, paladin_starting_creation_options, rogue_starting_creation_options, sorcerer_starting_creation_options, for_class)
 
     classes = copy.deepcopy(CLASS_DEFINITIONS)
     for class_def in classes.values():
@@ -1139,6 +1139,8 @@ def get_character_creation_catalog() -> dict[str, Any]:
         _with_coin(background_def, background_def.get("equipment", []))  # option A; option B is background_option_b_gp
     return {
         "sorcerer_starting_creation": sorcerer_starting_creation_options(),
+        "wizard_starting_creation": for_class("Wizard").starting_creation_options(),
+        "cleric_starting_creation": for_class("Cleric").starting_creation_options(),
         "barbarian_starting_creation": barbarian_starting_creation_options(),
         "fighter_starting_creation": fighter_starting_creation_options(),
         "paladin_starting_creation": paladin_starting_creation_options(),
