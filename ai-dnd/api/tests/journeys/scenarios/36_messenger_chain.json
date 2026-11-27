@@ -73,7 +73,7 @@
             "aktif": 0
           },
           "gunluk": {
-            "iz_sayisi": 0
+            "iz_sayisi": 2
           }
         }
       ]
@@ -90,7 +90,7 @@
             "aktif": 1
           },
           "gunluk": {
-            "iz_sayisi": 0
+            "iz_sayisi": 1
           }
         }
       ]
@@ -110,7 +110,7 @@
             "aktif": 1
           },
           "gunluk": {
-            "iz_sayisi": 0
+            "iz_sayisi": 1
           }
         }
       ]
@@ -143,7 +143,7 @@
             "aktif": 0
           },
           "gunluk": {
-            "iz_sayisi": 1
+            "iz_sayisi": 2
           }
         }
       ]

@@ -1602,8 +1602,8 @@ def _run_player_turn_internal(
                         bare = text == interaction_adventure.immersive_unknown(npc_target, player_input)
                         text = f"{living_world.public_npc_name(npc_target)}, “{terms}”" if bare else f"{text} “{terms}”"
                     game._remember_experimental_npc_speech(
-                        npc_target["id"], player_input, text, remember=valid_speech_packet and raw_intent.get("remember_player_line") is True
-                    )
+                        npc_target["id"], player_input, text, voiced=["none"],  # D-336
+                        remember=valid_speech_packet and raw_intent.get("remember_player_line") is True)
                     if settled_money.get("note"):
                         text = f"{text} {settled_money['note']}"
                 game._show_coin_roll(action_result, settled_money.get("check"))  # D-166: the roll shows, reply used or not

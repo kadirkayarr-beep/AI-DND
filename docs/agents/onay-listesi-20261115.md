@@ -879,3 +879,12 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/api/tests/test_roadmap_c03.py` yardimci `eligible` (51 kullanim) | `feat in eligible_feats(...)` yerine `feat in catalog() and feat_status(...)["eligible"]`: ayni sonuc (silinen islev tam bunu yapiyordu) | yardimci degisti, esit siki |
 | `ai-dnd/api/tests/test_roadmap_c01.py` `test_a_registered_resolver_runs_only_for_a_complete_entry` | `register_resolver(...)` yerine `_RESOLVERS[...] = ...` (testin kendi `finally` bolumu zaten `_RESOLVERS.pop` kullaniyordu) | kurulum degisti, esit siki |
 | `ai-dnd/api/tests/test_game_header_f401_gate.py` | yeni (5 test): `game.py` kullanilmayan ice aktarmalari yuzey kaydinda olmali, `game_parts` hicbir kullanilmayan ice aktarma tasimaz (yalniz `import game` muaf), bos bolum basligi yok, SECURITY notu `_untrusted_player_block` ustunde | ekleme |
+
+## G2.13 (borc-sifirlama): iz ve is defteri (D-336, D-337)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/journeys/scenarios/29_trail_follow_on.json`, `36_messenger_chain.json`, `41_is_haberi_sokakta.json` | D-337: teklif edilmis (henuz cevaplanmamis) is artik izlerde gorunur (`duyulan`, `izlendi`), bu yuzden kurulumda teklifte duran isler olan adimlarda `iz_sayisi` ve `sifir_tolerans` sayilari yeni degerle yeniden yazildi (29: adim 1-2 -> 1, adim 3 -> 2, adim 1 `iz` listesi bos yerine tek `duyulan` iz; 36: adim 1-4 -> 2,1,1,2; 41: adim 3,5,6 -> 1). Sayilar kesin esitlik olarak kaldi; sinir yeniden tanimlandi | gevsetme olabilir |
+| `ai-dnd/api/tests/test_trails.py` `test_an_unread_letter_is_no_trail` | `trails == []` yerine `trails == [teklifte duran islerin kendi satirlari]`: okunmamis mektup hala iz eklemez, ama teklif edilmis baska is artik iz | gevsetme olabilir |
+| `ai-dnd/api/tests/test_real_lead_fallback.py` `test_a_live_armorer_workshop_lead_survives_the_empty_speech_reply` | D-336: yedek satir iz yazmaz kontrolu eklendi (var olan assert'ler ayni) | ekleme |
+| yeni testler | `test_quest_log_trails_g213`: sahibin izinde `who`, ayni soz bir iz, teklif edilmis is ucret ve gunle gorunur | ekleme |
