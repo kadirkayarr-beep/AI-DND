@@ -89,3 +89,8 @@ All 14 tasks merged. Weekly 77% -> 82% (measured ~0.4 point per task).
 - Open from round 2: D-386 needs a local-only gemma driver outside slot.sh (G2.20); G2.21 browser checks for Kod-1 (roadmap-c06-level4-browser, play-screen-ui-regression).
 Task REDFIX2: complete (branch task/borc-redfix2-20261126, head 02ac7f00, merge 0d406e6d)
 Task G2.16: complete (branch task/borc-g216-20261126, head 4254ebc6, merge d0268270)
+
+## Wave 2 round 3 done (2026-11-27)
+REDFIX2 (D-638, D-654, D-657 closed; origin of spoken_promises red = G2.4 2a66f2ff) and G2.16 (D-520, D-548; D-515 partial, D-658) merged. Open: D-656 (stock-swap path lost its end-to-end guard). Weekly 82%.
+- Ruling: DK2 gate started (weekly 82% < 86%) — wf_429e4c03-993, outputs AI-DND-TOOLS/gate-20261127-dalga2.
+- Ruling: wave 2 rebuilt as borc/dalga-2b-20261127 without gitleaks false-positive commit 8849fedc (golden case names renamed); borc/dalga-2-20261126 kept as record — CI full-history scan cannot pass otherwise and the baseline may only shrink — cost if wrong: a rebuilt local branch, old one intact.
