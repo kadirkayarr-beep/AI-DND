@@ -10,7 +10,7 @@ import re
 from typing import Any
 
 import tr_names
-from api.dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
+from dnd_2024_rules import CLASS_DEFINITIONS, SPELLS_CATALOG
 
 
 SPELLS = {

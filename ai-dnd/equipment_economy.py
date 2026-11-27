@@ -553,7 +553,7 @@ def give_old_save_gear(world):
 
 def is_armor_or_shield(item):
     """Armor or a shield: its owner is the creation's AC fact, so no item transfer may move it."""
-    from api.dnd_2024_rules import ARMOR_NAME_ALIASES
+    from dnd_2024_rules import ARMOR_NAME_ALIASES
     name = str(label(item) or "").casefold()
     return bool((isinstance(item, dict) and item.get("armor_id"))
                 or any(alias.casefold() == name for alias in ARMOR_NAME_ALIASES)
@@ -563,7 +563,7 @@ def is_armor_or_shield(item):
 def _shield_in_hand(world, hands):
     """The player's shield still in use: the off-hand one, else the bag's (a creation shield has no hand entry).
     None once it was put down (`shield_down`) or when the bag holds none."""
-    from api.dnd_2024_rules import SHIELD_ITEM_TOKENS
+    from dnd_2024_rules import SHIELD_ITEM_TOKENS
     if "shield_down" in world:
         return None
     bag = [item for item in world.get("inventory", []) if isinstance(item, dict)

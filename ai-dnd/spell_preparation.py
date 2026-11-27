@@ -11,7 +11,7 @@ import copy
 from typing import Any
 
 import spell_scope
-from api.dnd_2024_rules import SPELLS_CATALOG
+from dnd_2024_rules import SPELLS_CATALOG
 
 
 class PrepareRefused(ValueError):

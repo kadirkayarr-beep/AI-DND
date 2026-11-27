@@ -11,6 +11,7 @@ from weapon_catalog import lookup as lookup_weapon
 from api.dnd_2024_rules import (
     ABILITY_KEYS,
     BACKGROUND_DEFINITIONS,
+    BACKGROUND_OPTION_B_GP,
     CLASS_DEFINITIONS,
     ORIGIN_FEATS,
     ALIGNMENTS,
@@ -28,9 +29,6 @@ from api.dnd_2024_rules import (
     validate_ability_scores,
     validate_background_bonuses,
 )
-
-# Background equipment option B: this many gold pieces instead of the background's pack.
-BACKGROUND_OPTION_B_GP = 50
 
 _FIGHTER_PACKAGE_C_WEAPON_LABELS = {
     "Büyük Kılıç (Greatsword)": "Greatsword",

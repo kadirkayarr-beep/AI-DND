@@ -269,7 +269,7 @@ class RoadmapB04Tests(unittest.TestCase):
                 self.assertTrue(row["proposed_owner"], row["id"])
         self.assertGreater(matched, 0)
         barbarian = next(row for row in self.rows if row["source_id"] == "phb2024:class:barbarian")
-        self.assertEqual(barbarian["resolver"]["existing_owner"], "ai-dnd/api/dnd_2024_rules.py")
+        self.assertEqual(barbarian["resolver"]["existing_owner"], "ai-dnd/dnd_2024_rules.py")
 
     def test_proposed_owners_follow_the_plan_task_map(self):
         owners = {}
@@ -301,7 +301,7 @@ class RoadmapB04Tests(unittest.TestCase):
             self.assertNotEqual(row["source_version"], "2024")
             self.assertTrue(row["legacy"])
             self.assertEqual(row["source"]["page_reference_status"], "NOT_READ_IN_B04")
-            self.assertEqual(row["resolver"]["existing_owner"], "ai-dnd/api/dnd_2024_rules.py")
+            self.assertEqual(row["resolver"]["existing_owner"], "ai-dnd/dnd_2024_rules.py")
             self.assertEqual(row["proposed_owner"], "C02")
             self.assertEqual(row["rights_ref"], DECISION_ID)
         self.assertEqual(owner.validate_catalog(self.rows + self.legacy["rows"], self.entries), [])

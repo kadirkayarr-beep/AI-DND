@@ -1789,7 +1789,7 @@ def _front_wield(route, player_input):
     import equipment_economy
     import gear
     import weapon_attack
-    from api.dnd_2024_rules import SHIELD_ITEM_TOKENS
+    from dnd_2024_rules import SHIELD_ITEM_TOKENS
     from weapon_catalog import lookup
     session = game._session()
     session.require_player_can_act()

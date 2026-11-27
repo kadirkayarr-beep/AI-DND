@@ -1,11 +1,10 @@
 """POST level-up route moved out of api.main.create_app (D-531 stage 2): same paths, receipts, save and rollback."""
 from __future__ import annotations
 
-from api.routes_level_up import level_up_projection
 import copy
 import hashlib
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from fastapi import FastAPI, HTTPException
 from api.persistence.campaign_models import (
     CampaignError,
@@ -16,6 +15,9 @@ from api.serializers import (
     serialize_session_state,
 )
 from api.schemas import LevelUpApplyRequest, LevelUpCommandResult
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def register_level_up_apply_routes(
@@ -28,6 +30,7 @@ def register_level_up_apply_routes(
     replay_action_response: Any,
     campaign_http_exception: Any,
     manager: Any,
+    level_up_projection: Callable[[Any, str], dict[str, Any]],
     _capture_session: Any,
     _rollback_session: Any,
     _raise_if_commit_unconfirmed: Any,

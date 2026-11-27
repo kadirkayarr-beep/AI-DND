@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import character_progression
-from api.dnd_2024_rules import CLASS_DEFINITIONS
+from dnd_2024_rules import CLASS_DEFINITIONS
 
 _KEYS = {"spent", "window_second", "hp"}
 

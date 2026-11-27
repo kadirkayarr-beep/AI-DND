@@ -481,7 +481,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
             shield_on = shield is not None and shield["item_id"] not in hands.values()
             if shield is None and "shield_down" not in session.world_state:
                 # A new character's bag is plain text until the lazy materialize runs; its "Kalkan" line is that shield.
-                from api.dnd_2024_rules import SHIELD_ITEM_TOKENS
+                from dnd_2024_rules import SHIELD_ITEM_TOKENS
                 shield_on = any(isinstance(item, str) and any(token in item.casefold() for token in SHIELD_ITEM_TOKENS)
                                 for item in session.world_state.get("inventory", []))
         if weapon["instance_id"] not in held:

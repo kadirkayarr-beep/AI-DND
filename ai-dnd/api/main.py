@@ -89,7 +89,7 @@ from api.routes_quests import register_quest_routes
 from api.routes_species import register_species_routes
 from api.routes_spells_write import register_spell_prepare_routes
 from api.routes_level_up_apply import register_level_up_apply_routes
-from api.routes_level_up import register_level_up_read_routes
+from api.routes_level_up import level_up_projection, register_level_up_read_routes
 from api.routes_spells_read import register_spell_read_routes
 from api.routes_turn import register_turn_routes
 from api.routes_undo import register_undo_routes
@@ -986,6 +986,7 @@ def create_app(
         replay_action_response=replay_action_response,
         campaign_http_exception=campaign_http_exception,
         manager=manager,
+        level_up_projection=level_up_projection,
         _capture_session=_capture_session,
         _rollback_session=_rollback_session,
         _raise_if_commit_unconfirmed=_raise_if_commit_unconfirmed,

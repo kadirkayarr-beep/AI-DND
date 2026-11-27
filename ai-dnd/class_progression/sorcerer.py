@@ -15,7 +15,7 @@ from class_progression.base import ClassProgression
 
 def sorcerer_starting_creation_options() -> dict[str, Any] | None:
     """Detached metadata for the fixed HTTP level 1–5 choice bundle, not effects or grants."""
-    from api.dnd_2024_rules import SPELLS_CATALOG
+    from dnd_2024_rules import SPELLS_CATALOG
 
     if core.MAX_SUPPORTED_LEVEL < 5:
         return None
@@ -125,7 +125,7 @@ def _level_four_prerequisite(session: Any) -> str | None:
 
 
 def _check_level_choices(session, preview, choices):
-    from api.dnd_2024_rules import SPELLS_CATALOG
+    from dnd_2024_rules import SPELLS_CATALOG
     required = preview["choices_required"]
     state = session.world_state["spellcasting_v1"]
     picked = choices.get("prepared_spells", [])

@@ -54,7 +54,7 @@ import talk_mode
 from weapon_catalog import WEAPONS  # noqa: F401
 from dataclasses import dataclass, field  # noqa: F401
 from typing import Optional, List, Dict, Any  # noqa: F401
-from api.dnd_2024_rules import get_expertise_choice_count  # noqa: F401
+from dnd_2024_rules import get_expertise_choice_count  # noqa: F401
 from core_resolution import (
     resolution_action_scope,  # noqa: F401
     resolve_attack_roll,  # noqa: F401
