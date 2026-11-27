@@ -20,18 +20,30 @@ def _ci_shards() -> list[int]:
 class FullPythonSuite(unittest.TestCase):
     def test_every_test_module_is_listed_by_dotted_name(self):
         listed = suite.modules(ROOT)
-        on_disk = sorted("api.tests." + p.stem for p in (ROOT / "api" / "tests").glob("test_*.py"))
-        self.assertEqual(listed, on_disk)
+        api = ["api.tests." + p.stem for p in (ROOT / "api" / "tests").glob("test_*.py")]
+        top = [p.stem for p in ROOT.glob("test_*.py") if p.stem not in suite.SCRIPT_MODULES]
+        self.assertEqual(listed, sorted(api + top))
         self.assertIn("api.tests.test_full_python_suite", listed)
 
-    def test_only_test_files_directly_in_api_tests_count(self):
+    def test_the_top_level_test_modules_run_too_except_the_script(self):
+        # D-218, D-329: the 33 test modules in ai-dnd/ itself ran in no CI job; test_regression is a script (D-342).
+        listed = suite.modules(ROOT)
+        top = sorted(p.stem for p in ROOT.glob("test_*.py"))
+        self.assertGreaterEqual(len(top), 34)
+        self.assertEqual(suite.SCRIPT_MODULES, {"test_regression"})
+        for name in top:
+            self.assertEqual(name in listed, name not in suite.SCRIPT_MODULES, name)
+
+    def test_only_test_files_directly_in_the_two_folders_count(self):
         with tempfile.TemporaryDirectory() as tmp:
             tests = Path(tmp) / "api" / "tests"
             (tests / "journeys").mkdir(parents=True)
             for name in ("test_b.py", "test_a.py", "helper.py", "town_seed.py", "test_c.txt"):
                 (tests / name).write_text("", encoding="utf-8")
             (tests / "journeys" / "test_nested.py").write_text("", encoding="utf-8")
-            self.assertEqual(suite.modules(Path(tmp)), ["api.tests.test_a", "api.tests.test_b"])
+            for name in ("test_top.py", "test_regression.py", "game.py", "test_top.txt"):
+                (Path(tmp) / name).write_text("", encoding="utf-8")
+            self.assertEqual(suite.modules(Path(tmp)), ["api.tests.test_a", "api.tests.test_b", "test_top"])
 
     def test_shards_cover_each_module_exactly_once(self):
         names = [f"api.tests.test_{i:03d}" for i in range(23)]

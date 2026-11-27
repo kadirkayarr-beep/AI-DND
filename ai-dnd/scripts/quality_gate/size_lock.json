@@ -3,6 +3,7 @@
  "slack": 50,
  "long_function_min": 151,
  "files": {
+  "action_economy.py": 1171,
   "api/main.py": 1030,
   "api/tests/live_playable_living_world_v1_smoke.py": 2706,
   "api/tests/test_campaign_api.py": 15508,
@@ -11,6 +12,9 @@
   "api/tests/test_death_system.py": 3769,
   "api/tests/test_persistence_idempotency.py": 5581,
   "api/tests/test_weapon_attack.py": 2549,
+  "bold_acts.py": 1543,
+  "economic_actions.py": 1973,
+  "equipment_economy.py": 1159,
   "grounded_action.py": 3869,
   "test_sessions.py": 4296
  },

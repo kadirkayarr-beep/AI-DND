@@ -1191,9 +1191,8 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
         dice.assert_not_called()
         self.assertNotIn("time_result", action)
         self.assertEqual(self.world["location"], "tavern")
-        self.assertEqual(result["narration"], self.session._fallback_for_action_result(
-            "Sessiz Avlu'ya gidiyorum.", action
-        ))
+        # D-251: the no-road line rotates, so a second call for the same action may pick another one.
+        self.assertIn(result["narration"], interaction_adventure.TRAVEL_NO_ROAD)
         self.assertNotIn("Sessiz Avlu", [v.get("name") for v in self.world["locations"].values()])
         self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 1)
         chat.assert_called_once()

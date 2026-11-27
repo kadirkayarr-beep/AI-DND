@@ -9,7 +9,6 @@ All campaign/session state stays in memory and is discarded at process exit.
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,6 +24,7 @@ if str(AI_DND_DIR) not in sys.path:
 
 import game
 import ollama
+from engine_digest import engine_digest
 from api.narrative_director import (
     install_narrative_context_adapter,
     narrative_turn_context,
@@ -90,7 +90,7 @@ def _state_summary(
 
 def main() -> int:
     game_file = Path(game.__file__).resolve()
-    digest = hashlib.sha256(game_file.read_bytes()).hexdigest()
+    digest = engine_digest(game_file)
     host = os.environ.get("OLLAMA_HOST")
     token = os.environ.get("OLLAMA_PROXY_TOKEN")
     if not host or not token:
