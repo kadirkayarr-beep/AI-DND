@@ -13,7 +13,6 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
 from api.tests.engine_sources import engine_source_files  # noqa: E402
-from engine_split import routing_audit  # noqa: E402
 from engine_split.routing_audit import audit, character_names, game_imports, part_files  # noqa: E402
 
 LOCKS = Path(__file__).parent / "engine_split_locks"
@@ -212,7 +211,8 @@ class RoutingAuditTests(unittest.TestCase):
 
     def test_the_accepted_blind_spots_are_documented_and_still_unseen(self) -> None:
         """D-349, owner S25 (a): the audit does not see these; the docstring says so."""
-        self.assertIn("Known blind spots", routing_audit.__doc__)
+        audit_doc = sys.modules[audit.__module__].__doc__ or ""
+        self.assertIn("Known blind spots", audit_doc)
         head = "import game\nimport builtins\n"
         for spot, src in (
             ("builtins.eval", head + "def f(s):\n    return builtins.eval(s)\n"),
@@ -220,7 +220,7 @@ class RoutingAuditTests(unittest.TestCase):
              head + "def f():\n    return getattr(builtins, 'open')\n"),
         ):
             with self.subTest(spot):
-                self.assertIn(spot, routing_audit.__doc__)
+                self.assertIn(spot, audit_doc)
                 self.fresh()
                 tree = self.tree(src, game=reexporting("f"))
                 self.assertEqual(self.run_all(tree), [])

@@ -25,7 +25,7 @@ class Wizard(caster.PreparedCaster):
         return {
             level: {
                 "spellbook_spell_count": BOOK_PER_LEVEL,
-                "spellbook_spell_ids": caster.spell_ids_up_to(self.name, level),
+                "spellbook_spell_ids": caster.spell_ids_up_to(self.class_name, level),
             }
             for level in range(2, caster.LAST_LEVEL + 1)
         }
@@ -38,7 +38,7 @@ class Wizard(caster.PreparedCaster):
 
     def step_options(self, session, target_level):
         book = session.world_state.get("spellcasting_v1", {}).get("spellbook") or []
-        return {"spellbook_spell_ids": [identity for identity in caster.spell_ids_up_to(self.name, target_level) if identity not in book]}
+        return {"spellbook_spell_ids": [identity for identity in caster.spell_ids_up_to(self.class_name, target_level) if identity not in book]}
 
     def check_step(self, session, preview, choices):
         picked = choices.get("spellbook_spells")

@@ -7,6 +7,7 @@ import json
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import patch
 
 import httpx
@@ -92,11 +93,12 @@ class TestBackgroundBonusLimits(unittest.TestCase):
 
     def test_a_bonus_that_is_not_a_whole_number_is_refused(self):
         for bad in (1.5, "2", True, None):
+            wrong: dict[str, Any] = {PERMITTED[0]: bad, PERMITTED[1]: 1}
             with self.subTest(bad=bad), self.assertRaises(CharacterCreationError):
-                validate_background_bonuses(BACKGROUND, {PERMITTED[0]: bad, PERMITTED[1]: 1})
+                validate_background_bonuses(BACKGROUND, wrong)
 
     def test_a_final_score_below_three_is_refused_even_if_the_bonus_check_let_it_through(self):
-        request = rogue_spec()
+        request: dict[str, Any] = rogue_spec()
         request.update(background=BACKGROUND, ability_score_method="manual",
                        ability_scores=dict.fromkeys(ABILITY_KEYS, 3),
                        background_ability_bonuses={PERMITTED[0]: -2, PERMITTED[1]: 1})
@@ -163,6 +165,8 @@ class TestOneBlankCheck(unittest.TestCase):
 
 
 class TestCampaignHttp(unittest.IsolatedAsyncioTestCase):
+    http: httpx.AsyncClient  # set by the borrowed asyncSetUp
+
     asyncSetUp = campaigns.CampaignApiTests.asyncSetUp
     asyncTearDown = campaigns.CampaignApiTests.asyncTearDown
 

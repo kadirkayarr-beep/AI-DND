@@ -24,8 +24,7 @@ from pathlib import Path
 if __name__ == "__main__":
     sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
 
-from engine_split.inventory import top_level_index  # noqa: E402
-from engine_split.routing_audit import identity_row_ok
+from engine_split import inventory, routing_audit  # noqa: E402
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
@@ -103,58 +102,80 @@ class _Scan:
 
     def visit(self, node: ast.AST, table, in_def: bool, where):
         if isinstance(node, FUNCTION_NODES) or isinstance(node, ast.Lambda):
-            args = node.args
-            if isinstance(node, FUNCTION_NODES):
-                self.visit_all(node.decorator_list, table, in_def, "decorator")
-            self.visit_all(args.defaults + args.kw_defaults, table, in_def, "default")
-            if isinstance(node, FUNCTION_NODES):
-                every_arg = args.posonlyargs + args.args + args.kwonlyargs + [args.vararg, args.kwarg]
-                self.visit_all([a.annotation for a in every_arg if a is not None] + [node.returns],
-                               table, in_def, "annotation")
-            inner = self.claim(node, "function")
-            body = node.body if isinstance(node, FUNCTION_NODES) else [node.body]
-            self.qual += [node.name] if isinstance(node, FUNCTION_NODES) else []  # a lambda keeps its enclosing name (R6)
-            self.visit_all(body, inner, True, None)
-            if isinstance(node, FUNCTION_NODES):
-                self.qual.pop()
+            self.visit_function(node, table, in_def)
         elif isinstance(node, ast.ClassDef):
-            self.visit_all(node.decorator_list, table, in_def, "decorator")
-            self.visit_all(node.bases + [k.value for k in node.keywords], table, in_def, where)
-            self.qual.append(node.name)
-            self.visit_all(node.body, self.claim(node, "class"), in_def, where)
-            self.qual.pop()
+            self.visit_class(node, in_def, table, where)
         elif isinstance(node, COMPREHENSIONS):
-            first = node.generators[0]
-            self.visit(first.iter, table, in_def, where)
-            inner = self.claim(node, "function")
-            if inner is None:  # inlined by the compiler: its names sit in the enclosing table; the loop targets stay local to it
-                inner = table
-                self.shadowed.append({n.id for gen in node.generators for n in ast.walk(gen.target) if isinstance(n, ast.Name)})
-            self.visit(first.target, inner, in_def, where)
-            self.visit_all(first.ifs, inner, in_def, where)
-            for gen in node.generators[1:]:
-                self.visit_all([gen.iter, gen.target] + gen.ifs, inner, in_def, where)
-            self.visit_all([node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt], inner, in_def, where)
-            if inner is table:
-                self.shadowed.pop()
+            self.visit_comprehension(node, table, in_def, where)
         elif isinstance(node, ast.Name):
             self.name(node, table, in_def, where)
         else:
-            if isinstance(node, ast.Global):
-                raise MoveRefused(f"`global` statement at line {node.lineno}")
-            identity_call = (isinstance(node, ast.Call)
-                             and isinstance(node.func, ast.Name)
-                             and node.func.id in DYNAMIC_CALLS)
-            if identity_call and not self.allowed(node.func.id, in_def):
-                raise MoveRefused(f"`{node.func.id}(` at line {node.lineno} (N3 rule 6)")
-            if (isinstance(node, ast.Attribute) and node.attr == "modules"
-                    and self.is_sys(node.value)
-                    and not self.allowed("sys.modules", in_def)):
-                raise MoveRefused(f"`sys.modules` at line {node.lineno} (N3 rule 6)")
-            # an allowed `locals(` call: its name is the call, not a bare use
-            children = ([*node.args, *node.keywords] if identity_call
-                        else ast.iter_child_nodes(node))
-            self.visit_all(children, table, in_def, where)
+            self.visit_other(node, table, in_def, where)
+
+    def visit_signature(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda, table, in_def: bool) -> None:
+        """The parts of a def or lambda that run in the enclosing scope: decorators, defaults, annotations."""
+        args = node.args
+        if isinstance(node, FUNCTION_NODES):
+            self.visit_all(node.decorator_list, table, in_def, "decorator")
+        self.visit_all(args.defaults + args.kw_defaults, table, in_def, "default")
+        if isinstance(node, FUNCTION_NODES):
+            every_arg = args.posonlyargs + args.args + args.kwonlyargs + [args.vararg, args.kwarg]
+            self.visit_all([a.annotation for a in every_arg if a is not None] + [node.returns],
+                           table, in_def, "annotation")
+
+    def visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda, table, in_def: bool) -> None:
+        self.visit_signature(node, table, in_def)
+        inner = self.claim(node, "function")
+        body = node.body if isinstance(node, FUNCTION_NODES) else [node.body]
+        self.qual += [node.name] if isinstance(node, FUNCTION_NODES) else []  # a lambda keeps its enclosing name (R6)
+        self.visit_all(body, inner, True, None)
+        if isinstance(node, FUNCTION_NODES):
+            self.qual.pop()
+
+    def visit_class(self, node: ast.ClassDef, in_def: bool, table, where) -> None:
+        self.visit_all(node.decorator_list, table, in_def, "decorator")
+        self.visit_all(node.bases + [k.value for k in node.keywords], table, in_def, where)
+        self.qual.append(node.name)
+        self.visit_all(node.body, self.claim(node, "class"), in_def, where)
+        self.qual.pop()
+
+    def visit_comprehension(self, node: ast.ListComp | ast.SetComp | ast.DictComp | ast.GeneratorExp, table, in_def: bool,
+                            where) -> None:
+        first = node.generators[0]
+        self.visit(first.iter, table, in_def, where)
+        inner = self.claim(node, "function")
+        if inner is None:  # inlined by the compiler: its names sit in the enclosing table; the loop targets stay local to it
+            inner = table
+            self.shadowed.append({n.id for gen in node.generators for n in ast.walk(gen.target) if isinstance(n, ast.Name)})
+        self.visit(first.target, inner, in_def, where)
+        self.visit_all(first.ifs, inner, in_def, where)
+        for gen in node.generators[1:]:
+            self.visit_all([gen.iter, gen.target] + gen.ifs, inner, in_def, where)
+        self.visit_all([node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt], inner, in_def, where)
+        if inner is table:
+            self.shadowed.pop()
+
+    def visit_other(self, node: ast.AST, table, in_def: bool, where) -> None:
+        if isinstance(node, ast.Global):
+            raise MoveRefused(f"`global` statement at line {node.lineno}")
+        dynamic = self.dynamic_call(node)
+        if dynamic is not None and not self.allowed(dynamic[1], in_def):
+            raise MoveRefused(f"`{dynamic[1]}(` at line {dynamic[0].lineno} (N3 rule 6)")
+        if (isinstance(node, ast.Attribute) and node.attr == "modules"
+                and self.is_sys(node.value)
+                and not self.allowed("sys.modules", in_def)):
+            raise MoveRefused(f"`sys.modules` at line {node.lineno} (N3 rule 6)")
+        # an allowed `locals(` call: its name is the call, not a bare use
+        children = ([*dynamic[0].args, *dynamic[0].keywords] if dynamic is not None
+                    else ast.iter_child_nodes(node))
+        self.visit_all(children, table, in_def, where)
+
+    @staticmethod
+    def dynamic_call(node: ast.AST) -> tuple[ast.Call, str] | None:
+        """The call and its bare name when `node` calls one of DYNAMIC_CALLS."""
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in DYNAMIC_CALLS:
+            return node, node.func.id
+        return None
 
     @staticmethod
     def is_sys(value: ast.AST) -> bool:
@@ -257,10 +278,9 @@ def _checked_block(game_lines: list[str], key: tuple[int, int],
     """
     block = "\n".join(game_lines[key[0] - 1:key[1]]) + "\n"
     for node in ast.walk(ast.parse(block)):
-        alias_attr = (isinstance(node, ast.Attribute) and node.attr == "modules"
-                      and isinstance(node.value, ast.Name)
-                      and node.value.id in sys_names)
-        if alias_attr or (isinstance(node, ast.Name) and node.id in modules_names):
+        if (isinstance(node, ast.Attribute) and node.attr == "modules"
+                and isinstance(node.value, ast.Name) and node.value.id in sys_names) or (
+                isinstance(node, ast.Name) and node.id in modules_names):
             reason = (f"`sys.modules` under another name at line "
                       f"{node.lineno} (N3 rule 6)")
             raise MoveRefused(reason)
@@ -288,7 +308,7 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
     for name in names:
         if name in NEVER_MOVED:
             raise MoveRefused(f"{name!r} never leaves game.py (spec section 5)")
-    index = top_level_index(game_py)
+    index = inventory.top_level_index(game_py)
     by_name = {entry["name"]: entry for entry in index}
     for name in names:
         if sum(1 for entry in index if entry["name"] == name) > 1:
@@ -312,7 +332,7 @@ def move(game_py: Path, part_py: Path, names: list[str], surface_targets: set[st
             raise MoveRefused(f"blocks overlap near line {start}")
 
     part_lines = part_py.read_bytes().decode("utf-8").split("\n") if part_py.exists() else [""]
-    part_index = top_level_index(part_py) if part_py.exists() and part_py.read_bytes().strip() else []
+    part_index = inventory.top_level_index(part_py) if part_py.exists() and part_py.read_bytes().strip() else []
     moved_names = [n for key in ordered for n in spans[key]]
     # names game.py re-exports from an earlier move (`from game_parts.<x> import ...`) are engine names too (F7 amended)
     game_tree = ast.parse(game_py.read_text(encoding="utf-8"))
@@ -365,7 +385,7 @@ def _identity_rows(path: Path | None) -> list[dict]:
     except (OSError, ValueError) as exc:  # unreadable, not UTF-8 or not JSON
         reason = f"identity allowlist {path}: {exc}"
         raise MoveRefused(reason) from exc
-    if not (isinstance(rows, list) and all(identity_row_ok(r) for r in rows)):
+    if not (isinstance(rows, list) and all(routing_audit.identity_row_ok(r) for r in rows)):
         reason = ("identity allowlist: a list of rows with exactly file, "  # D-475 (a)
                   "function, name and reason, each a non-empty string")
         raise MoveRefused(reason)

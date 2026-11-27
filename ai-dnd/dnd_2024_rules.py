@@ -27,15 +27,6 @@ class CharacterCreationError(ValueError):
 
 ABILITY_KEYS = ("strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma")
 
-ABILITY_NAMES = {
-    "strength": {"name": "Kuvvet", "short": "KUV", "abbr": "STR"},
-    "dexterity": {"name": "Çeviklik", "short": "ÇEV", "abbr": "DEX"},
-    "constitution": {"name": "Dayanıklılık", "short": "DAY", "abbr": "CON"},
-    "intelligence": {"name": "Zeka", "short": "ZEK", "abbr": "INT"},
-    "wisdom": {"name": "Bilgelik", "short": "BİL", "abbr": "WIS"},
-    "charisma": {"name": "Karizma", "short": "KAR", "abbr": "CHA"},
-}
-
 STANDARD_ARRAY = [15, 14, 13, 12, 10, 8]
 
 POINT_BUY_BUDGET = 27
@@ -1051,6 +1042,18 @@ def proficiency_bonus_for_level(level: int) -> int:
     return (2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6)[level - 1]
 
 
+def _suits_named_in(joined: str) -> set[str]:
+    """The suits the labels name. Drop aliases contained in a longer matching one ("Studded Leather Armor" contains "Leather Armor").
+
+    The labels are CARRIED equipment, not a worn-armor selection: two different suits cannot both be worn and nothing says which
+    one is, so the creation request is refused instead of picking one (a carried suit must never raise AC, PHB p.219: one suit
+    at a time).
+    """
+    found = [alias for alias in ARMOR_NAME_ALIASES if alias.casefold() in joined]
+    found = [a for a in found if not any(a != b and a.casefold() in b.casefold() for b in found)]
+    return {ARMOR_NAME_ALIASES[a] for a in found}
+
+
 def get_equipment_armor_and_shield(
     equipment_choices: list[str] | None,
 ) -> tuple[str | None, bool]:
@@ -1059,12 +1062,7 @@ def get_equipment_armor_and_shield(
         return None, False
 
     joined = " ".join(equipment_choices).casefold()
-    # Drop aliases contained in a longer matching one ("Studded Leather Armor" contains "Leather Armor"). The labels are CARRIED
-    # equipment, not a worn-armor selection: two different suits cannot both be worn and nothing says which one is, so the
-    # creation request is refused instead of picking one (a carried suit must never raise AC, PHB p.219: one suit at a time).
-    found = [alias for alias in ARMOR_NAME_ALIASES if alias.casefold() in joined]
-    found = [a for a in found if not any(a != b and a.casefold() in b.casefold() for b in found)]
-    suits = {ARMOR_NAME_ALIASES[a] for a in found}
+    suits = _suits_named_in(joined)
     if len(suits) > 1:
         raise CharacterCreationError("Equipment lists more than one suit of armor; only one can be worn.")
     armor = next(iter(suits), None)
@@ -1072,9 +1070,13 @@ def get_equipment_armor_and_shield(
     return armor, has_shield
 
 
+def _armor_rule(armor: str | None) -> dict[str, Any] | None:
+    return None if armor is None else ARMOR_CLASS_RULES.get(ARMOR_NAME_ALIASES.get(armor, armor))
+
+
 def armor_dexterity_term(armor: str | None, dex_mod: int) -> int:
     """Dexterity's part of an Armor Class total (Armor table PDF 218): full, at most +2 in Medium armor, none in Heavy."""
-    rule = ARMOR_CLASS_RULES.get(ARMOR_NAME_ALIASES.get(armor, armor))
+    rule = _armor_rule(armor)
     if rule is None or rule["dexterity_mode"] == "full":
         return dex_mod
     return min(rule["max_dexterity_bonus"], dex_mod) if rule["dexterity_mode"] == "capped" else 0
@@ -1089,7 +1091,7 @@ def armor_class_total(
 ) -> int:
     """The one Armor Class formula, from creation facts. Shield +2 only with training (PDF 218)."""
     dex_mod = modifiers["dexterity"]
-    armor_rule = ARMOR_CLASS_RULES.get(ARMOR_NAME_ALIASES.get(armor, armor))
+    armor_rule = _armor_rule(armor)
     if armor_rule:
         ac = armor_rule["base_ac"] + armor_dexterity_term(armor, dex_mod)
     elif character_class == "Barbarian":
@@ -1116,7 +1118,7 @@ def _with_coin(entry: dict[str, Any], items: list[Any]) -> dict[str, Any]:
     from bold_acts import coin_label_gp
 
     coin_items = [item for item in items if coin_label_gp(item) is not None]
-    entry["coin_gp"] = sum(coin_label_gp(item) for item in coin_items)
+    entry["coin_gp"] = sum(coin_label_gp(item) or 0 for item in coin_items)
     entry["coin_items"] = coin_items
     return entry
 
@@ -1212,48 +1214,65 @@ def roll_4d6_drop_lowest(rng: random.Random) -> int:
     return sum(rolls)
 
 
-def validate_ability_scores(
-    method: str,
-    base_scores: dict[str, int],
-    rolled_pool: list[int] | None = None,
-) -> None:
+def _check_score_shape(base_scores: dict[str, int]) -> None:
     if not isinstance(base_scores, dict):
         raise CharacterCreationError("Ability scores must be provided as a dictionary.")
     for key in ABILITY_KEYS:
         if key not in base_scores or not isinstance(base_scores[key], int):
             raise CharacterCreationError(f"Missing or invalid ability score for {key}.")
 
-    scores = [base_scores[k] for k in ABILITY_KEYS]
 
+def _check_standard_array(scores: list[int]) -> None:
+    if sorted(scores) != sorted(STANDARD_ARRAY):
+        raise CharacterCreationError(
+            f"Standard Array requires assigning exact values {STANDARD_ARRAY}."
+        )
+
+
+def _check_point_buy(scores: list[int]) -> None:
+    total_cost = 0
+    for val in scores:
+        if val < 8 or val > 15:
+            raise CharacterCreationError("Point buy scores must be between 8 and 15.")
+        total_cost += POINT_BUY_COSTS[val]
+    if total_cost != POINT_BUY_BUDGET:
+        raise CharacterCreationError(
+            f"Point buy must spend exactly {POINT_BUY_BUDGET} points (spent {total_cost})."
+        )
+
+
+def _check_rolled(scores: list[int], rolled_pool: list[int] | None) -> None:
+    if not rolled_pool:
+        raise CharacterCreationError(
+            "Rolled scores require a verified dice pool from the game engine; arbitrary manual scores are not accepted."
+        )
+    if sorted(scores) != sorted(rolled_pool):
+        raise CharacterCreationError(
+            "Assigned scores do not match the rolled dice pool."
+        )
+
+
+def _check_manual(scores: list[int]) -> None:
+    for val in scores:
+        if not 3 <= val <= 18:
+            raise CharacterCreationError("Manual scores must be between 3 and 18.")
+
+
+def validate_ability_scores(
+    method: str,
+    base_scores: dict[str, int],
+    rolled_pool: list[int] | None = None,
+) -> None:
+    _check_score_shape(base_scores)
+    scores = [base_scores[k] for k in ABILITY_KEYS]
     if method == "standard_array":
-        if sorted(scores) != sorted(STANDARD_ARRAY):
-            raise CharacterCreationError(
-                f"Standard Array requires assigning exact values {STANDARD_ARRAY}."
-            )
+        _check_standard_array(scores)
     elif method == "point_buy":
-        total_cost = 0
-        for val in scores:
-            if val < 8 or val > 15:
-                raise CharacterCreationError("Point buy scores must be between 8 and 15.")
-            total_cost += POINT_BUY_COSTS[val]
-        if total_cost != POINT_BUY_BUDGET:
-            raise CharacterCreationError(
-                f"Point buy must spend exactly {POINT_BUY_BUDGET} points (spent {total_cost})."
-            )
+        _check_point_buy(scores)
     elif method == "rolled":
-        if rolled_pool:
-            if sorted(scores) != sorted(rolled_pool):
-                raise CharacterCreationError(
-                    "Assigned scores do not match the rolled dice pool."
-                )
-        else:
-            raise CharacterCreationError(
-                "Rolled scores require a verified dice pool from the game engine; arbitrary manual scores are not accepted."
-            )
+        _check_rolled(scores, rolled_pool)
     elif method == "manual":
-        for val in scores:
-            if not 3 <= val <= 18:
-                raise CharacterCreationError("Manual scores must be between 3 and 18.")
+        _check_manual(scores)
     else:
         raise CharacterCreationError(f"Unsupported ability score generation method: {method}")
 
@@ -1270,6 +1289,30 @@ def _check_bonus_shape(bonuses: dict[str, int]) -> None:
             raise CharacterCreationError(_BONUS_SHAPE)
 
 
+def _check_bonus_abilities(background_key: str, bonuses: dict[str, int], permitted_abilities: set[str]) -> None:
+    for ability, val in bonuses.items():
+        if val > 0 and ability not in permitted_abilities:
+            raise CharacterCreationError(
+                f"Ability '{ability}' is not eligible for bonuses from background '{background_key}'."
+            )
+
+
+def _check_bonus_split(bonuses: dict[str, int]) -> None:
+    positive_bonuses = sorted(b for b in bonuses.values() if b > 0)
+    if positive_bonuses not in ([1, 2], [1, 1, 1]):
+        raise CharacterCreationError(
+            "Background bonuses must be either (+2 to one, +1 to another) or (+1 to three distinct abilities)."
+        )
+
+
+def _check_score_cap(bonuses: dict[str, int], base_scores: dict[str, int]) -> None:
+    for ability, bonus in bonuses.items():
+        if bonus > 0 and ability in base_scores and base_scores[ability] + bonus > 20:
+            raise CharacterCreationError(
+                f"Ability score for '{ability}' cannot exceed 20 after background bonuses (score was {base_scores[ability]} + {bonus})."
+            )
+
+
 def validate_background_bonuses(
     background_key: str,
     bonuses: dict[str, int],
@@ -1279,30 +1322,29 @@ def validate_background_bonuses(
     if not bg:
         raise CharacterCreationError(f"Unsupported background: {background_key}")
 
-    permitted_abilities = set(bg["abilities"])
     _check_bonus_shape(bonuses)
-    for ability, val in bonuses.items():
-        if val > 0 and ability not in permitted_abilities:
-            raise CharacterCreationError(
-                f"Ability '{ability}' is not eligible for bonuses from background '{background_key}'."
-            )
-
-    positive_bonuses = [b for b in bonuses.values() if b > 0]
-    is_two_one = sorted(positive_bonuses) == [1, 2]
-    is_one_one_one = sorted(positive_bonuses) == [1, 1, 1]
-
-    if not (is_two_one or is_one_one_one):
-        raise CharacterCreationError(
-            "Background bonuses must be either (+2 to one, +1 to another) or (+1 to three distinct abilities)."
-        )
-
+    _check_bonus_abilities(background_key, bonuses, set(bg["abilities"]))
+    _check_bonus_split(bonuses)
     if base_scores is not None:
-        for ability, bonus in bonuses.items():
-            if bonus > 0 and ability in base_scores:
-                if base_scores[ability] + bonus > 20:
-                    raise CharacterCreationError(
-                        f"Ability score for '{ability}' cannot exceed 20 after background bonuses (score was {base_scores[ability]} + {bonus})."
-                    )
+        _check_score_cap(bonuses, base_scores)
+
+
+def _max_hit_points(cls_def: dict[str, Any], species: str, con_mod: int, feats: list[str | None]) -> int:
+    """Hit points: max hit die + CON mod, the species' bonus, and the bonus of every chosen feat (Tough), background or species."""
+    base_hp = cls_def["hit_die"] + con_mod
+    # Species HP bonuses are part of the same catalog the client previews.
+    base_hp += int(SPECIES_DEFINITIONS.get(species, {}).get("hp_bonus", 0))
+    all_chosen_feats = {canonical_origin_feat_name(feat) for feat in feats if feat}
+    base_hp += sum(int(ORIGIN_FEATS.get(feat, {}).get("hp_bonus", 0)) for feat in all_chosen_feats)
+    return max(1, base_hp)
+
+
+def _spell_numbers(cls_def: dict[str, Any], modifiers: dict[str, int], proficiency_bonus: int) -> tuple[int | None, int | None]:
+    """Spellcasting DC and attack bonus; neither for a class that does not cast."""
+    if not cls_def.get("is_spellcaster"):
+        return None, None
+    casting_mod = modifiers[cls_def["spellcasting_ability"]]
+    return 8 + proficiency_bonus + casting_mod, proficiency_bonus + casting_mod
 
 
 def calculate_derived_stats(
@@ -1321,25 +1363,7 @@ def calculate_derived_stats(
 
     modifiers = {k: get_modifier(final_scores[k]) for k in ABILITY_KEYS}
 
-    # Hit points: Max hit die + CON mod
-    hit_die = cls_def["hit_die"]
-    base_hp = hit_die + modifiers["constitution"]
-
-    # Species HP bonuses are part of the same catalog the client previews.
-    base_hp += int(SPECIES_DEFINITIONS.get(species, {}).get("hp_bonus", 0))
-
-    # Feat bonus (Tough); include both background and species-granted feats.
-    all_chosen_feats = {
-        canonical_origin_feat_name(feat)
-        for feat in [chosen_feat, *(chosen_feats or [])]
-        if feat
-    }
-    base_hp += sum(
-        int(ORIGIN_FEATS.get(feat, {}).get("hp_bonus", 0))
-        for feat in all_chosen_feats
-    )
-
-    max_hp = max(1, base_hp)
+    max_hp = _max_hit_points(cls_def, species, modifiers["constitution"], [chosen_feat, *(chosen_feats or [])])
 
     # Armor class
     dex_mod = modifiers["dexterity"]
@@ -1354,13 +1378,7 @@ def calculate_derived_stats(
         for ability in ABILITY_KEYS
     }
 
-    # Spellcasting DC and attack bonus
-    spell_dc = None
-    spell_attack = None
-    if cls_def.get("is_spellcaster"):
-        casting_mod = modifiers[cls_def["spellcasting_ability"]]
-        spell_dc = 8 + proficiency_bonus + casting_mod
-        spell_attack = proficiency_bonus + casting_mod
+    spell_dc, spell_attack = _spell_numbers(cls_def, modifiers, proficiency_bonus)
 
     # Initiative bonus
     initiative = dex_mod

@@ -59,6 +59,10 @@ class PreparedCaster(ClassProgression):
     subclass: tuple[str, str] = ("", "")
     keeps_spellbook = False
 
+    @property
+    def class_name(self) -> str:
+        return self.name or ""
+
     def start_level_picks(self) -> dict[int, dict[str, Any]]:
         """Return each start level's own picks; a level that picks nothing is empty."""
         return {level: {} for level in range(2, LAST_LEVEL + 1)}
@@ -90,12 +94,12 @@ class PreparedCaster(ClassProgression):
         blocks[SUBCLASS_LEVEL]["subclass_options"] = subclasses
         blocks[FIRST_ASI_LEVEL] |= {
             "cantrip_count": 1,
-            "cantrip_ids": catalog_ids(self.name, "cantrips"),
+            "cantrip_ids": catalog_ids(self.class_name, "cantrips"),
             "supported_asi_choices": asi,
         }
         extra = [core.HIGHER_START_EQUIPMENT_PENDING]
         pending = {
-            str(level): core.progression_effects_pending(self.name, level)
+            str(level): core.progression_effects_pending(self.class_name, level)
             + (extra if level >= FIRST_ASI_LEVEL else [])
             for level in levels
         }
@@ -117,8 +121,8 @@ class PreparedCaster(ClassProgression):
         if field != "prepared":
             return set()
         level = min(core.applied_level(character), core.MAX_SUPPORTED_LEVEL)
-        return {identity for spell_level in slot_levels(self.name, level) if spell_level >= 2
-                for identity in source_spell_ids(self.name, spell_level)}
+        return {identity for spell_level in slot_levels(self.class_name, level) if spell_level >= 2
+                for identity in source_spell_ids(self.class_name, spell_level)}
 
     def subclass_options(self) -> list[dict[str, str]]:
         short, key = self.subclass
@@ -211,7 +215,7 @@ class PreparedCaster(ClassProgression):
             options["supported_asi_choices"] = self._asi_options(session)
         known = session.world_state.get("spellcasting_v1", {}).get("cantrips", [])
         if core.row(session.character, target_level)["cantrips"] > core.row(session.character, target_level - 1)["cantrips"]:
-            options["cantrip_ids"] = [identity for identity in catalog_ids(self.name, "cantrips") if identity not in known]
+            options["cantrip_ids"] = [identity for identity in catalog_ids(self.class_name, "cantrips") if identity not in known]
         return options
 
     def check_step(self, session, preview, choices) -> str | None:

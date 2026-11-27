@@ -24,7 +24,7 @@ WRONG_ARITY = {
 class EquipmentApplyPin(unittest.TestCase):
     def setUp(self):
         with fixed_town(self, 20261711):
-            self.s = game.create_session()
+            self.s = game.create_session(seed=20261711)
         self.w = self.s.world_state
         self.w["npcs"] = [{"id": "vendor", "name": "Mira", "location": self.w["location"], "current_hp": 10,
                            "inventory": ["Hançer"]}]

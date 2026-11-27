@@ -6,7 +6,7 @@ import asyncio
 import itertools
 import threading
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 async def racing_claims(
-    manager: object,
+    manager: Any,
     post: Callable[[dict, dict], Awaitable[httpx.Response]],
     campaign: dict,
     bodies: list[dict],

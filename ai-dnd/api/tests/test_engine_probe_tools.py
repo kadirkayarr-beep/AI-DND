@@ -646,7 +646,7 @@ class FunctionCountsCli(unittest.TestCase):
     def test_collect_refuses_shards_on_different_trees(self):
         """Stage A triage T3; D-436: the same words as N4 collect."""
         with tempfile.TemporaryDirectory() as tmp:
-            shards = {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, "def")}
+            shards: dict[int, tuple[dict | None, str | None]] = {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, "def")}
             code, printed, out = self.collect(tmp, shards)
             self.assertFalse(out.exists())
         self.assertEqual((code, printed), (1, ["MIXED TREE", "abc", "def", ""]))

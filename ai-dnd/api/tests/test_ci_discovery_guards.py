@@ -33,8 +33,16 @@ SIZE_BUDGET = Path(__file__).parent / "engine_split_locks" / "size_budget.json"
 
 def _job(text: str, name: str) -> str:
     match = re.search(rf"^  {re.escape(name)}:\n(.*?)(?=^  \S[^\n]*:\n|\Z)", text, re.S | re.M)
-    assert match, name
+    if match is None:
+        raise AssertionError(name)
     return match.group(1)
+
+
+def _case_ids(suite: unittest.TestSuite) -> list[str]:
+    ids: list[str] = []
+    for test in suite:
+        ids += _case_ids(test) if isinstance(test, unittest.TestSuite) else [test.id()]
+    return ids
 
 
 class TestRegressionScript(unittest.TestCase):
@@ -73,11 +81,14 @@ class TestProtectedTestsRun(unittest.TestCase):
         self.assertEqual(len(set(run.PROTECTED)), 9)
         for name in run.PROTECTED:
             loaded = unittest.defaultTestLoader.loadTestsFromName(name)
-            self.assertEqual([test.id() for test in loaded], [name], name)
+            self.assertEqual(_case_ids(loaded), [name], name)
 
     @staticmethod
     def result(tests_run, skipped=(), failures=(), errors=()):
-        return types.SimpleNamespace(testsRun=tests_run, skipped=list(skipped), failures=list(failures), errors=list(errors))
+        outcome = unittest.TestResult()
+        outcome.testsRun = tests_run
+        outcome.skipped, outcome.failures, outcome.errors = list(skipped), list(failures), list(errors)
+        return outcome
 
     def test_a_skip_a_failure_or_a_short_count_is_a_problem(self):
         run = protected_tests_run

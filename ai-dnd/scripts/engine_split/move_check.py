@@ -171,6 +171,81 @@ def _import_group_problem(lines: list[str], moved: dict[str, str]) -> str | None
     return None
 
 
+def _game_py_import_lines(new_game: Path, moved: dict[str, str]) -> tuple[set[int], set[int]]:
+    """Lines of game.py that are re-export imports of moved names, and lines of every other statement."""
+    reexport, other = set(), set()
+    try:
+        source = _text(new_game)
+        for stmt in ast.parse(source).body:
+            lines = set(range(stmt.lineno, stmt.end_lineno + 1))
+            if isinstance(stmt, ast.ImportFrom) and not _import_group_problem([ast.get_source_segment(source, stmt)], moved):
+                reexport |= lines
+            else:
+                other |= lines
+    except SyntaxError:  # reported by the caller
+        pass
+    return reexport, other
+
+
+def _lines_outside(count: int, spans: list[tuple]) -> list[int]:
+    """The 0-based indexes of lines 1..count that no (start, end) span holds."""
+    return [i for i in range(count) if not any(s <= i + 1 <= e for s, e in spans)]
+
+
+def _trimmed_middle(rest: list[str], now: list[str]) -> tuple[int, difflib.SequenceMatcher]:
+    """Compare both lists from each end; only the differing middle goes to SequenceMatcher (head = lines skipped at the start)."""
+    head = 0
+    while head < min(len(rest), len(now)) and rest[head] == now[head]:
+        head += 1
+    tail = 0
+    while tail < min(len(rest), len(now)) - head and rest[-1 - tail] == now[-1 - tail]:
+        tail += 1
+    return head, difflib.SequenceMatcher(None, rest[head:len(rest) - tail], now[head:len(now) - tail], autojunk=False)
+
+
+def _deleted_line_findings(base_lines: list[str], gone: list[int], exempt_base: set[int], used: set[tuple[str, int]],
+                           deleted: set[int]) -> list[str]:
+    found = []
+    for i in gone:  # a deleted line must be blank
+        if base_lines[i].strip():
+            deleted.add(i + 1)
+            if (i + 1) in exempt_base:
+                used.add(("game.py:base", i + 1))
+            else:
+                found.append(f"game.py: base line {i + 1} deleted outside the moved blocks: {base_lines[i].strip()[:60]}")
+    return found
+
+
+def _used_new_exemptions(every: list[tuple[int, str]], exempt_new: set[int], moved: dict[str, str]) -> set[tuple[str, int]]:
+    """D-360, D-431: an exemption is used only when its own line is a bad line."""
+    exempt = [(number, line) for number, line in every if number in exempt_new]
+    if not exempt or not _import_group_problem([line for _, line in every], moved):
+        return set()
+    return {("game.py:new", number) for number, line in exempt if _import_group_problem([line], moved)}
+
+
+def _inserted_line_findings(every: list[tuple[int, str]], exempt_new: set[int], moved: dict[str, str],
+                            used: set[tuple[str, int]]) -> list[str]:
+    group = [(number, line) for number, line in every if number not in exempt_new]
+    used |= _used_new_exemptions(every, exempt_new, moved)
+    if group:  # inserted or replaced lines must parse as import statements of moved names only
+        problem = _import_group_problem([line for _, line in group], moved)
+        if problem:
+            return [f"game.py:{group[0][0]}: {problem}: {group[0][1].strip()[:60]}"]
+    return []
+
+
+def _still_bound_findings(new_game: Path, moved: dict[str, str]) -> list[str]:
+    found = []
+    try:
+        for entry in top_level_index(new_game):
+            if entry["name"] in moved and entry["kind"] != "import":
+                found.append(f"game.py: {entry['name']!r} is still bound at top level ({entry['kind']}, line {entry['start']})")
+    except SyntaxError as exc:
+        found.append(f"game.py does not parse: {exc}")
+    return found
+
+
 def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], exempt_base: set[int],
                       exempt_new: set[int], moved: dict[str, str], used: set[tuple[str, int]],
                       deleted_out: set[int] | None = None) -> list[str]:
@@ -184,55 +259,18 @@ def _game_py_findings(base_game: Path, new_game: Path, spans: list[tuple], exemp
     # D-376: base minus the moved spans must equal new minus this batch's re-export lines, line for line. Both lists
     # are compared from each end, and only the differing middle goes to SequenceMatcher: an exact move has no middle,
     # and kept lines can never pair across a span (the spans and the re-export lines are not in either list)
-    kept = [i for i in range(len(base_lines)) if not any(s <= i + 1 <= e for s, e in spans)]
-    reexport, other = set(), set()
-    try:
-        source = _text(new_game)
-        for stmt in ast.parse(source).body:
-            lines = set(range(stmt.lineno, stmt.end_lineno + 1))
-            if isinstance(stmt, ast.ImportFrom) and not _import_group_problem([ast.get_source_segment(source, stmt)], moved):
-                reexport |= lines
-            else:
-                other |= lines
-    except SyntaxError:  # reported below
-        pass
+    kept = _lines_outside(len(base_lines), spans)
+    reexport, other = _game_py_import_lines(new_game, moved)
     shown = [j for j in range(len(new_lines)) if j + 1 not in reexport - other]
     rest, now = [base_lines[i] for i in kept], [new_lines[j] for j in shown]
-    head = 0
-    while head < min(len(rest), len(now)) and rest[head] == now[head]:
-        head += 1
-    tail = 0
-    while tail < min(len(rest), len(now)) - head and rest[-1 - tail] == now[-1 - tail]:
-        tail += 1
-    middle = difflib.SequenceMatcher(None, rest[head:len(rest) - tail], now[head:len(now) - tail], autojunk=False)
+    head, middle = _trimmed_middle(rest, now)
     for tag, i1, i2, j1, j2 in middle.get_opcodes():
         if tag == "equal":
             continue
-        for i in kept[head + i1:head + i2]:  # a deleted line must be blank
-            if base_lines[i].strip():
-                deleted.add(i + 1)
-                if (i + 1) in exempt_base:
-                    used.add(("game.py:base", i + 1))
-                else:
-                    found.append(f"game.py: base line {i + 1} deleted outside the moved blocks: {base_lines[i].strip()[:60]}")
+        found += _deleted_line_findings(base_lines, kept[head + i1:head + i2], exempt_base, used, deleted)
         every = [(j + 1, new_lines[j]) for j in shown[head + j1:head + j2] if new_lines[j].strip()]
-        group = [(number, line) for number, line in every if number not in exempt_new]
-        if len(group) < len(every) and _import_group_problem([line for _, line in every], moved):
-            # D-360, D-431: an exemption is used only when its own line is a bad line
-            used.update(("game.py:new", number) for number, line in every
-                        if number in exempt_new
-                        and _import_group_problem([line], moved))
-        if group:  # inserted or replaced lines must parse as import statements of moved names only
-            problem = _import_group_problem([line for _, line in group], moved)
-            if problem:
-                found.append(f"game.py:{group[0][0]}: {problem}: {group[0][1].strip()[:60]}")
-    try:
-        for entry in top_level_index(new_game):
-            if entry["name"] in moved and entry["kind"] != "import":
-                found.append(f"game.py: {entry['name']!r} is still bound at top level ({entry['kind']}, line {entry['start']})")
-    except SyntaxError as exc:
-        found.append(f"game.py does not parse: {exc}")
-    return found
+        found += _inserted_line_findings(every, exempt_new, moved, used)
+    return found + _still_bound_findings(new_game, moved)
 
 
 def _import_only_lines(part: Path) -> set[int]:

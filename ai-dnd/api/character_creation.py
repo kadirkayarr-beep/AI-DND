@@ -35,6 +35,11 @@ _FIGHTER_PACKAGE_C_WEAPON_LABELS = {
 }
 
 
+def _set_inventory(session: Any, items: list[str]) -> None:
+    if hasattr(session, "inventory") and isinstance(session.inventory, list):
+        session.inventory = list(items)
+
+
 def _settle_new_character_coin(session: Any) -> None:
     """New creation only: the coin written in the starting pack becomes the purse, once (never on load/resume)."""
     import bold_acts
@@ -859,7 +864,7 @@ def _gameplay_items(
     """Return the pack as gameplay items, and the class's verified cash (only Barbarian packages carry one)."""
     # Only new creation: never parse historical coin labels during load/resume.
     # Other legacy class/background packages are not source-certified currency.
-    gameplay_items = list(plan.equipment_choices)
+    gameplay_items: list[str] = list(plan.equipment_choices)
     class_starting_gp = None
     if plan.character_class == "Barbarian":
         # Only this verified new-character package; never parse legacy labels.
@@ -1001,8 +1006,7 @@ def _apply_plan(session: game.GameSession, plan: SimpleNamespace, level: int) ->
     )
     if has_world:
         _write_world_gear(session, plan, gameplay_items, class_starting_gp, starting_gp)
-    if hasattr(session, "inventory") and isinstance(session.inventory, list):
-        session.inventory = list(gameplay_items)
+    _set_inventory(session, gameplay_items)
     if has_world:
         # After the purse lines: the remaining written coin moves into the purse; the total is unchanged.
         _settle_new_character_coin(session)
