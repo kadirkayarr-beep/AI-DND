@@ -259,8 +259,11 @@ class CombatV2Turns(unittest.TestCase):
                 self.assertEqual(result["combat"]["current_turn_index"], 0)
                 self.assert_snapshot(result)
 
-    def test_combat_state_legacy(self):
+    def test_combat_state_legacy_is_refused(self):
+        # G2.6 (D-524/D-525, owner rule, onay listesi [GEVŞETME OLABİLİR]): was "a v2 file with an old combat shape loads
+        # and migrates to schema 3"; a save older than format 4 is refused and the session is left as it was.
         payload = self.session.serialize_game_state()
+        before = copy.deepcopy(payload)
         payload["version"] = 2
         payload["player"].pop("weapon_proficiencies", None)
         payload["world_state"]["combat"] = {
@@ -268,21 +271,14 @@ class CombatV2Turns(unittest.TestCase):
             "current_turn_index": 0, "participants": [], "target_id": None,
         }
         rng_before = self.session.rng.getstate()
-        # Exercise the real compatibility boundary, not a malformed native
-        # world handed directly to the modern request validator.
         with tempfile.TemporaryDirectory() as directory:
             save = Path(directory) / "legacy.json"
             save.write_text(json.dumps(payload), encoding="utf-8")
-            self.session.load_game(save)
+            with self.assertRaisesRegex(ValueError, "desteklenmiyor"):
+                self.session.load_game(save)
         self.assertEqual(self.session.rng.getstate(), rng_before)
-        self.npc = self.world["npcs"][0]
+        self.assertEqual(self.session.serialize_game_state(), before)
         self.assertEqual(self.world["combat"]["schema_version"], 3)
-        with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
-            result = self.turn()
-        self.assertTrue(result["combat"]["active"])
-        self.assertEqual(result["combat"]["round"], 2)
-        self.assertEqual(self.world["player_combat_status"], "active")
-        self.assert_snapshot(result)
 
     def test_qwen_cannot_modify_player_hp(self):
         before = copy.deepcopy(self.session.character)

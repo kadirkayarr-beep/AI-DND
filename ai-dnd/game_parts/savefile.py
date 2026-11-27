@@ -23,7 +23,7 @@ import weapon_attack
 
 SAVE_FORMAT_VERSION = 4
 
-_SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5, 6)
+_SUPPORTED_SAVE_VERSIONS = (4, 5, 6)
 
 def _validate_species_trait_state(value, species, proficiency_bonus=2):
     if not isinstance(value, dict):
@@ -159,14 +159,14 @@ def _validate_player_condition_state(player):
         if field in player and (type(player[field]) is not int or player[field] < 0):
             raise ValueError("Saved condition numeric metadata is invalid.")
 
-def _validate_player_weapon_proficiencies(player, version):
+def _validate_player_weapon_proficiencies(player):
     """Optional explicit capability; absent state stays absent here (weapon_attack.proficiencies reads a class grant at attack time)."""
     if "weapon_proficiencies" not in player:
         return
     from weapon_catalog import WEAPONS
     values = player["weapon_proficiencies"]
     allowed = {"simple", "martial"} | {weapon["weapon_id"] for weapon in WEAPONS.values()}
-    if (version not in (4, 5, 6) or type(values) is not list
+    if (type(values) is not list
             or any(type(value) is not str or value not in allowed for value in values)
             or len(values) != len(set(values))):
         raise ValueError("Saved weapon proficiencies are invalid.")
@@ -174,14 +174,9 @@ def _validate_player_weapon_proficiencies(player, version):
 def _player_state_for_save():
     character = game._session().character
     import character_progression
-    # Selected earned ASI requires format4/5/6; loaded formats are not promoted.
     character_progression._validate_asi_choice_storage(character, world=game._session().world_state)
     character_progression._validate_primal_knowledge(character)
-    if "primal_knowledge_choice" in character and getattr(game._session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
-        raise ValueError("Primal Knowledge requires save format4–6.")
-    if character.get("asi_choices") and getattr(game._session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) not in (4, 5, 6):
-        raise ValueError("Earned ASI requires save format4/5/6.")
-    game._validate_player_weapon_proficiencies(character, getattr(game._session(), "_persisted_engine_format", SAVE_FORMAT_VERSION))
+    game._validate_player_weapon_proficiencies(character)
     saved = {
         "name": game._session().character["name"],
         "race": game._session().character["race"],
@@ -267,21 +262,18 @@ def _player_state_for_save():
         saved["armor_origin"] = copy.deepcopy(character["armor_origin"])
     if character.get("fighting_style") is not None:  # additive: the style keeps applying after a load
         saved["fighting_style"] = character["fighting_style"]
-    # Formats 4 and 5 store spell lists, slots, and an origin feat.
-    # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
-    if getattr(game._session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
-        import spells
-        spell_fields = spells.empty_spell_state()
-        for field in ("cantrips", "spells", "spell_slots_remaining"):
-            if field in character:
-                spell_fields[field] = copy.deepcopy(character[field])
-        spells.validate_saved_spell_fields(spell_fields)
-        saved.update(spell_fields)
-        if "origin_feat" in character:
-            feat = character["origin_feat"]
-            if not isinstance(feat, str) or not feat.strip() or len(feat) > 40:
-                raise ValueError("Origin feat state is invalid.")
-            saved["origin_feat"] = feat
+    import spells
+    spell_fields = spells.empty_spell_state()
+    for field in ("cantrips", "spells", "spell_slots_remaining"):
+        if field in character:
+            spell_fields[field] = copy.deepcopy(character[field])
+    spells.validate_saved_spell_fields(spell_fields)
+    saved.update(spell_fields)
+    if "origin_feat" in character:
+        feat = character["origin_feat"]
+        if not isinstance(feat, str) or not feat.strip() or len(feat) > 40:
+            raise ValueError("Origin feat state is invalid.")
+        saved["origin_feat"] = feat
     game._validate_saved_multilevel_slots(saved, game._session().world_state)
     return saved
 
@@ -457,7 +449,7 @@ def _validate_save_header(payload):
         raise ValueError("Bu dosya bir Unwritten kayıt dosyası değil.")
     version = payload.get("version")
     if version not in _SUPPORTED_SAVE_VERSIONS:
-        raise ValueError("Bu kayıt sürümü desteklenmiyor.")
+        raise ValueError("Bu kayıt sürümü desteklenmiyor: en eski desteklenen kayıt sürümü 4.")
 
     player = payload.get("player")
     saved_world = payload.get("world_state")
@@ -477,7 +469,7 @@ def _validate_save_subsystems(player, saved_world, version):
         import sorcery_points
         sorcery_points.validate(saved_world["sorcery_points_v1"], player, version)
     game._validate_player_condition_state(player)
-    game._validate_player_weapon_proficiencies(player, version)
+    game._validate_player_weapon_proficiencies(player)
     if "concentration" in player:
         raise ValueError("Saved player concentration has no supported schema.")
     scheduled_events.validate_events(saved_world.get("scheduled_events", []), saved_world)
@@ -566,21 +558,17 @@ def _validate_saved_world_sections(player, saved_world, version):
         import world_threads
         # a happening row of unknown kind is not a reason to refuse: loading drops it (_repair_dilim2_fields)
         world_threads.validate(game._known_happenings(saved_world["world_threads_v1"])[0])
-    if version >= 2 and (
-        "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
-    ):
+    if "quests" not in saved_world or "quest_processed_event_ids" not in saved_world:
         raise ValueError("Kayıt görev alanlarını içermiyor.")
-    if version >= 3:
-        game._validate_combat_v3_payload(saved_world.get("combat"))
-    if version >= 4:
-        import spells
-        spells.validate_saved_spell_fields(player)
+    game._validate_combat_v3_payload(saved_world.get("combat"))
+    import spells
+    spells.validate_saved_spell_fields(player)
     if version >= 5:
         import xp
         xp.validate_saved_advancement(player, saved_world, policy=6 if version >= 6 else 5)
 
 
-def _validate_saved_character(player, saved_world, version):
+def _validate_saved_character(player, saved_world):
     """Skills, class and species rules, spells, hit points and stats of the saved character."""
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
@@ -606,10 +594,6 @@ def _validate_saved_character(player, saved_world, version):
     import spell_scope
     spell_scope.validate(saved_world.get("spellcasting_v1"), player)
     import character_progression
-    if player.get("asi_choices") and version not in (4, 5, 6):
-        raise ValueError("Earned ASI requires save format4/5/6.")
-    if "primal_knowledge_choice" in player and version not in (4, 5, 6):
-        raise ValueError("Primal Knowledge requires save format4–6.")
     character_progression.validate_saved(player, saved_world, saved=True)
     weapon_attack.validate_saved_reckless(saved_world, player)
     import monk_features
@@ -854,7 +838,7 @@ def _validate_save_payload(payload):
     game._validate_save_subsystems(player, saved_world, version)
     game._validate_saved_player_fields(player)
     game._validate_saved_world_sections(player, saved_world, version)
-    game._validate_saved_character(player, saved_world, version)
+    game._validate_saved_character(player, saved_world)
     game._validate_saved_world_fields(saved_world)
     game._validate_saved_quests(saved_world)
     game._validate_saved_world_lists(payload, saved_world)
@@ -1006,14 +990,9 @@ def load_game(path):
         else:
             # No stored total exists to keep. Do not reuse XP left on this session.
             character["xp"] = 0
-        if payload["version"] >= 4:
-            character["cantrips"] = list(player["cantrips"])
-            character["spells"] = list(player["spells"])
-            character["spell_slots_remaining"] = copy.deepcopy(player["spell_slots_remaining"])
-        else:
-            character["cantrips"] = []
-            character["spells"] = []
-            character["spell_slots_remaining"] = {"1": 0}
+        character["cantrips"] = list(player["cantrips"])
+        character["spells"] = list(player["spells"])
+        character["spell_slots_remaining"] = copy.deepcopy(player["spell_slots_remaining"])
         if isinstance(player.get("origin_feat"), str) and player["origin_feat"].strip():
             character["origin_feat"] = player["origin_feat"]
         else:
@@ -1109,10 +1088,7 @@ def load_game(path):
         recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
         game._normalize_ground_items()
         game.ensure_combat_state()
-        import spell_scope
-        spell_scope.upgrade(world_state, character)  # 4C.2: spell state version 1 -> 2; chooses no spell
-        # Keep the file's own version. The current default is v4, and a v1–v3
-        # file must still be written back as that same version.
+        # Keep the file's own version (4, 5 or 6) so it is written back as that same version.
         game._session()._persisted_engine_format = payload["version"]
         loaded = game.serialize_game_state()
         # D-072: the sitting-only fight questions (never saved) belong to the replaced game, not the loaded one.

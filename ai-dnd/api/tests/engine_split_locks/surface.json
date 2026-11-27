@@ -2385,12 +2385,6 @@
   "session_bound": true,
   "signature": "(player_input)"
  },
- "_migrate_legacy_combat_state": {
-  "kind": "function",
-  "module": "game_parts.combat_flow",
-  "session_bound": true,
-  "signature": "(legacy)"
- },
  "_model_query_type_is_plausible": {
   "kind": "function",
   "module": "game_parts.intent",
@@ -4471,7 +4465,7 @@
   "kind": "function",
   "module": "game_parts.savefile",
   "session_bound": true,
-  "signature": "(player, version)"
+  "signature": "(player)"
  },
  "_validate_save_header": {
   "kind": "function",
@@ -4495,7 +4489,7 @@
   "kind": "function",
   "module": "game_parts.savefile",
   "session_bound": true,
-  "signature": "(player, saved_world, version)"
+  "signature": "(player, saved_world)"
  },
  "_validate_saved_multilevel_slots": {
   "kind": "function",

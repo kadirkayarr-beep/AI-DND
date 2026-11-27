@@ -50,8 +50,8 @@ class CombatAwardRefused(unittest.TestCase):
         self.directory = directory.name
 
     def test_a_refused_level_five_admission_still_ends_the_fight_without_the_xp(self):
-        """D-013: a format 1..3 save whose crossing the admission refuses used to keep the fight active forever."""
-        for version in (1, 2, 3):
+        """D-013: a format 4 save whose crossing the admission refuses used to keep the fight active forever."""
+        for version in (4,):
             with self.subTest(version=version):
                 session = legacy_save(version, self.directory)
                 guard = person("guard1", "muhafız")
@@ -102,7 +102,7 @@ class CombatAwardRefused(unittest.TestCase):
 
     def test_a_refused_knock_out_award_still_knocks_out_and_keeps_the_callers_references(self):
         """Task 8 park: the award at the blow used to raise with the knock-out half-written."""
-        session = legacy_save(3, tempfile.mkdtemp(dir=self.directory))
+        session = legacy_save(4, tempfile.mkdtemp(dir=self.directory))
         guard, other = person("guard1", "muhafız"), person("guard2", "muhafız")
         session.world_state["npcs"] = [guard, other]
         session.start_combat(guard)
@@ -120,7 +120,7 @@ class CombatAwardRefused(unittest.TestCase):
         self.assertIs(session.world_state["combat"], combat)
         self.assertTrue(combat["active"])
         self.assertEqual((session.character["xp"], session.character["level"], session._persisted_engine_format),
-                         (6490, 4, 3))
+                         (6490, 4, 4))
         self.assertEqual(session.world_state["xp_awarded_event_ids"], receipts)
         self.assertIsNone(session._xp_level_up)
 
@@ -303,7 +303,7 @@ class ForfeitPutsBackInPlace(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        self.session = legacy_save(3, directory.name)              # 6490 XP, level 4: +10 crosses to 5 (PB 2 -> 3)
+        self.session = legacy_save(4, directory.name)              # 6490 XP, level 4: +10 crosses to 5 (PB 2 -> 3)
 
     def forfeit(self):
         with patch.object(game, "_validate_save_payload", _refused):
@@ -321,7 +321,7 @@ class ForfeitPutsBackInPlace(unittest.TestCase):
         self.assertEqual((_containers(session.character), _containers(session.world_state)), ids)
         self.assertIs(session.character["saving_throw_mods"], saves)
         self.assertEqual((session.character["level"], session._persisted_engine_format, session._xp_level_up),
-                         (4, 3, None))
+                         (4, 4, None))
 
     def test_the_save_checks_scene_default_fill_is_put_back(self):
         session = self.session

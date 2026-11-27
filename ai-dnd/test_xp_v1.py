@@ -392,7 +392,7 @@ class ExperienceAwardTests(unittest.TestCase):
             saved_level = payload["player"]["level"]
             saved_hp = payload["player"]["max_hp"]
             saved_current = payload["player"]["current_hp"]
-            for version in (1, 2, 3, 4):
+            for version in (4,):  # G2.6 (D-525, owner rule): formats 1..3 are refused now, not loaded
                 legacy = copy.deepcopy(payload)
                 legacy["version"] = version
                 legacy["player"].pop("xp")
@@ -400,10 +400,6 @@ class ExperienceAwardTests(unittest.TestCase):
                 legacy["player"]["max_hp"] = saved_hp
                 legacy["player"]["current_hp"] = saved_current
                 legacy["world_state"].pop("xp_awarded_event_ids")
-                if version < 4:
-                    legacy["player"].pop("cantrips")
-                    legacy["player"].pop("spells")
-                    legacy["player"].pop("spell_slots_remaining")
                 path.write_text(json.dumps(legacy), encoding="utf-8")
                 self.session.load_game(path)
                 self.assertEqual(self.session.character["xp"], 0)
@@ -438,8 +434,8 @@ class ExperienceAwardTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.session.load_game(path)
 
-    def test_v3_award_survives_restart_without_a_format_change(self):
-        self.session._persisted_engine_format = 3
+    def test_v4_award_survives_restart_without_a_format_change(self):
+        self.session._persisted_engine_format = 4
         _enemy(self.session, 300)
         ended = _defeat(self.session)
         self.assertEqual(ended["reason"], "target_defeated")
@@ -447,15 +443,13 @@ class ExperienceAwardTests(unittest.TestCase):
         self.assertEqual(self.session.character["level"], 2)
         max_hp = self.session.character["max_hp"]
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "v3-xp.json"
+            path = Path(directory) / "v4-xp.json"
             self.session.save_game(path)
             payload = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["version"], 3)
+            self.assertEqual(payload["version"], 4)
             self.assertEqual(payload["player"]["xp"], 300)
             self.assertEqual(payload["player"]["level"], 2)
             self.assertEqual(payload["player"]["max_hp"], max_hp)
-            self.assertNotIn("spell_slots_remaining", payload["player"])
-            self.assertNotIn("origin_feat", payload["player"])
             restarted = game.create_session(seed=11)
             restarted.load_game(path)
         self.assertEqual(restarted.character["xp"], 300)
@@ -474,14 +468,13 @@ class ExperienceAwardTests(unittest.TestCase):
             )
         )
         self.assertEqual(self.session.character["xp"], 300)
-        self.assertEqual(restarted._persisted_engine_format, 3)
+        self.assertEqual(restarted._persisted_engine_format, 4)
         with tempfile.TemporaryDirectory() as directory:
-            again = Path(directory) / "v3-again.json"
+            again = Path(directory) / "v4-again.json"
             restarted.save_game(again)
             rewritten = json.loads(again.read_text(encoding="utf-8"))
-        self.assertEqual(rewritten["version"], 3)
+        self.assertEqual(rewritten["version"], 4)
         self.assertEqual(rewritten["player"]["xp"], 300)
-        self.assertNotIn("cantrips", rewritten["player"])
 
     def test_fresh_v4_save_restores_slots_feat_and_advancement(self):
         self.session.character["cantrips"] = ["Fire Bolt"]
@@ -515,7 +508,7 @@ class ExperienceAwardTests(unittest.TestCase):
         )
 
     def test_missing_xp_does_not_keep_another_sessions_total(self):
-        self.session._persisted_engine_format = 3
+        self.session._persisted_engine_format = 4
         level = self.session.character["level"]
         max_hp = self.session.character["max_hp"]
         current_hp = self.session.character["current_hp"]
@@ -523,7 +516,7 @@ class ExperienceAwardTests(unittest.TestCase):
             path = Path(directory) / "no-xp.json"
             self.session.save_game(path)
             payload = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["version"], 3)
+            self.assertEqual(payload["version"], 4)
             payload["player"].pop("xp")
             path.write_text(json.dumps(payload), encoding="utf-8")
             donor = game.create_session(seed=13)

@@ -1,7 +1,7 @@
 """4C.2: the spell preparation window (Wizard from the spellbook, Cleric from the class list).
 
 The window lives in `spellcasting_v1["prepare_window"]` (state version 2): opened at creation, at the end of a finished
-Long Rest, by the version-1 migration, or by a Wizard/Cleric level step (4C.3). Like the Hit Dice window it is open only at the second it opened and out of
+Long Rest, or by a Wizard/Cleric level step (4C.3). Like the Hit Dice window it is open only at the second it opened and out of
 combat; a combat start or the player's "done" closes it for good. The engine never chooses a spell: invalid names are
 dropped with a reason, and a list over the limit saves nothing and asks which to leave out.
 """
@@ -22,28 +22,24 @@ class PrepareRefused(ValueError):
         self.code = code
 
 
-def _state(session: Any, *, write: bool = True) -> dict[str, Any] | None:
-    """The version-2 state. A version-1 state still in memory (an old death checkpoint) is upgraded first; a read
-    (`write=False`) upgrades a copy and leaves the session untouched."""
-    world = session.world_state if write else {**session.world_state,
-                                                "spellcasting_v1": copy.deepcopy(session.world_state.get("spellcasting_v1"))}
-    spell_scope.upgrade(world, session.character)
-    state = world.get("spellcasting_v1")
+def _state(session: Any) -> dict[str, Any] | None:
+    """The saved spell state, checked against the character; nothing is migrated."""
+    state = session.world_state.get("spellcasting_v1")
     spell_scope.validate(state, session.character)
     return state
 
 
-# A creation, migration or level-up window waits for the player's first list (fix round 1; 4C.3 level steps): it ignores
+# A creation or level-up window waits for the player's first list (fix round 1; 4C.3 level steps): it ignores
 # the clock and a fight, and ends with the first saved list, `close: true` or a finished Long Rest. A Long Rest window keeps
 # the approved rule.
-STANDING = frozenset({"creation", "migration", "level_up"})
+STANDING = frozenset({"creation", "level_up"})
 
 
 def _blocked(state: Any) -> str | None:
-    """Why this caster cannot use the window: not a preparing class, or a Wizard whose save carries no spellbook."""
+    """Why this caster cannot use the window: not a preparing class, or a Wizard whose state carries no spellbook."""
     if not isinstance(state, dict) or state["class"] not in spell_scope.PREPARING:
         return "not_preparing_class"
-    if state["version"] == 1:  # only a Wizard with no saved creation spells stays version 1 (spell_scope.upgrade)
+    if state["version"] == 1:  # a Wizard or Cleric state without a spellbook: nothing migrates or writes one for it
         return "spellbook_missing"
     return None
 
@@ -78,7 +74,7 @@ def open_window(session: Any, reason: str) -> None:
 
 
 def close_window(session: Any) -> None:
-    """Combat start: a Long Rest window ends for good; a creation/migration window waits for the first list."""
+    """Combat start: a Long Rest window ends for good; a creation window waits for the first list."""
     state = session.world_state.get("spellcasting_v1")
     window = state.get("prepare_window") if isinstance(state, dict) else None
     if window is not None and window["reason"] not in STANDING:
@@ -101,63 +97,19 @@ def _not_in_engine(state: dict[str, Any], character: dict[str, Any]) -> list[str
     return [spell for spell in _candidates(state, character) if spell_registry.spell_state(spell) != "resolver"]
 
 
-def _book_options() -> list[str]:
-    """D-039: what an old save's Wizard may write into the book: the Wizard level-1 list, in catalog order."""
-    return [s["id"] for s in SPELLS_CATALOG["Wizard"]["spells_level_1"]]
-
-
-def _book_suggestion() -> list[str]:
-    """D-039: the engine's ready offer, the creation quick-build rule (the first six of the list). Only an offer: the
-    player accepts or changes it, and nothing is written until the player sends a book."""
-    from class_progression.wizard import BOOK_AT_CREATION
-    return _book_options()[:BOOK_AT_CREATION]
-
-
 def view(session: Any) -> dict[str, Any]:
-    state = _state(session, write=False)
+    state = _state(session)
     blocked = _blocked(state)
     if blocked:
-        missing = blocked == "spellbook_missing"
         return {"supported": False, "blocked_reason": blocked, "class_name": session.character.get("class"),
                 "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None,
-                "not_in_engine": [],
-                "spellbook_options": _book_options() if missing else [],
-                "suggested_spellbook": _book_suggestion() if missing else []}
+                "not_in_engine": [], "spellbook_options": [], "suggested_spellbook": []}
     window = state["prepare_window"]
     return {"supported": True, "blocked_reason": None, "class_name": state["class"], "open": _open(session.world_state, state),
             "reason": _reason(session.world_state, window) if window else None, "limit": spell_scope.prepare_limit(session.character),
             "candidates": _candidates(state, session.character), "prepared": list(state["prepared"]),
             "spellbook": copy.deepcopy(state["spellbook"]), "not_in_engine": _not_in_engine(state, session.character),
             "spellbook_options": [], "suggested_spellbook": []}
-
-
-def choose_spellbook(session: Any, requested: list[str]) -> dict[str, Any]:
-    """D-039: an old save's Wizard (formats 1-3 carry no creation spells) writes the book once, by the player's choice.
-
-    The choice is saved exactly like the creation selections (`character["spells"]`) and the existing migration builds the
-    version-2 state from it (`spell_scope.upgrade`: the book, a migration window, the full check). Exactly six distinct
-    Wizard level-1 spells (PHB 2024 Wizard Spellbook); anything else is refused and changes nothing."""
-    from class_progression.wizard import BOOK_AT_CREATION
-    state = _state(session)
-    if _blocked(state) != "spellbook_missing":
-        raise PrepareRefused("prepare_spellbook_not_missing",
-                             "Büyü kitabın zaten kayıtlı ya da bu sınıf büyü kitabı tutmaz; kitap yeniden seçilmez.")
-    options = _book_options()
-    if (len(requested) != BOOK_AT_CREATION or len(set(requested)) != len(requested)
-            or any(spell not in options for spell in requested)):
-        raise PrepareRefused("prepare_spellbook_invalid",
-                             f"Büyü kitabına Wizard listesinden tam {BOOK_AT_CREATION} farklı birinci seviye büyü seçmelisin.")
-    character = {**copy.deepcopy(session.character), "spells": list(requested)}
-    world = {**session.world_state, "spellcasting_v1": copy.deepcopy(state)}
-    spell_scope.upgrade(world, character)  # validates the old state and the migrated one before anything is written
-    migrated = world["spellcasting_v1"]
-    if migrated.get("version") != 2 or migrated["spellbook"] != list(requested):
-        raise ValueError("Büyü kitabı kaydedilemedi.")
-    session.character["spells"] = list(requested)
-    session.world_state["spellcasting_v1"] = migrated
-    return {"status": "spellbook_saved", "prepared": [], "dropped": [], "limit": spell_scope.prepare_limit(session.character),
-            "excess": 0, "open": window_open(session),
-            "message": f"Büyü kitabına yazıldı: {', '.join(requested)}."}
 
 
 def prepare(session: Any, requested: list[str] | None, close: bool = False) -> dict[str, Any]:

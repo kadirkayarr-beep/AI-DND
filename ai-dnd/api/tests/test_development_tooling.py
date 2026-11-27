@@ -333,9 +333,9 @@ class DevelopmentToolingTests(unittest.TestCase):
         self.assertIn("api.tests.test_coin_ask_persuasion",
                       owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
 
-    def test_old_save_spellbook_choice_tests_are_in_the_gate(self):
-        # D-039: the one-time spellbook choice touches the save; its regression runs in the CI list.
-        self.assertIn("api.tests.test_d039_spellbook_choice",
+    def test_old_save_branch_tests_are_in_the_gate(self):
+        # G2.6 (D-525, D-524, D-538): the refusal of old saves touches the save; its regression runs in the CI list.
+        self.assertIn("api.tests.test_g26_old_save_branches",
                       owner.load_config(owner.DEFAULT_CONFIG)["regression_selectors"])
 
     def test_the_unrecorded_xp_line_test_is_in_the_gate(self):

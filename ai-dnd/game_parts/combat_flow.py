@@ -554,110 +554,6 @@ def _combat_record_for_actor(participant_id, initiative=None, actions_used=()):
         "primary_action_available": participant_id not in actions_used,
     }
 
-def _migrate_legacy_combat_state(legacy):
-    """Map a known two-participant V1/V2 encounter, rejecting ambiguous active data."""
-    if not isinstance(legacy, dict):
-        return game._combat_defaults()
-    # Native V1/V2 writers omitted this field. Accept only the explicit actor-ID
-    # list extension; never infer modern resources or spending from the cursor.
-    actions_used = legacy.get("actions_used", [])
-    if (
-        not isinstance(actions_used, list)
-        or any(not isinstance(actor, str) or not actor for actor in actions_used)
-        or len(set(actions_used)) != len(actions_used)
-    ):
-        raise ValueError("Legacy combat actions_used markers are invalid.")
-    if legacy.get("active") is not True:
-        if actions_used:
-            raise ValueError("Inactive legacy combat cannot contain actions_used markers.")
-        return game._combat_defaults()
-    if legacy.get("schema_version") not in (None, 1, 2):
-        raise ValueError("Unsupported legacy combat save version.")
-
-    order = legacy.get("initiative_order")
-    index = legacy.get("current_turn_index")
-    round_number = legacy.get("round")
-    legacy_participants = legacy.get("participants")
-    target_id = legacy.get("target_id")
-    if not isinstance(target_id, str) or not target_id:
-        candidates = [
-            item for item in (legacy_participants if isinstance(legacy_participants, list) else [])
-            if isinstance(item, str) and item != "player"
-        ]
-        candidates.extend(
-            item for item in (order if isinstance(order, list) else [])
-            if isinstance(item, str) and item != "player"
-        )
-        candidates = list(dict.fromkeys(candidates))
-        if len(candidates) == 1:
-            target_id = candidates[0]
-    if (
-        not isinstance(order, list)
-        or len(order) != 2
-        or any(not isinstance(actor, str) or not actor for actor in order)
-        or len(set(order)) != 2
-        or set(order) != {"player", target_id}
-        or type(index) is not int
-        or not 0 <= index < len(order)
-        or type(round_number) is not int
-        or round_number < 1
-        or (
-            legacy_participants is not None
-            and (
-                not isinstance(legacy_participants, list)
-                    or any(
-                        not isinstance(item, str) or not item
-                        for item in legacy_participants
-                    )
-                or set(legacy_participants) != set(order)
-                or len(legacy_participants) != len(order)
-            )
-        )
-    ):
-        raise ValueError(
-            "Active legacy combat is missing a valid participant identity or turn boundary."
-        )
-    if not set(actions_used).issubset(set(order)):
-        raise ValueError("Legacy combat actions_used contains a nonparticipant.")
-
-    world_state = game._session().world_state
-    npc = next(
-        (item for item in world_state.get("npcs", [])
-         if isinstance(item, dict) and item.get("id") == target_id),
-        None,
-    )
-    if npc is None or npc.get("location") != world_state.get("location"):
-        raise ValueError(
-            "Active legacy combat target is missing from the saved location."
-        )
-    state = game._combat_defaults()
-    state.update({
-        "active": True,
-        "status": "active",
-        "round": round_number,
-        "initiative_order": list(order),
-        "current_turn_index": index,
-        "current_actor_id": order[index],
-        "participants": list(
-            legacy_participants if legacy_participants is not None else order
-        ),
-        "actions_used": list(actions_used),
-        "target_id": target_id,
-        "end_reason": None,
-    })
-    state["participant_records"] = [
-        game._combat_record_for_actor(
-            participant_id,
-            initiative=None,
-            actions_used=state["actions_used"],
-        )
-        for participant_id in state["participants"]
-    ]
-    # Legacy saves predate encounter identity; mint it at the migration boundary,
-    # not in the V3 validator, so malformed native V3 saves still fail visibly.
-    state["combat_id"] = str(game.uuid4())
-    return state
-
 def _sync_combat_participant_records(combat):
     for identity in combat["participants"]:
         if identity != "player" and sum(
@@ -679,14 +575,14 @@ def _sync_combat_participant_records(combat):
     combat["participant_records"] = records
 
 def ensure_combat_state():
-    """Migrate known legacy combat and strictly preserve active scheduler state."""
+    """Start a missing combat record and strictly preserve active scheduler state."""
     world_state = game._session().world_state
     game.ensure_death_state()
     combat = world_state.get("combat")
-    if isinstance(combat, dict) and combat.get("schema_version") not in (None, 1, 2, 3):
+    if isinstance(combat, dict) and combat.get("schema_version") != 3:
         raise ValueError("Unsupported combat save version.")
-    if not isinstance(combat, dict) or combat.get("schema_version") != 3:
-        combat = game._migrate_legacy_combat_state(combat)
+    if not isinstance(combat, dict):
+        combat = game._combat_defaults()
         world_state["combat"] = combat
     else:
         if not combat.get("active"):

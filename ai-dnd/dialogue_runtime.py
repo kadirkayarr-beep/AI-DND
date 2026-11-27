@@ -32,7 +32,7 @@ def is_enabled(world: dict) -> bool:
 
 
 def initialize_new_campaign(world: dict, mode: str | None) -> None:
-    if mode not in (None, '', 'legacy', MODE):
+    if mode not in (None, MODE):
         raise ValueError('Unsupported dialogue campaign mode.')
     if mode == MODE:
         world[KEY] = {'version': 1, 'mode': MODE}
