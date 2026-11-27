@@ -763,3 +763,18 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz, yalniz yeni kayitlar o
 | `api/schemas.py` + `lib/api-spec/openapi.yaml` + uretilen istemciler + `main_openapi_golden.json` (D-538) | istek alani `spellbook`, gorunum alanlari `spellbook_options`/`suggested_spellbook`, `reason` degeri `migration`, sonuc durumu `spellbook_saved` ve hata kodu `prepare_spellbook_not_missing` kalkti | gevşetme olabilir (sema daraldi) |
 | `artifacts/ai-dnd-experience/tests/spell-preparation.test.mjs` uc `D-039` testi (silindi) + `migration` satirlari (D-576) | kitap secme ekrani ve `migration` metinleri kalkti; geri kalan testler ayni siklikta | silinen test |
 | `api/tests/test_spell_preparation_4c2.py` `test_view_lists_candidates_and_limit` | tam sozluk esitligi ayni; yalniz kalkan iki alan cikti | ekleme/esit |
+
+## G2.7 (borc-sifirlama): eski kayit dallari B (envanter, yer esyasi, inisiyatif)
+
+Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic birak/al, kaydet, yukle, Geri Al turu `api/tests/test_g27_old_inventory_branches.py` ile korunur.
+
+| Degisen | Ne oldu | Sinif |
+|---|---|---|
+| `ai-dnd/equipment_economy.py` `legacy_sword_move` -> `carry_named` (D-504) | kilic birakma/alma `/item drop\|take` ile ayni `_apply` hareketini kullanir; esya kimligi korunur (eskiden elde tutulan kimlikli kilic yere duz "Kilic" yazisi olarak dusuyordu); iki kilic ve eldekini bilmeyen durum degismeden reddedilir | ekleme/esit (kimlik kaybi duzeldi) |
+| `ai-dnd/game.py` `ground_items` alani, `game_parts/places.py` `_normalize_ground_items`, `equipment_economy.py` `containers` `legacy_ground` ve `materialize` goc blogu, `savefile.py`, `turn_front.py`, `text_rules_b.py`, `intent.py`, `narration.py` (D-526) | eski ust duzey `ground_items` listesi ve iki gocu ile okuyuculari kalkti; yeni dunya ve kayitta alan yok; `intent.py` ve `narration.py`'deki hep bos listeyi okuyan iki dal (kilic yerde iletisi) silindi, `intent.py` stok kontrolu yalniz envanteri okur | gevşetme olabilir (eski listeyi okuyan dallar kalkti; davranis ayni, cunku liste hep bostu) |
+| `ai-dnd/initiative.py` `validate_saved`, `join`, `leave` (D-518) | `initiative_results` olmayan etkin savas kayit yuklerken reddedilir; `legacy_preserved` toplami gecersiz; `join` eski toplamlardan sonuc uretmez; `leave` sartsiz | gevşetme olabilir (kabul edilen savas kaydi sekli daraldi) |
+| `ai-dnd/test_migration.py`, `test_migration_harden.py` (silindi) + `run_tests.py`, `test_runner_inventory.py`, `api/tests/test_legacy_script_isolation.py`, `TESTING_CHECKPOINT.md` listeleri | eski `ground_items` listesinin gocunu sinayan iki betik silindi | silinen test |
+| `ai-dnd/api/tests/test_initiative.py` `test_legacy_integer_totals_allow_join_without_invented_dice` (silindi) | eski toplamlardan katilimci ekleme kalkti; yerine `test_g27` iki red testi | silinen test (gevşetme olabilir) |
+| `ai-dnd/test_combat_v2_authoritative.py` `test_X_inventory_parser_no_op` | eski `ground_items` listesi besleyen alt testler kalkti; ayni iddialar ayni sekilde | ekleme/esit |
+| `ai-dnd/api/tests/engine_split_locks/surface.json`, `scripts/engine_split/batches/places-1.txt`, `scripts/quality_gate/baselines/ruff.json` | silinen ad ve iki betik girdisi cikti | kilit kuculmesi |
+| yeni test | `ai-dnd/api/tests/test_g27_old_inventory_branches.py` (D-504, D-526, D-518, tam tur) | ekleme |

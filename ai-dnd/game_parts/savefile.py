@@ -939,7 +939,6 @@ def load_game(path):
     player = payload["player"]
     saved_world = copy.deepcopy(payload["world_state"])
     saved_world.setdefault("ground_items_by_location", {})
-    saved_world.setdefault("ground_items", [])
     saved_world.setdefault("containers", [])
     saved_world.setdefault("shops", [])
     saved_world.setdefault("next_shop_number", 1)
@@ -1086,7 +1085,6 @@ def load_game(path):
             character[f"{ability}_mod"] = modifier
         recent_dm_narrations.clear()
         recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
-        game._normalize_ground_items()
         game.ensure_combat_state()
         # Keep the file's own version (4, 5 or 6) so it is written back as that same version.
         game._session()._persisted_engine_format = payload["version"]

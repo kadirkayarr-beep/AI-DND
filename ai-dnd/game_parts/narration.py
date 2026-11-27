@@ -832,7 +832,6 @@ def _narrator_shop_record(shop):
 
 def build_world_context(npc_target=None):
     world_state = game._session().world_state
-    game._normalize_ground_items()
     npcs = game.active_npcs()
     if npc_target and not any(
         npc.get("id") == npc_target.get("id")
@@ -993,11 +992,8 @@ def _fallback_narration(player_input, npc_target=None):
 
     if ("kılıc" in text or "kılıç" in text or "silah" in text) and re.search(
         r"\b(?:nerede|nerde|var mı|yanımda|envanter\w*|duruyor mu)\b", text
-    ):
-        if "Kılıç" in world_state["ground_items"]:
-            return "Kılıç yerde duruyor ve envanterinde bulunmuyor."
-        if "Kılıç" in world_state["inventory"]:
-            return "Kılıç envanterinde bulunuyor."
+    ) and "Kılıç" in world_state["inventory"]:
+        return "Kılıç envanterinde bulunuyor."
 
     if npc_target is not None and isinstance(npc_target, dict):
         target_npc = npc_target

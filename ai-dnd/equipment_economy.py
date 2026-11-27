@@ -63,8 +63,6 @@ def containers(world):
     if isinstance(surfaces, dict):
         for feature_id, items in surfaces.items():
             yield f"surface:{feature_id}", items
-    if world.get("ground_items"):
-        yield "legacy_ground", world["ground_items"]
 
 
 SURFACE_ITEM_LIMIT = 8
@@ -337,11 +335,6 @@ def sync_equipment_identities(world):
 def materialize(world):
     """Lazy compatible migration; called only inside the atomic transaction."""
     validate_world(world)
-    if world.get("ground_items"):
-        location = world["location"]
-        world.setdefault("ground_items_by_location", {}).setdefault(location, []).extend(
-            world["ground_items"])
-        world["ground_items"] = []
     reserved = {i["item_id"] for _, items in containers(world)
                 for i in items if isinstance(i, dict)}
     sequence = world.get("item_sequence", 0)
@@ -1122,21 +1115,26 @@ def public_inventory(world):
     ]
 
 
-def legacy_sword_move(session, dropping):
-    """Keep legacy phrasing functional after identity migration, using the same mover."""
+def _one_named(items: list, name: str, item_id: str | None) -> dict:
+    """Return the one item with this id, or without an id the one called `name`."""
+    found = [i for i in items if (i["item_id"] == item_id if item_id else i["name"] == name)]
+    if len(found) != 1:
+        fail("item_ambiguous_or_missing")
+    return found[0]
+
+
+def carry_named(session, name: str, *, dropping: bool, item_id: str | None = None) -> str:
+    """Drop or take one item for the player with the `/item drop|take` mover; its id is kept."""
     world = session.world_state
     before = copy.deepcopy(world)
     try:
         materialize(world)
         ground = world.setdefault("ground_items_by_location", {}).setdefault(world["location"], [])
-        source, destination = (world["inventory"], ground) if dropping else (ground, world["inventory"])
-        matches = [i for i in source if i["name"] == "Kılıç"]
-        if len(matches) != 1:
-            fail("item_ambiguous_or_missing")
-        move(world, matches[0], source, destination, "player" if dropping else "ground")
+        item = _one_named(world["inventory"] if dropping else ground, name, item_id)
+        _apply(world, "drop" if dropping else "take", [item["item_id"]])
         validate_world(world)
-        return ("Python durumu: Kılıç envanterden yere taşındı." if dropping
-                else "Python durumu: Yerdeki Kılıç envantere alındı.")
+        return (f"Python durumu: {name} envanterden yere taşındı." if dropping
+                else f"Python durumu: Yerdeki {name} envantere alındı.")
     except EquipmentError:
         world.clear()
         world.update(before)

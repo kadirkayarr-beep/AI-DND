@@ -146,7 +146,6 @@ def _thread_gate(player_input, target_id, interaction_mode, *, front=None):
 
 def _world_snapshot():
     world_state = game._session().world_state
-    game._normalize_ground_items()
     return {
         "combat": json.dumps(world_state.get("combat", {}), sort_keys=True),
         "player_current_hp": game._session().character["current_hp"],
@@ -154,7 +153,6 @@ def _world_snapshot():
         "player_combat_status": world_state.get("player_combat_status"),
         "location": world_state.get("location"),
         "inventory": tuple(world_state.get("inventory", [])),
-        "ground_items": tuple(world_state.get("ground_items", [])),
         "ground_items_by_location": {k: tuple(v) for k, v in world_state.get("ground_items_by_location", {}).items()},
         "doors": tuple(sorted(
             (door.get("name"), door.get("location"), door.get("open"), door.get("locked"), door.get("broken"))
@@ -181,7 +179,6 @@ def _changed_state_fields(before):
         "player_combat_status": "player.combat_status",
         "location": "player.location",
         "inventory": "player.inventory",
-        "ground_items": "ground_items",
         "ground_items_by_location": "ground_items",
         "doors": "doors",
         "player_hidden": "flags.player_hidden",

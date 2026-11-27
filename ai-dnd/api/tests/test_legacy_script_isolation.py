@@ -18,7 +18,7 @@ from api.tests.guard_bound import CHILD_PROCESS, guard_bound
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = (
     "test_combat", "test_npc_query", "test_door_enter", "test_self_query",
-    "test_query", "test_migration", "test_migration_harden", "test_actual_logic",
+    "test_query", "test_actual_logic",
 )
 
 
@@ -119,8 +119,6 @@ with patch.object(ollama, 'chat', side_effect=AssertionError('live chat forbidde
                 owner, method = module, "find_weapon_in_inventory"
             elif name in ("test_npc_query", "test_actual_logic"):
                 owner, method = module.session, "active_npcs"
-            elif name in ("test_migration", "test_migration_harden"):
-                owner, method = module.session, "_normalize_ground_items"
             else:
                 owner, method = module.session, "run_player_turn"
             models = []

@@ -6,7 +6,6 @@ _locked_door_refusal
 _mark_lock_seen
 _lock_known_to_player
 _current_door
-_normalize_ground_items
 location_features
 feature_descriptions
 active_npcs

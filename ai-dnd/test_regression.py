@@ -53,7 +53,6 @@ def reset_world_state():
     game.world_state["location"] = "tavern"
     game.world_state["npcs"] = []
     game.world_state["inventory"] = ["Macera çantası", "Kılıç"]
-    game.world_state["ground_items"] = []
     game.world_state["ground_items_by_location"] = {}
     game.world_state["doors"] = []
     game.world_state["containers"] = []

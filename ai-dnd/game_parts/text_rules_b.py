@@ -34,10 +34,6 @@ def _registered_persistent_object_names(world_state, include_carried=False):
         if isinstance(values, list):
             for value in values:
                 add_name(scene_names, value)
-    legacy_ground = world_state.get("ground_items", [])
-    if isinstance(legacy_ground, list):
-        for value in legacy_ground:
-            add_name(scene_names, value)
 
     for container in world_state.get("containers", []):
         if not isinstance(container, dict):

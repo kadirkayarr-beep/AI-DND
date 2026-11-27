@@ -50,8 +50,6 @@ TESTS = (
     "test_held_weapon.py",
     "test_monster_sense.py",
     "test_regression.py",
-    "test_migration.py",
-    "test_migration_harden.py",
     "test_door_enter.py",
     "test_query.py",
     "test_self_query.py",

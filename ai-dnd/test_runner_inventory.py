@@ -54,7 +54,7 @@ class RunnerInventoryTests(unittest.TestCase):
     "api/tests/test_lasting_consequences.py",
     "api/tests/test_variety_data.py",
             "test_local_exploration.py", "test_held_weapon.py", "test_monster_sense.py",
-            "test_regression.py", "test_migration.py", "test_migration_harden.py",
+            "test_regression.py",
             "test_door_enter.py", "test_query.py", "test_self_query.py",
             "test_actual_logic.py", "test_npc_query.py",
             "test_narrative_rebalance.py", "test_narrative_safety_calibration.py",

@@ -71,8 +71,6 @@
   "ruff|pocket.py|F841|world": 1,
   "ruff|reports/wave3-local-live-20261006/run_wave3_live_acceptance.py|F841|locs_before": 1,
   "ruff|test_local_exploration.py|F841|disarmed": 1,
-  "ruff|test_migration.py|F541|f-string without any placeholders": 3,
-  "ruff|test_migration_harden.py|F541|f-string without any placeholders": 2,
   "ruff|test_narrative_rebalance.py|F841|result": 3,
   "ruff|test_regression.py|F541|f-string without any placeholders": 4,
   "ruff|test_regression.py|F841|result": 3

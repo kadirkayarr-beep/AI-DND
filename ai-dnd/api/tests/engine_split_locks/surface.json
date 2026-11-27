@@ -2523,12 +2523,6 @@
   "session_bound": true,
   "signature": "(word)"
  },
- "_normalize_ground_items": {
-  "kind": "function",
-  "module": "game_parts.places",
-  "session_bound": true,
-  "signature": "()"
- },
  "_normalize_interaction_mode": {
   "kind": "function",
   "module": "game_parts.text_rules_a",
