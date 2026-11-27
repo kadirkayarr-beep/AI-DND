@@ -510,10 +510,10 @@ def _tx_timed_sequence(*, finish_turn, interaction_mode, player_input, scene_pla
             else timed_gameplay.resolve_input(game._session(), player_input)
         )
         if timed_result is not None:
-            # D-301 (Kadir K29): an arrival the walk itself completed is told by the narrator, like "X'a varıyorum";
-            # the Python line stays as the fallback and the town portrait reads the place the walk began at.
+            # D-301 (Kadir K29): the narrator tells an arrival the walk completed.
+            told = timed_gameplay.tell_arrival(timed_result, started_at)
             return finish_turn(
-                timed_result, timed_result["direct_response"], is_final=not timed_gameplay.told_arrival(timed_result, started_at)
+                timed_result, timed_result["direct_response"], is_final=not told
             )
     return game._TURN_FALL_THROUGH
 

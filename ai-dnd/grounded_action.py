@@ -821,12 +821,13 @@ def last_target_id(world: dict[str, Any]) -> str | None:
 
 
 def clear_near(world: dict[str, Any]) -> None:
-    """The player changed location: standing at nothing, and a visit ends once outside its settlement (existing state only)."""
+    """The player changed location: standing at nothing; a visit ends outside its settlement."""
     import local_places
     state = world.get(KEY)
     if isinstance(state, dict) and state.get("near_target_id") is not None:
         state["near_target_id"] = None
-    if isinstance(state, dict) and state.get("street_line_town") and local_places.settlement_of(world, world.get("location")) != state["street_line_town"]:
+    visited = isinstance(state, dict) and state.get("street_line_town")
+    if visited and local_places.settlement_of(world, world.get("location")) != visited:
         state["street_line_town"] = None
 
 
@@ -1550,7 +1551,7 @@ def _walked(run: _Run, place: dict[str, Any], verb: str) -> dict[str, Any] | Non
     return _receipt(verb, "blocked", place, reason="interrupted", text="Yolda bir şey seni durduruyor.")
 
 
-def _street_line(run: _Run, town_id: str, city: str) -> str:  # D-498 (S22): said once per visit; the narrator tells the rest
+def _street_line(run: _Run, town_id: str, city: str) -> str:
     said = run.memory.get("street_line_town") == town_id
     run.memory["street_line_town"] = town_id
     return "" if said else f"Dışarı, {city} sokaklarına çıkıyorsun. "
@@ -1574,7 +1575,7 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
             _carry_escorts(run, parent)  # whoever walks along is in the street with the player, whatever the door says
             city = run.location(parent).get('name')
             if not outdoors[0]:
-                prefix += _street_line(run, parent, city)
+                prefix += _street_line(run, parent, city)  # D-498 (S22): once per visit
             elif not outdoors[1]:  # from the caravan stop on down the road, the way back is through the gate
                 prefix += f"Kent kapısından geçip yeniden {city} sokaklarına giriyorsun. "
     if door is not None:
@@ -3085,10 +3086,9 @@ _ROAD_ON = (
 _ROAD_VERBS = frozenset({"go", "approach", "wander", "enter"})
 _BACK_TO_TOWN = ("sehr", "sehir", "kent", "geri")
 _ROAD_END_SECONDS = 2 * 3600
-_ROAD_ON_ALONE = (
-    "Yol tarlaların ve seyrek ağaçların arasından ufka uzanıyor; yakında ne bir yerleşim var ne bir han.",
-    "Tarlalar geride kalıyor, yol kuru otların arasında kıvrılıyor; ne bir çatı ne bir duman görünüyor.",
-)  # D-338: walks on in a row read differently (by turn_index, which every walk on advances)
+_ROAD_ON_ALONE = (  # D-338: told by turn_index
+    "Yol tarlaların arasından ufka uzanıyor; yakında ne bir yerleşim var ne bir han.",
+    "Tarlalar geride kalıyor, yol kuru otlarda kıvrılıyor; ne bir çatı ne bir duman.")
 
 
 def _town_of(session) -> str | None:

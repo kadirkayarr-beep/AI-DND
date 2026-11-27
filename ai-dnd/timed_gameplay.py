@@ -371,9 +371,10 @@ def _result(action, text, advancement=None, **extra):
     return result
 
 
-def told_arrival(result, started_at):
-    """True for a walk that arrived this turn (D-301): the narrator tells it, and the portrait reads where it began."""
-    arrived = result.get("action") == "travel" and result.get("status") == "completed" and bool(result.get("new_location"))
+def tell_arrival(result: dict, started_at: str | None) -> bool:
+    """Return True for a walk that arrived this turn (D-301); record where it began."""
+    done = result.get("status") == "completed" and result.get("action") == "travel"
+    arrived = done and bool(result.get("new_location"))
     if arrived:
         result["previous_location"] = started_at
     return arrived

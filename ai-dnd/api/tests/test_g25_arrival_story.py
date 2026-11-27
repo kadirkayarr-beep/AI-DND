@@ -2,25 +2,27 @@
 import json
 import unittest
 
+import front_proposal
 import grounded_action
 import local_places
+from api.tests import test_town_portrait as portrait
 from api.tests.journeys.runner import call_kind
 from api.tests.test_arrival_wiring import _ArrivalApi
-from api.tests import test_town_portrait as portrait
 
 FAR = portrait.FAR
 HOME = portrait.HOME
 CITY = "fr:city:neverwinter"
 STREET_LINE = "Dışarı, Neverwinter sokaklarına çıkıyorsun."
+WAY_OUT = {"kind": "go_to", "place_id": front_proposal.WAY_OUT}
 NARRATED = "Gün ışığı yüzüne vurur, sokak seni karşılar."
 
 
 class _Story(_ArrivalApi):
     TOWN_SEED = 4401
-    script_extra: dict = {}
 
     async def asyncSetUp(self):
         await super().asyncSetUp()
+        self.script_extra = {}
         write = self.client.script_turn
 
         def script_turn(**kwargs):
@@ -34,7 +36,7 @@ class _Story(_ArrivalApi):
         self.session().world_state["location"] = place_id
 
 
-class TravelLineIsNarrated(_Story):
+class TestTravelLineIsNarrated(_Story):
     async def test_going_to_a_known_place_is_told_by_the_narrator_not_by_python(self):  # D-301, Kadir K29
         await self.turn("demirhaneye gidiyorum", arrival="Ocak harlı yanıyor.")
         self.client.kinds.clear()
@@ -47,7 +49,7 @@ class TravelLineIsNarrated(_Story):
         self.assertIn("narration", self.client.kinds)
 
 
-class ArrivalReasonIsSaved(_Story):
+class TestArrivalReasonIsSaved(_Story):
     async def test_the_reason_a_python_arrival_stands_survives_a_reload(self):  # D-309
         await self.turn("demirhaneye gidiyorum", arrival=RuntimeError("down"))
         stored = self.session().world_state["scene_state"]["arrival_text"]
@@ -66,17 +68,19 @@ class ArrivalReasonIsSaved(_Story):
         self.assertEqual((stored["source"], stored["reason_code"]), ("model", None))
 
 
-class StreetLineOncePerVisit(_Story):
+class TestStreetLineOncePerVisit(_Story):
     def make_places(self):
         world = self.session().world_state
         second = local_places.create_local_place(world, CITY, "estate")
         third = local_places.create_local_place(world, CITY, "archive")
+        fourth = local_places.create_local_place(world, CITY, "market")
         self.assertIsNotNone(second)
         self.assertIsNotNone(third)
-        return world, second, third
+        self.assertIsNotNone(fourth)
+        return world, second, third, fourth
 
     async def test_leaving_two_buildings_into_the_same_street_says_it_once(self):  # D-498, S22
-        _world, second, third = self.make_places()
+        _world, second, third, fourth = self.make_places()
         self.stand_at(self.place_of("smithy"))
         first = await self.turn(f"{second['name']}ne yaklaşıyorum")
         self.assertEqual(first.json()["narration"].count(STREET_LINE), 1, first.json()["narration"])
@@ -84,9 +88,13 @@ class StreetLineOncePerVisit(_Story):
         again = await self.turn(f"{third['name']}ne yaklaşıyorum")
         self.assertEqual(again.status_code, 200, again.text)
         self.assertNotIn("Dışarı,", again.json()["narration"])
+        self.stand_at(third["id"])
+        last = await self.turn(f"{fourth['name']}ne yaklaşıyorum")
+        self.assertEqual(last.status_code, 200, last.text)
+        self.assertNotIn("Dışarı,", last.json()["narration"])
 
     async def test_a_new_visit_says_it_again(self):
-        world, second, _third = self.make_places()
+        world, second, _third, _fourth = self.make_places()
         world["locations"][FAR] = {"id": FAR, "name": "Karaduvar", "type": "town", "aliases": []}
         self.stand_at(self.place_of("smithy"))
         await self.turn(f"{second['name']}ne yaklaşıyorum")
@@ -96,7 +104,7 @@ class StreetLineOncePerVisit(_Story):
         self.assertIsNone(grounded_action._memory(world).get("street_line_town"))
 
 
-class RoadOnAlone(_Story):
+class TestRoadOnAlone(_Story):
     async def test_two_walks_on_in_a_row_do_not_repeat_the_same_line(self):  # D-338
         world = self.session().world_state
         grove = local_places.create_local_place(world, CITY, "grove")
@@ -111,8 +119,20 @@ class RoadOnAlone(_Story):
         for line in lines:
             self.assertIn("Hâlâ yoldasın.", line)
 
+    async def test_two_real_turns_in_a_row_do_not_repeat_the_same_line(self):  # D-338: turn_index steps by one a turn
+        grove = local_places.create_local_place(self.session().world_state, CITY, "grove")
+        self.assertIsNotNone(grove)
+        self.stand_at(grove["id"])
+        lines = []
+        for _ in range(2):
+            reply = await self.turn("yürümeye devam ediyorum", front=WAY_OUT)
+            self.assertEqual(reply.status_code, 200, reply.text)
+            lines.append(reply.json()["narration"])
+        self.assertTrue(all("Hâlâ yoldasın." in line for line in lines), lines)
+        self.assertNotEqual(lines[0], lines[1])
 
-class AttachedTargetName(_Story):
+
+class TestAttachedTargetName(_Story):
     """D-296: a place made from the words of a walk is named without the suffix and the punctuation the line carried."""
 
     async def test_the_new_place_is_named_without_the_attached_suffix(self):
@@ -138,7 +158,7 @@ class AttachedTargetName(_Story):
         self.assertIn("Kuzey Mahzeni", names)
 
 
-class StartingTownKeepsItsOwnWords(unittest.IsolatedAsyncioTestCase):
+class TestStartingTownKeepsItsOwnWords(unittest.IsolatedAsyncioTestCase):
     """D-303: the start settlement is recorded; coming home never writes it a portrait from the return line."""
     asyncSetUp = portrait.TownPortrait.asyncSetUp
     asyncTearDown = portrait.TownPortrait.asyncTearDown
@@ -147,6 +167,14 @@ class StartingTownKeepsItsOwnWords(unittest.IsolatedAsyncioTestCase):
 
     async def test_the_start_settlement_is_recorded_and_gets_no_portrait_on_return(self):
         self.assertEqual(self.world["flags"]["starting_settlement_id"], HOME)
+        await self.travel(FAR, "Sis dağılırken Karaduvar'ın taş kapısı belirir.")
+        await self.travel(HOME, "Eve dönüyorsun. Kapılar hâlâ açık.")
+        self.assertNotIn("town_portrait", self.world["locations"][HOME])
+
+    async def test_a_start_place_inside_the_town_also_keeps_the_town_without_a_portrait(self):
+        start = local_places.create_local_place(self.world, HOME, "estate")
+        self.assertIsNotNone(start)
+        self.world["flags"]["starting_settlement_id"] = start["id"]
         await self.travel(FAR, "Sis dağılırken Karaduvar'ın taş kapısı belirir.")
         await self.travel(HOME, "Eve dönüyorsun. Kapılar hâlâ açık.")
         self.assertNotIn("town_portrait", self.world["locations"][HOME])

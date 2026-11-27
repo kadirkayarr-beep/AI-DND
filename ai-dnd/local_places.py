@@ -309,6 +309,13 @@ def settlement_of(world: dict[str, Any], location_id: Any) -> str | None:
     return None
 
 
+def is_return(world: dict[str, Any], place_id: str, started_at: str | None) -> bool:
+    """Tell a trip that is no first arrival: from here, home or nowhere (D-303)."""
+    flags = world.get("flags", {})
+    home = settlement_of(world, flags.get("starting_settlement_id"))
+    return not started_at or place_id in (settlement_of(world, started_at), home)
+
+
 def find_local_place(world: dict[str, Any], settlement_id: str, kind: str) -> dict[str, Any] | None:
     return next(
         (
