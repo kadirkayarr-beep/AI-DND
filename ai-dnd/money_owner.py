@@ -229,12 +229,13 @@ def _tell(result: dict[str, Any], text: str) -> None:
     result["narration"] = f"{result.get('narration') or ''} {text}".strip()
 
 
-def ask_amount_after_reply(session: Any, result: dict[str, Any]) -> None:
-    """D-403 (owner answer S23: b): coin the words hold out with no figure ("biraz para") has no amount to decide, so the
-    player is asked how much. Nothing moves."""
+def ask_amount_after_reply(session: object, result: dict[str, Any]) -> None:
+    """D-403: coin held out with no figure has no amount to decide, so the player is asked. Nothing moves."""
     if getattr(session, "_coin_unnamed", False) and isinstance(result, dict):
         import economic_actions
-        _tell(result, economic_actions._CLARIFY["amount_required"])
+        ask = economic_actions._CLARIFY["amount_required"]
+        if ask not in (result.get("narration") or ""):  # the old chain may have asked
+            _tell(result, ask)
 
 
 def _note(session: Any, npc_id: str | None, text: str) -> None:

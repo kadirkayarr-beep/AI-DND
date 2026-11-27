@@ -27,11 +27,12 @@ class APersonsPurse(unittest.TestCase):
 
     def test_an_uncounted_shopkeeper_has_the_shops_cash(self):
         owned = world({})
-        owned["shops"] = [{"id": "shop_marek", "shopkeeper_id": "marek"}]  # D-317: the till belongs to the shop's owner
-        self.assertEqual(bold_acts._purse_of(owned, {"id": "marek", "role": "Shopkeeper"}), 1000)
+        owned["shops"] = [{"id": "shop_marek", "shopkeeper_id": "marek"}]  # D-317
+        marek = {"id": "marek", "role": "Shopkeeper"}
+        self.assertEqual(bold_acts._purse_of(owned, marek), 1000)
         owned["currency"]["marek"] = 12
-        self.assertEqual(bold_acts._purse_of(owned, {"id": "marek", "role": "Shopkeeper"}), 12)
-        self.assertTrue(5 <= bold_acts._purse_of(world({}), {"id": "marek", "role": "Shopkeeper"}) <= 40)
+        self.assertEqual(bold_acts._purse_of(owned, marek), 12)
+        self.assertTrue(5 <= bold_acts._purse_of(world({}), marek) <= 40)
 
     def test_counting_does_not_write_the_wallet(self):
         counted = world({"player": 40})

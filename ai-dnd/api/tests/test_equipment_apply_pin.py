@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import game
 import equipment_economy as economy
+from api.tests.town_seed import fixed_town
 
 ATOMIC = "Eşya işlemi Python tarafından atomik olarak tamamlandı."
 # one wrong argument list per operation: the arity of every branch is part of the contract
@@ -22,7 +23,8 @@ WRONG_ARITY = {
 
 class EquipmentApplyPin(unittest.TestCase):
     def setUp(self):
-        self.s = game.create_session()
+        with fixed_town(self, 20261711):
+            self.s = game.create_session()
         self.w = self.s.world_state
         self.w["npcs"] = [{"id": "vendor", "name": "Mira", "location": self.w["location"], "current_hp": 10,
                            "inventory": ["Hançer"]}]

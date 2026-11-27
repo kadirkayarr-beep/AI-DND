@@ -7,7 +7,7 @@ import equipment_economy as economy
 DONE = "Eşya işlemi Python tarafından atomik olarak tamamlandı."
 
 
-def _market(world, inventory, args):
+def _market(world, _inventory, _args):
     import equipment_native as native
     shop = native.market(world)
     return f'İşlem noktası: {shop["id"]}; NPC: {shop["shopkeeper_id"]}. /item list'
@@ -22,14 +22,14 @@ def _request(world, inventory, args):
     return f'{item["name"]} [{item["item_id"]}] açık rızayla devredildi.'
 
 
-def _work(world, inventory, args):
+def _work(world, _inventory, args):
     import equipment_native as native
     npc = economy.npc_at(world, args[0])
     identity = native.offer_work(world, npc, f"/item work {args[0]}")
     return f'İş kaydı: {identity}. NPC ile konuş; tamamlandıktan sonra /item reward {identity}. Ayrılmış ödül: 100 CP.'
 
 
-def _talk(world, inventory, args):
+def _talk(world, _inventory, args):
     import equipment_native as native
     return native.talk(world, economy.npc_at(world, args[0]), " ".join(args[1:]))
 
@@ -42,7 +42,7 @@ def _loot(world, inventory, args):
     return f'{item["name"]} [{item["item_id"]}] mevcut kaynaktan alındı.'
 
 
-def _list(world, inventory, args):
+def _list(world, inventory, _args):
     import equipment_native as native
     lines = [f'{i["name"]} [{i["item_id"]}]' for i in inventory]
     wallet = world.get("currency", {}).get("player")
@@ -109,7 +109,7 @@ def _place(world, inventory, args):
     return f'{item["name"]} [{item["item_id"]}] şuraya bırakıldı: {feature["name"]}.'
 
 
-def _mark(world, inventory, args):
+def _mark(world, _inventory, args):
     feature = economy._surface_feature(world, args[0])
     text = " ".join(args[1:]).strip()
     if not economy._valid_mark_text(text):
@@ -178,7 +178,7 @@ def _equip(world, inventory, args):
     return DONE
 
 
-def _unequip(world, inventory, args):
+def _unequip(world, _inventory, args):
     hands = world.get("equipment")
     if not isinstance(hands, dict) or args[0] not in {"main_hand", "off_hand"}:
         economy.fail("equipment_unknown")
@@ -253,7 +253,7 @@ def _sell(world, inventory, args):
     return DONE
 
 
-def _shop_buy(world, inventory, args):
+def _shop_buy(world, _inventory, args):
     import shop_trade
     return shop_trade.commit_typed(world, args)
 

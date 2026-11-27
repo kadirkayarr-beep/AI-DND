@@ -77,6 +77,17 @@ class CoinWithNoFigureAsksTheAmount(unittest.TestCase):
         self.assertNotIn(ASKS_THE_AMOUNT, plain["narration"])
 
 
+class TheAskIsSaidOnce(unittest.TestCase):
+    def test_a_turn_that_already_asked_the_amount_does_not_ask_it_twice(self):
+        session = type("Turn", (), {"_coin_unnamed": True})()
+        result = {"narration": f"Marek bakıyor. {ASKS_THE_AMOUNT}"}
+        money_owner.ask_amount_after_reply(session, result)
+        self.assertEqual(result["narration"].count(ASKS_THE_AMOUNT), 1)
+        fresh = {"narration": "Marek bakıyor."}
+        money_owner.ask_amount_after_reply(session, fresh)
+        self.assertEqual(fresh["narration"].count(ASKS_THE_AMOUNT), 1)
+
+
 class ACoinLineWhoseListCouldNotBeBuilt(unittest.TestCase):
     def test_the_words_figure_is_still_decided_and_noted(self):
         with patch("front_proposal.listing", side_effect=RuntimeError("no list")):

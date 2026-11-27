@@ -109,18 +109,40 @@ class FailedReading(unittest.IsolatedAsyncioTestCase):
                 await self.line(line)
                 self.assertEqual(self.status(), "accepted")
 
-    async def test_a_coin_held_out_in_a_recovered_walk_out_is_still_decided_and_moves_nothing(self):
-        # D-403 (2): the recovery path used to leave the coin in the words with no decision and no note.
+    async def test_a_recovered_walk_out_decides_its_coin_and_moves_nothing(self):
+        # D-403 (2): the recovery path left the coin in the words with no decision.
         await self.begin()
         self.lose_the_reading()
         before = self.world["location"]
-        purse = self.world.get("currency", {}).get("player")  # the walk meets new people, who carry purses of their own
+        purse = self.world.get("currency", {}).get("player")
         made, real = [], money_owner.decide
-        with patch.object(money_owner, "decide", side_effect=lambda *a, **k: (made.append(real(*a, **k)), made[-1])[1]):
+
+        def spy(*a, **k):
+            made.append(real(*a, **k))
+            return made[-1]
+        with patch.object(money_owner, "decide", side_effect=spy):
             await self.line("5 bakır bırakıp şehrin dışına gidiyorum")
         self.assertEqual(self.routes()[-1]["route"], "fallback:unusable:go_to")
         self.assertNotEqual(self.world["location"], before)
         self.assertEqual([(d.amount_cp, d.source) for d in made], [(5, "structural")])
+        self.assertEqual(self.world.get("currency", {}).get("player"), purse)
+
+    async def test_a_yes_holding_coin_is_no_yes_but_its_coin_is_decided(self):
+        # D-403 (2): a line holding coin is no plain yes: the offer stays open, the coin is decided once.
+        await self.begin()
+        self.offer()
+        self.lose_the_reading()
+        purse = self.world.get("currency", {}).get("player")
+        made, real = [], money_owner.decide
+
+        def spy(*a, **k):
+            made.append(real(*a, **k))
+            return made[-1]
+        with patch.object(money_owner, "decide", side_effect=spy):
+            await self.line("kabul ediyorum, 5 bakır bırakıyorum")
+        self.assertEqual(self.status(), "offered")
+        self.assertNotIn("offer_answer", self.routes()[-1]["route"])
+        self.assertEqual([d.amount_cp for d in made], [5])
         self.assertEqual(self.world.get("currency", {}).get("player"), purse)
 
     async def test_a_yes_with_no_open_offer_accepts_nothing(self):

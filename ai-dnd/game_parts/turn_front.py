@@ -1094,15 +1094,15 @@ def _front_recovery(player_input, listed):
     return None
 
 def _no_list_fallback(player_input, target_id, reads):
-    """The town's list could not be built: the old chain reads the line, and coin the words hold out is still decided (G11, D-403)."""
+    """No town list: the old chain reads the line; held-out coin is still decided (D-403)."""
     import front_proposal
     session = game._session()
     front_proposal.note(session, "fallback:no_list")  # the old chain still has its own classifier call
     if reads:  # ... except for a conversation line: the speech call answers, so no classifier call is spent
         session._front_reply = {"intent": "unknown", "classifier_unusable": True}
         session._front_reply_called = False  # G10: held, but no provider was asked for it
-    game._coin_without_a_reading(player_input, target_id, {"speaking_with": None, "people": [], "offers": [], "goods": []})
-    return None
+    empty = {"speaking_with": None, "people": [], "offers": [], "goods": []}
+    game._coin_without_a_reading(player_input, target_id, empty)
 
 def _front_step(player_input, target_id, interaction_mode, combat_action, check_feature):
     """Roadmap step 5: the model reads a free line once; Python checks its ids. None leaves the old chain."""
@@ -1174,7 +1174,7 @@ def _front_step(player_input, target_id, interaction_mode, combat_action, check_
                  else "fallback:no_front" if answered else "fallback:failed")
         recovered = (None if fighting or typed_economic or reads or label == "fallback:no_front"
                      else game._front_recovery(player_input, listed))
-        game._coin_without_a_reading(player_input, target_id, listed)  # D-403: a recovered yes or walk-out decides the coin too
+        game._coin_without_a_reading(player_input, target_id, listed)  # D-403: recovered turns too
         if recovered is not None:
             front_proposal.note(session, f"{label}:{recovered['kind']}", reached=answered)
             recovered["recovered_from"] = label  # the gate may still overrule: the label then goes back
@@ -1574,7 +1574,8 @@ def _coin_without_a_reading(player_input, target_id, listed):
     session = game._session()
     amount = front_proposal.coin_in(None, player_input, moves=True)  # `moves`: the words' figure stands with no reading
     if not amount:
-        session._coin_unnamed = front_proposal.names_coin(player_input)  # D-403: coin with no figure asks how much
+        # D-403: coin with no figure asks how much
+        session._coin_unnamed = front_proposal.names_coin(player_input)
         return
     session._front_coin = amount
     if target_id is not None:

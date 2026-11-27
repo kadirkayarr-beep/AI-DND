@@ -38,7 +38,8 @@ class APersonsPurse(unittest.TestCase):
                             [equipment_economy.person_purse(other, {"id": i}) for i in ids])
 
     def test_a_shopkeeper_opens_with_the_till(self):
-        self.world["shops"].append({"id": "shop_778", "location": self.world["location"], "shopkeeper_id": "npc_778"})
+        here = self.world["location"]
+        self.world["shops"].append({"id": "shop_778", "location": here, "shopkeeper_id": "npc_778"})
         self.assertEqual(equipment_economy.person_purse(self.world, {"id": "npc_778", "role": "Shopkeeper"}), 1000)
 
     def test_a_new_person_has_a_written_purse(self):
