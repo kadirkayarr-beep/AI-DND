@@ -202,6 +202,68 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(self._touching(files, {"X", "Y"}),
                          ["api.tests.test_class", "api.tests.test_created", "api.tests.test_self"])
 
+    def test_touching_tests_follows_a_chain_of_three_import_steps(self):  # D-437
+        files = {
+            "api/tests/a.py": "import game\nTABLE = game.X\n",
+            "api/tests/b.py": "import api.tests.a\n",
+            "api/tests/c.py": "import api.tests.b\n",
+            "api/tests/test_d.py": "import api.tests.c\n",
+            "api/tests/test_quiet.py": "import api.tests.b2\n",
+            "api/tests/b2.py": "def f():\n    return 1\n",
+        }
+        self.assertEqual(self._touching(files, {"X"}), ["api.tests.test_d"])
+
+    def test_touching_tests_counts_a_helper_with_a_top_level_from_game_import(self):  # D-438
+        files = {
+            "api/tests/a.py": "from game import X\ndef h():\n    return 1\n",
+            "api/tests/test_e.py": "from api.tests.a import h\n",
+            "api/tests/test_f.py": "from api.tests import a\n",
+        }
+        self.assertEqual(self._touching(files, {"X"}), ["api.tests.test_e", "api.tests.test_f"])
+        self.assertEqual(inventory.touching_tests(self.tmp, {"Z"}), [])
+
+    def test_touching_tests_counts_a_test_that_reads_the_engine_by_its_file_path(self):  # D-461
+        files = {
+            "api/tests/test_path.py": "from pathlib import Path\nSRC = (Path(__file__).parent / 'game.py').read_text()\n",
+            "api/tests/test_joined.py": "ENGINE = 'ai-dnd/game.py'\n",
+            "api/tests/paths.py": "from pathlib import Path\nGAME = Path('game.py')\n",
+            "api/tests/test_helper.py": "from api.tests.paths import GAME\n",
+            "api/tests/test_not.py": "A = 'mygame.py'\nB = 'game.pyc'\nC = 'see game.py for details'\n",
+            "api/tests/test_parts.py": "P = 'game_parts/combat_flow.py'\n",
+        }
+        self.assertEqual(self._touching(files, {"Q"}),
+                         ["api.tests.test_helper", "api.tests.test_joined", "api.tests.test_path"])
+
+    def test_touching_tests_counts_a_test_that_scans_the_engine_tree_for_part_files(self):  # D-461
+        files = {
+            "api/tests/test_scan.py": "from pathlib import Path\nROOT = Path('.')\n"
+                                      "def t():\n    for p in ROOT.rglob('*.py'):\n        pass\n"
+                                      "    return [('game_parts/combat_flow.py', 'combat')]\n",
+            "api/tests/test_layer.py": "PACKAGES = ('api', 'game_parts')\n"
+                                       "def t(root):\n    return sorted((root / PACKAGES[1]).glob('*.py'))\n",
+            "api/tests/test_scan_only.py": "def t(root):\n    return sorted(root.rglob('*.py'))\n",
+            "api/tests/test_names_only.py": "P = 'game_parts/combat_flow.py'\nQ = ('api', 'game_parts')\n",
+            "api/tests/test_dotted.py": "def t(root):\n    return root.rglob('*.py'), 'game_parts.turn'\n",
+        }
+        self.assertEqual(self._touching(files, {"Q"}), ["api.tests.test_layer", "api.tests.test_scan"])
+
+    def test_touching_tests_sees_a_session_a_helper_returns(self):  # D-452
+        files = {
+            "api/tests/test_named.py": "def t():\n    s = session(1)\n    return s.X\n",
+            "api/tests/test_make.py": "def t():\n    peer = make_session(seed=29)\n    return peer.X\n",
+            "api/tests/test_local_helper.py": "import game\ndef create():\n    return game.create_session()\n"
+                                              "def t():\n    s = create()\n    return s.X\n",
+            "api/tests/test_boolop.py": "import game\ndef t(sess=None):\n    s = sess or game.create_session(seed=52)\n"
+                                        "    return s.X\n",
+            "api/tests/test_ifexp.py": "import game\ndef t(flag):\n    s = game.create_session() if flag else None\n"
+                                       "    return s.X\n",
+            "api/tests/test_plain_helper.py": "def make():\n    return 5\ndef t():\n    s = make()\n    return s.X\n",
+            "api/tests/test_other_value.py": "def t(sess=None):\n    s = sess or 5\n    return s.X\n",
+        }
+        self.assertEqual(self._touching(files, {"X"}),
+                         ["api.tests.test_boolop", "api.tests.test_ifexp", "api.tests.test_local_helper",
+                          "api.tests.test_make", "api.tests.test_named"])
+
     def test_verify_claims_marks_a_changed_named_set_false_and_a_changed_count_shifted(self):
         game = (
             "from uuid import uuid4\n"

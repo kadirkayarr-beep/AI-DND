@@ -795,3 +795,12 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/api/tests/test_engine_hash_parts.py` `test_product_and_test_helper_list_the_same_files` | `_engine_files` artik `engine_digest.engine_files` (ayni islev, yeni yer, D-346); ayni iddia | yeniden yazim, gevsetme degil |
 | `ai-dnd/scripts/quality_gate/size_lock.json` | Dort dosya icin girdi eklendi: `action_economy.py` 1171, `bold_acts.py` 1543, `economic_actions.py` 1973, `equipment_economy.py` 1159 (D-500; gercek boyutlar). Girdi yoksa dosya 2500 satira kadar sessizce buyuyebiliyordu; girdi varsa buyume kapiyi kirar | sikilastirma (yeni girdi part_max altinda, `size_lock_shrink` buyume saymaz) |
 | yeni testler ve araclar | `test_ci_discovery_guards.py` (D-342, D-340, D-341, D-500, D-553, D-346, D-467), `scripts/protected_tests_run.py`, `engine_digest.py` (saklanan motor ozetiyle ayni islev, ozet degeri degismedi: 871fec55...) | ekleme |
+
+## G2.18 (borc-sifirlama): inventory ve probe araclari (D-451, D-461, D-452, D-437, D-438, D-362, D-365)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/scripts/engine_split/inventory.py` `touching_tests` | Liste yalniz buyur (guvenli yon): `"game.py"` yol dizesi tutan test her ad icin sayilir (D-461), yardimcidan donen oturum bicimleri (`session(..)`, `make_session(..)`, yerel yardimci, `or`/`if-else`) izlenir (D-452), ust duzey `from game import X` birimi ice aktarmada calisir (D-438). Gercek agacta `create_npc_from_ai` icin 383 -> 415 modul; hic ad olmadan 0 -> 38 (yol okuyan testler). D-451 (S24 a) kabul edildi, kod yok | davranis genislemesi, gevsetme degil |
+| `ai-dnd/scripts/engine_split/outside_probe.py` `_run` | Asili alt surec `PROBE FAIL <adim>` verir (rc 124), traceback degil | duzeltme |
+| yeni testler | `test_engine_split_inventory.py` (4 test: D-437, D-438, D-461, D-452), `test_engine_probe_tools.py` `LineProbe` (D-362 yeniden kurulum, D-365 4 test) | ekleme |
+| `ai-dnd/scripts/engine_split/inventory.py` `_scans_engine_parts` | Liste yalniz buyur (guvenli yon): agaci tarayan (`rglob`/`glob`/`iterdir`/`walk`) ve `game_parts` yolu tutan test her ad icin sayilir (D-461; `test_talk_mode_writers`, `test_layering`) | ekleme |

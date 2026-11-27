@@ -19,10 +19,17 @@ ROOT = Path(__file__).resolve().parents[2]
 SHOW_PARTS = "import sys; print(sorted(n for n in sys.modules if n.startswith('game_parts.')))"
 
 
+def _text(value: str | bytes | None) -> str:
+    return value.decode("utf-8", "replace") if isinstance(value, bytes) else value or ""
+
+
 def _run(args: list[str], cwd: Path | str, **kwargs) -> subprocess.CompletedProcess:
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=env, timeout=120,  # nosec B603 - fixed argv list, no shell, no user input
-                          **kwargs)
+    try:
+        return subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=env, timeout=120,  # nosec B603 - fixed argv list, no shell, no user input
+                              **kwargs)
+    except subprocess.TimeoutExpired as hung:  # a hung step is a failed step, not a traceback (D-365)
+        return subprocess.CompletedProcess(args, 124, _text(hung.stdout), _text(hung.stderr) + "\nTIMEOUT after 120 s")
 
 
 def _fail(step: str, done: subprocess.CompletedProcess) -> int:

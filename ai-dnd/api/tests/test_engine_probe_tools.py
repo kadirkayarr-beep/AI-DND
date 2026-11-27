@@ -19,7 +19,7 @@ from api.tests import engine_probe, gate_boot
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from engine_split import coverage_by_function, ledger_diff  # noqa: E402
+from engine_split import coverage_by_function, ledger_diff, outside_probe  # noqa: E402
 from engine_split.coverage_by_function import function_hits, unequal  # noqa: E402
 from engine_split.ledger_diff import drops, lost_tests, merge_ledger, merge_outcomes, noise, sublost  # noqa: E402
 
@@ -710,6 +710,43 @@ class LineProbe(unittest.TestCase):
         self.assertEqual(sys.monitoring.get_tool(outer), "engine-split-n7")
         self.module.f()
         self.assertEqual(engine_probe.stop_lines(outer), {"mod.py": [2, 3, 7]})
+
+    def test_a_probe_installed_again_on_the_same_id_sees_lines_that_already_ran(self):  # D-362
+        engine_probe.install_lines(self.tmp / "one", [self.path], tool_id=SELF_TEST_ID)
+        self.module.f()
+        self.assertEqual(engine_probe.stop_lines(SELF_TEST_ID), {"mod.py": [2, 3]})
+        engine_probe.install_lines(self.tmp / "two", [self.path], tool_id=SELF_TEST_ID)
+        self.module.f()
+        self.assertEqual(engine_probe.stop_lines(SELF_TEST_ID), {"mod.py": [2, 3]})
+
+    # D-365: a hung or failing outside_probe step prints PROBE FAIL <step>
+    def run_outside_probe(self, side_effect: object):
+        printed = io.StringIO()
+        with mock.patch.object(outside_probe.subprocess, "run", side_effect=side_effect), \
+                contextlib.redirect_stdout(printed), contextlib.redirect_stderr(io.StringIO()):
+            code = outside_probe.main()
+        return code, printed.getvalue()
+
+    def test_a_hung_first_step_prints_probe_fail_with_the_step(self):
+        hung = outside_probe.subprocess.TimeoutExpired(["python"], 120, output=b"partial", stderr=None)
+        self.assertEqual(self.run_outside_probe(hung), (1, "PROBE FAIL import game, game_parts\n"))
+
+    def test_a_hung_game_start_prints_probe_fail_python_game_py(self):
+        ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
+        hung = outside_probe.subprocess.TimeoutExpired(["python"], 120)
+        self.assertEqual(self.run_outside_probe([ok, ok, hung]), (1, "PROBE FAIL python game.py\n"))
+
+    def test_a_hung_closed_stdin_start_prints_probe_fail_closed_stdin(self):
+        ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
+        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapat\u0131l\u0131yor\n", "")
+        hung = outside_probe.subprocess.TimeoutExpired(["python"], 120)
+        self.assertEqual(self.run_outside_probe([ok, ok, started, hung]), (1, "PROBE FAIL closed stdin\n"))
+
+    def test_a_clean_run_prints_probe_ok(self):
+        ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
+        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapat\u0131l\u0131yor\n", "")
+        eof = outside_probe.subprocess.CompletedProcess(["python"], 1, "", "EOFError")
+        self.assertEqual(self.run_outside_probe([ok, ok, started, eof]), (0, "PROBE ok parts=['game_parts.a']\n"))
 
 
 if __name__ == "__main__":
