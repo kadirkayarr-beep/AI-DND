@@ -68,3 +68,4 @@ All 12 tasks merged (wave head 9bf079b2). Weekly 69% -> 77%.
 - Agent rule slips to report: G2.2, G2.7 ran rm -f on their own scratch files; G2.10 left C:/Users/Kadir/Desktop/fix_main_new.py; G2.6 replaced slot 9 web copy (/root/aidnd-env-9/web, old at web.old-g26).
 Task G2.18: complete (branch task/borc-g218-20261126, head 42ff0958, merge 38848704)
 Task REDFIX: complete (branch task/borc-redfix-20261126, head f5afdd7e, merge 15d15998)
+Task G2.19: complete (branch task/borc-g219-20261126, head cccf33e5, merge 1ff0f532)
