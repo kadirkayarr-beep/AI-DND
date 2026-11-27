@@ -39,7 +39,6 @@
   "api/tests/live_stage10b_unified.py::main": 229,
   "api/tests/playable_living_world_v1_review.py::_validate_narration_review": 163,
   "api/tests/playable_living_world_v1_review.py::_validate_objective_evidence": 392,
-  "docs/evidence/v02-20261025/faz7_ah_live.py::main": 272,
   "exploration.py::resolve_command": 173,
   "grounded_action.py::_decide": 167,
   "grounded_action.py::plan": 186,
