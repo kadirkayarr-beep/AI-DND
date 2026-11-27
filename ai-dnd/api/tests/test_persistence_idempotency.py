@@ -28,7 +28,7 @@ import json
 from api.persistence.campaign_models import CampaignError, CampaignStaleError
 from api import campaign_journal
 
-
+from api.tests.claim_race import racing_claims
 from api.auth import FixedAuthenticator
 from api.tests.auth_fixture import TEST_PLAYER
 class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
@@ -5283,7 +5283,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         before_rng = record.game_session.rng.getstate()
         commands = [{"message": message, "action_id": str(uuid4())}
                     for message in ("1 saat bekle.", "2 saat bekle.")]
-        results = await self.simultaneous(a, commands)
+        results = await racing_claims(self.manager, self.post, a, commands)
         # Server-side intent guard (R02): two DIFFERENT action ids racing in one campaign are not both applied. One wins;
         # the other is refused before any effect with unresolved_action (a durable, never-applied refusal) - no lost time.
         self.assertEqual(sorted(r.status_code for r in results), [200, 409])
