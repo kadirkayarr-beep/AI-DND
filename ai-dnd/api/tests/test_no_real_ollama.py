@@ -54,12 +54,17 @@ def _refuse_async(
     return guarded
 
 
-patch.object(httpx.HTTPTransport, "handle_request", _refuse(httpx.HTTPTransport.handle_request)).start()
-patch.object(httpx.AsyncHTTPTransport, "handle_async_request",
-             _refuse_async(httpx.AsyncHTTPTransport.handle_async_request)).start()
+# ``setattr``, not ``patch.object(...).start()``: another module's ``patch.stopall()`` would undo a started patch and
+# leave the rest of the process unguarded. Once only, so a re-import never wraps the guard twice.
+for _transport, _method, _wrap in (
+    (httpx.HTTPTransport, "handle_request", _refuse),
+    (httpx.AsyncHTTPTransport, "handle_async_request", _refuse_async),
+):
+    _real = getattr(_transport, _method)
+    if _real.__name__ != "guarded":
+        setattr(_transport, _method, _wrap(_real))
 
-
-class RealOllamaIsRefused(unittest.TestCase):
+class RealOllamaIsRefusedTests(unittest.TestCase):
     def test_the_ollama_client_on_the_default_port_raises_at_once(self) -> None:
         with self.assertRaises(RealOllamaCallError):
             ollama.Client(host=f"http://127.0.0.1:{OLLAMA_PORT}").list()
@@ -70,6 +75,11 @@ class RealOllamaIsRefused(unittest.TestCase):
             self.assertRaises(RealOllamaCallError),
         ):
             ollama.Client(host="http://models.example:8080").list()
+
+    def test_the_guard_survives_a_patch_stopall_from_another_module(self) -> None:
+        patch.stopall()
+        with self.assertRaises(RealOllamaCallError):
+            ollama.Client(host=f"http://127.0.0.1:{OLLAMA_PORT}").list()
 
     def test_another_host_is_left_alone(self) -> None:
         request = httpx.Request("GET", "http://other.example:8080/")

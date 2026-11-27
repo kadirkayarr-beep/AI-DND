@@ -44,6 +44,10 @@ class ClassProgression:
         """Spell resources at the applied level; None for a class without them."""
         return None
 
+    def starting_creation_options(self) -> dict[str, Any] | None:
+        """The HTTP start 1-5 catalog block; None for a class without one."""
+        return None
+
     def extra_spell_ids(self, character: dict[str, Any], field: str) -> set[str]:
         """Spells of `field` ("cantrips" or "prepared") a class feature allows beyond the class's own level-1 catalog lists."""
         return set()

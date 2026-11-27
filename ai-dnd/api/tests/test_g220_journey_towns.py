@@ -20,9 +20,10 @@ CHAIN_TOWN = 10
 OTHER_TOWN = 11
 HARBOUR_STEP = 3
 WAIT_STEPS = (7, 8)
+OFFERED_LETTER = "Mühürlü mektubu mezarlıktaki Ozan'a götür, mührü sakın bozma. On bakır."  # offered job, every town (D-337)
 
 
-class MessengerChainIsBoundToItsTown(JourneyCase):
+class MessengerChainIsBoundToItsTownTests(JourneyCase):
     async def _chain(self, town: int, *, front: bool) -> dict[int, tuple[str, tuple[str, ...]]]:
         scenario = load_scenario(CHAIN)
         setup = {**scenario.setup, "campaign_seed": town, "front_proposal": front}
@@ -33,6 +34,18 @@ class MessengerChainIsBoundToItsTown(JourneyCase):
         journal = self.last_observations[step - 1]["gunluk"]
         return [trail["ne"] for trail in journal["iz"] if trail["kaynak"] == "duyulan"]
 
+    def _callers_in_town(self) -> list:
+        if self.last_session_id is None:
+            self.fail("the journey left no session")
+        world = self.manager.get(self.last_session_id).game_session.world_state
+        if world is None or "location" not in world:
+            self.fail("the session has no world or no location")
+        town = local_places.settlement_of(world, world["location"])
+        threads = world_threads.view(world)
+        if threads is None or "links" not in threads:
+            self.fail("the world holds no thread links")
+        return [link for link in threads["links"] if link["kind"] == "caller" and link["settlement_id"] == town]
+
     async def test_the_chain_is_written_on_its_own_town(self):
         scenario = load_scenario(CHAIN)
         self.assertEqual(scenario.setup["campaign_seed"], CHAIN_TOWN)
@@ -40,7 +53,7 @@ class MessengerChainIsBoundToItsTown(JourneyCase):
             with self.subTest(front=front):
                 results = await self._chain(CHAIN_TOWN, front=front)
                 self.assertEqual({i: r for i, r in results.items() if r[0] != "pass"}, {})
-                self.assertEqual(self._heard_at_arrival(HARBOUR_STEP), [])
+                self.assertEqual(self._heard_at_arrival(HARBOUR_STEP), [OFFERED_LETTER])  # no harbour posting on this town
                 await self.asyncTearDown()
                 await self.asyncSetUp()
 
@@ -50,11 +63,8 @@ class MessengerChainIsBoundToItsTown(JourneyCase):
                 results = await self._chain(OTHER_TOWN, front=front)
                 self.assertEqual(results[HARBOUR_STEP][0], "new_break")
                 self.assertEqual(self._heard_at_arrival(HARBOUR_STEP),
-                                 ["Şorven İskelesi kullanım dışı halatlarını ayıracak yardımcı aranıyor."])
-                world = self.manager.get(self.last_session_id).game_session.world_state
-                town = local_places.settlement_of(world, world["location"])
-                coming = [link for link in world_threads.view(world)["links"]
-                          if link["kind"] == "caller" and link["settlement_id"] == town]
+                                 ["Şorven İskelesi kullanım dışı halatlarını ayıracak yardımcı aranıyor.", OFFERED_LETTER])
+                coming = self._callers_in_town()
                 self.assertEqual(len(coming), 2)
                 for link in coming:
                     self.assertIsNotNone(link["fires_at"], "no sent caller has reached the player by hour seven")

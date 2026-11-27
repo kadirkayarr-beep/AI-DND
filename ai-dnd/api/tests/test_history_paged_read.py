@@ -10,14 +10,17 @@ from __future__ import annotations
 import sqlite3
 import unittest
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 from api.tests import test_campaign_api
 from api.tests.town_seed import fixed_town
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    import httpx
+
+    from api.persistence.campaign_store import CampaignStore
+    from api.session_manager import SessionManager
 
 ROWS = 10_000
 GUARDED = ("campaign_history", "campaign_turn_actions", "campaign_history_sources")
@@ -25,43 +28,39 @@ FETCHALL_LOG: list[str] = []
 REAL_CONNECT = sqlite3.connect
 
 
-class SpyCursor:
-    """A cursor that notes the statements read with `fetchall`; the rest passes on."""
+class SpyCursor(sqlite3.Cursor):
+    """A cursor that notes the statements read with `fetchall`; the rest is the real cursor."""
 
-    def __init__(self, cursor: sqlite3.Cursor, sql: str) -> None:
-        """Wrap `cursor`, which ran `sql`."""
-        self._cursor = cursor
-        self._sql = sql
+    sql = ""
 
-    def fetchall(self) -> list[sqlite3.Row]:
+    def fetchall(self) -> list[Any]:
         """Note the statement, then read everything at once."""
-        FETCHALL_LOG.append(self._sql)
-        return self._cursor.fetchall()
-
-    def __getattr__(self, name: str) -> object:
-        """Pass every other attribute to the real cursor."""
-        return getattr(self._cursor, name)
-
-    def __iter__(self) -> Iterator[sqlite3.Row]:
-        """Iterate the real cursor."""
-        return iter(self._cursor)
+        FETCHALL_LOG.append(self.sql)
+        return super().fetchall()
 
 
 class SpyConnection(sqlite3.Connection):
     """A connection whose `execute` hands back a `SpyCursor`."""
 
-    def execute(self, sql: str, *args: object) -> SpyCursor:
-        """Run `sql` and wrap its cursor."""
-        return SpyCursor(super().execute(sql, *args), str(sql))
+    def execute(self, sql: str, parameters: Any = (), /) -> sqlite3.Cursor:
+        """Run `sql` on a `SpyCursor`."""
+        cursor = self.cursor(SpyCursor)
+        cursor.sql = str(sql)
+        return cursor.execute(sql, parameters)
 
 
-def spied_connect(*args: object, **kwargs: object) -> sqlite3.Connection:
+def spied_connect(*args: Any, **kwargs: Any) -> sqlite3.Connection:
     """Open a `SpyConnection` in place of a plain one."""
     return REAL_CONNECT(*args, factory=SpyConnection, **kwargs)
 
 
 class TestHistoryReadIsPaged(unittest.IsolatedAsyncioTestCase):
     """The story, receipts and sources of a 10 000 row campaign come in pages."""
+
+    # Set by the borrowed asyncSetUp.
+    http: httpx.AsyncClient
+    manager: SessionManager
+    store: CampaignStore
 
     asyncSetUp = test_campaign_api.CampaignApiTests.asyncSetUp
     asyncTearDown = test_campaign_api.CampaignApiTests.asyncTearDown

@@ -8,8 +8,10 @@ from typing import Any
 
 import httpx
 import yaml
+from fastapi import FastAPI
 
 from api.dnd_2024_rules import get_character_creation_catalog
+from api.persistence.campaign_store import CampaignStore
 from api.tests import test_campaign_api as campaigns
 from api.tests.test_wizard_cleric_4c3 import SPECS, THRESHOLDS, bundle
 from api.tests.town_seed import default_town
@@ -24,7 +26,7 @@ THIRD_LEVEL = 3
 
 def request(cls: str, level: int) -> dict[str, Any]:
     """Return a custom creation request for the class at the starting level."""
-    value = copy.deepcopy(SPECS[cls])
+    value: dict[str, Any] = copy.deepcopy(SPECS[cls])
     value["class"] = value.pop("character_class")
     value.update(mode="custom", starting_level=level, level_choices=bundle(cls, level))
     return value
@@ -32,6 +34,11 @@ def request(cls: str, level: int) -> dict[str, Any]:
 
 class WizardClericStartHttpTests(unittest.IsolatedAsyncioTestCase):
     """The HTTP creation of a Wizard or Cleric at a higher start."""
+
+    # Set by the borrowed asyncSetUp.
+    app: FastAPI
+    http: httpx.AsyncClient
+    store: CampaignStore
 
     asyncSetUp = campaigns.CampaignApiTests.asyncSetUp
     asyncTearDown = campaigns.CampaignApiTests.asyncTearDown
@@ -83,7 +90,7 @@ class WizardClericStartHttpTests(unittest.IsolatedAsyncioTestCase):
             missing = request(cls, 4)
             missing["level_choices"].pop("3")
             extra = request(cls, 3)
-            extra["level_choices"]["4"] = bundle(cls, 4)["4"]
+            extra["level_choices"]["4"] = (bundle(cls, 4) or {})["4"]
             nulled = request(cls, 4)
             nulled["level_choices"]["4"] = None
             cases.extend([missing, extra, nulled])

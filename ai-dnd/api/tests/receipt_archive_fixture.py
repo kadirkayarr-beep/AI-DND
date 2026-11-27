@@ -7,6 +7,7 @@ archived rows put them there directly, as the removed writer did.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from contextlib import closing
 
@@ -30,7 +31,7 @@ _ARCHIVE = (
 )
 
 
-def archive_receipts(db_path: str, campaign_id: str, keep_latest: int = 0) -> int:
+def archive_receipts(db_path: str | os.PathLike[str], campaign_id: str, keep_latest: int = 0) -> int:
     """Archive every committed receipt but the newest `keep_latest`; count them."""
     with closing(sqlite3.connect(db_path)) as db:
         rows = db.execute(_LIVE, (campaign_id,)).fetchall()

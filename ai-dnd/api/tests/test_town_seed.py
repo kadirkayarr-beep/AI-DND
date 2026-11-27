@@ -132,7 +132,7 @@ class DefaultTown(unittest.TestCase):
         self.assertIs(session_manager.uuid, uuid)
 
 
-class FixedTownNeedsNoRunner(unittest.TestCase):
+class FixedTownNeedsNoRunnerTests(unittest.TestCase):
     def test_the_pin_imports_nothing_from_the_journey_runner(self) -> None:
         """The pin is a helper of its own (D-554): it must not reach for the journey runner's private function."""
         tree = ast.parse((ROOT / "api" / "tests" / "town_seed.py").read_text(encoding="utf-8"))

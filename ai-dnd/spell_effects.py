@@ -127,8 +127,9 @@ def _longer_names() -> tuple[list[str], list[str]]:
     import spell_scope
     import spells
     names = {name.casefold(): name for name in spell_scope.CATALOG} | spell_scope.ALIASES
-    held = (spells.longer_spell_names(names), spells.longer_unsupported_names())
-    return tuple(sorted({_fold(n) for n in found}, key=len, reverse=True) for found in held)
+    resolvers, unsupported = (spells.longer_spell_names(names), spells.longer_unsupported_names())
+    return (sorted({_fold(n) for n in resolvers}, key=len, reverse=True),
+            sorted({_fold(n) for n in unsupported}, key=len, reverse=True))
 
 
 def named(message: Any) -> tuple[str, str] | None:

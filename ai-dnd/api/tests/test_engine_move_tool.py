@@ -367,14 +367,13 @@ class MoveCliTests(unittest.TestCase):  # D-348: the command line of move_block.
         return root / "game.py", root / "p.py"
 
     def cli(self, game: Path, part: Path, *names_args: str, report: Path | None = None) -> tuple[int, str, str]:
-        from engine_split.move_block import main
         out, err = io.StringIO(), io.StringIO()
         argv = ["--game", str(game), "--part", str(part), *names_args, "--census", str(self.census)]
         if report:
             argv += ["--report", str(report)]
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
-                code = main(argv)
+                code = move_block_main(argv)
             except SystemExit as exc:  # argparse: an unknown option exits instead of returning
                 code = exc.code
         return code, out.getvalue(), err.getvalue()

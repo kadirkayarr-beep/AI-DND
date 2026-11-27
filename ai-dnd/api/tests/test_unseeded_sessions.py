@@ -11,12 +11,13 @@ import ast
 import tempfile
 import unittest
 from pathlib import Path
+from typing import TypeGuard
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_NAMES = {"game", "engine", "live_engine"}
 
 
-def _is_unseeded_session(node: ast.AST) -> bool:
+def _is_unseeded_session(node: ast.AST) -> TypeGuard[ast.Call]:
     if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "create_session"):
         return False
     receiver = node.func.value
@@ -31,7 +32,7 @@ def unseeded_sessions(root: Path) -> list[str]:
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))) if _is_unseeded_session(node)]
 
 
-class UnseededSessions(unittest.TestCase):
+class UnseededSessionsTests(unittest.TestCase):
     def test_the_scan_knows_each_form(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             tests = Path(directory) / "api" / "tests"
