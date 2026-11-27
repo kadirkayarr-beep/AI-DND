@@ -183,7 +183,7 @@ def initial_scene_state() -> dict[str, Any]:
         },
         "ambient_event_history": [],
         "ambient_event_counts": {},
-        "arrival_text": None,  # {"place_id", "text", "turn"}: the last arrival narration shown (BM Task 6)
+        "arrival_text": None,  # {"place_id", "text", "turn", "source", "reason_code"}: the last arrival narration shown (BM Task 6, D-309)
     }
 
 

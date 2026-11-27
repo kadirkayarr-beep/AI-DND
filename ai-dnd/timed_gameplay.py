@@ -371,6 +371,15 @@ def _result(action, text, advancement=None, **extra):
     return result
 
 
+def tell_arrival(result: dict, started_at: str | None) -> bool:
+    """Return True for a walk that arrived this turn (D-301); record where it began."""
+    done = result.get("status") == "completed" and result.get("action") == "travel"
+    arrived = done and bool(result.get("new_location"))
+    if arrived:
+        result["previous_location"] = started_at
+    return arrived
+
+
 def game_module():
     import game
     return game

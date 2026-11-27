@@ -251,7 +251,8 @@ def _rn_not_narration_only(*, narration_only, packet, player_input, proposal_sna
         )
         if resolved_turn.allow_new_locations and location_updates.get("create_locations"):
             import heard_rumours
-            expected = heard_rumours.base_name(resolved_turn.action_result.get("target_reference", "")).casefold().strip(" .,!?:;\"'")
+            expected_name = heard_rumours.base_name(resolved_turn.action_result.get("target_reference", "")).strip(" .,!?:;\"'")  # D-296
+            expected = expected_name.casefold()
             expected_words = re.findall(r"[a-z0-9çğıöşü]+", expected)
             matching = []
             for proposal in location_updates["create_locations"]:
@@ -272,7 +273,7 @@ def _rn_not_narration_only(*, narration_only, packet, player_input, proposal_sna
                         if original_name and original_name not in aliases:
                             aliases.append(original_name)
                         proposal["aliases"] = aliases[:8]
-                        proposal["name"] = resolved_turn.action_result.get("target_reference", original_name)
+                        proposal["name"] = expected_name
                     matching.append(proposal)
             location_updates["create_locations"] = matching[:1]
         if location_updates.get("create_locations"):

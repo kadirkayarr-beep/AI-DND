@@ -412,6 +412,8 @@ class SessionManager:
             )
         locations[entity.entity_id] = canonical_location
         world_state["location"] = entity.entity_id
+        # D-303: the start place (the portrait check reads its settlement).
+        world_state.setdefault("flags", {})["starting_settlement_id"] = entity.entity_id
 
     def get(self, session_id: str, principal: Principal | None = None) -> ManagedSession:
         owner = self._resolve_principal(principal)

@@ -186,7 +186,7 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
         # Flag on, the reading is local play's most likely one: go_to with no listed place (the forest is a timed
         # route, not on the place list). The timed owner walks it (FA3 Park 1, fixed in Fix round 2).
         read = reading(kind='go_to', place_id='none')
-        provider = ScriptedProvider(read + [narration(bad)])
+        provider = ScriptedProvider(read + [narration(bad), narration(bad)])
         fixture = Fixture(self.folder/'campaign.sqlite3', provider)
         with no_network() as network, fixture.adapter.engine_binding():
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=fixture.build_app()),
@@ -202,7 +202,9 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                 evidence(self.output, 'response.json', {'status': response.status_code, 'body': response.json()})
                 evidence(self.output, 'native-engine.json', fixture.engine_results)
                 self.assertEqual(response.status_code, 200, response.text)
-                self.assertEqual(kinds(provider), ['front'] * len(read), 'Timed travel renders its own result')
+                # G2.5 D-301 (Kadir K29): the arrival the timed walk completed is told by the narrator, once.
+                self.assertEqual(kinds(provider), ['front'] * len(read) + ['narration'], 'Timed arrival is narrated once')
+                self.assertNotIn(bad, response.json()['narration'])
                 native = fixture.engine_results[-1]
                 action = native['action_result']
                 self.assertEqual(action['action'], 'travel')
@@ -225,7 +227,7 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                 evidence(self.output, 'provider-entry.json', during)
                 evidence(self.output, 'provider.json', provider.calls)
                 evidence(self.output, 'rejected-result.json', rejected)
-                self.assertEqual(kinds(provider), ['front'] * len(read) + ['narration'])
+                self.assertEqual(kinds(provider), ['front'] * len(read) + ['narration'] * 2)
                 self.assertEqual(after['engine_save']['world_state']['location'], 'forest')
                 self.assertEqual(after['engine_save']['world_state'], during[0]['engine_save']['world_state'])
                 self.assertEqual(after['rng'], committed['rng'])
@@ -257,7 +259,7 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
             self.skipTest('flag off: no reading; D04 covers this walk')
         for place in ('none', 'forest'):
             with self.subTest(place_id=place):
-                provider = ScriptedProvider(reading(kind='go_to', place_id=place))
+                provider = ScriptedProvider(reading(kind='go_to', place_id=place) + [narration('Ormanın kenarına geliyorsun.')])
                 fixture = Fixture(self.folder/f'campaign-{place}.sqlite3', provider)
                 with no_network(), fixture.adapter.engine_binding():
                     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=fixture.build_app()),
@@ -269,7 +271,7 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                         fixture.save()
                         response = await fixture.turn(client, 'Ormana gidiyorum.')
                         self.assertEqual(response.status_code, 200, response.text)
-                        self.assertEqual(kinds(provider), ['front'])
+                        self.assertEqual(kinds(provider), ['front', 'narration'])  # G2.5 D-301: the arrival is narrated
                         action = fixture.engine_results[-1]['action_result']
                         self.assertEqual((action['action'], action.get('status')), ('travel', 'completed'))
                         self.assertEqual(fixture.session.world_state['location'], 'forest')

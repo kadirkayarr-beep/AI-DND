@@ -821,10 +821,14 @@ def last_target_id(world: dict[str, Any]) -> str | None:
 
 
 def clear_near(world: dict[str, Any]) -> None:
-    """The player changed location: no longer standing at anything (touches only existing state)."""
+    """The player changed location: standing at nothing; a visit ends outside its settlement."""
+    import local_places
     state = world.get(KEY)
     if isinstance(state, dict) and state.get("near_target_id") is not None:
         state["near_target_id"] = None
+    visited = isinstance(state, dict) and state.get("street_line_town")
+    if visited and local_places.settlement_of(world, world.get("location")) != visited:
+        state["street_line_town"] = None
 
 
 def near_door_id(world: dict[str, Any]) -> str | None:
@@ -1547,6 +1551,12 @@ def _walked(run: _Run, place: dict[str, Any], verb: str) -> dict[str, Any] | Non
     return _receipt(verb, "blocked", place, reason="interrupted", text="Yolda bir şey seni durduruyor.")
 
 
+def _street_line(run: _Run, town_id: str, city: str) -> str:
+    said = run.memory.get("street_line_town") == town_id
+    run.memory["street_line_town"] = town_id
+    return "" if said else f"Dışarı, {city} sokaklarına çıkıyorsun. "
+
+
 def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=None, prefix: str = "") -> dict[str, Any]:
     """Stand in front of a place in the current street (no teleport inside)."""
     import local_places
@@ -1565,7 +1575,7 @@ def _arrive_front(run: _Run, place: dict[str, Any], *, verb: str, commitment=Non
             _carry_escorts(run, parent)  # whoever walks along is in the street with the player, whatever the door says
             city = run.location(parent).get('name')
             if not outdoors[0]:
-                prefix += f"Dışarı, {city} sokaklarına çıkıyorsun. "
+                prefix += _street_line(run, parent, city)  # D-498 (S22): once per visit
             elif not outdoors[1]:  # from the caravan stop on down the road, the way back is through the gate
                 prefix += f"Kent kapısından geçip yeniden {city} sokaklarına giriyorsun. "
     if door is not None:
@@ -3076,8 +3086,9 @@ _ROAD_ON = (
 _ROAD_VERBS = frozenset({"go", "approach", "wander", "enter"})
 _BACK_TO_TOWN = ("sehr", "sehir", "kent", "geri")
 _ROAD_END_SECONDS = 2 * 3600
-_ROAD_ON_ALONE = ("İki saat daha yürüyorsun. Yol tarlaların ve seyrek ağaçların arasından ufka uzanıyor; "
-                  "yakında ne bir yerleşim var ne bir han. Hâlâ yoldasın.")
+_ROAD_ON_ALONE = (  # D-338: told by turn_index
+    "Yol tarlaların arasından ufka uzanıyor; yakında ne bir yerleşim var ne bir han.",
+    "Tarlalar geride kalıyor, yol kuru otlarda kıvrılıyor; ne bir çatı ne bir duman.")
 
 
 def _town_of(session) -> str | None:
@@ -3115,6 +3126,10 @@ def leaves_town(session, player_input: Any) -> bool:
     return any(_TOWN_EDGE.match(word) for word in fold(player_input).split())
 
 
+def _road_on_alone(flags: dict[str, Any]) -> str:
+    return f"İki saat daha yürüyorsun. {_ROAD_ON_ALONE[flags.get('turn_index', 0) % len(_ROAD_ON_ALONE)]} Hâlâ yoldasın."
+
+
 def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
     """Standing where the town ends, someone says once why not, and the player goes on in the same turn (K-BM-2).
     {"road_warning": text}: the caller walks on with the warning first. None: an ordinary walk on."""
@@ -3135,12 +3150,12 @@ def road_goes_on(session, player_input: Any) -> dict[str, Any] | None:
         if spec.get("road_on"):
             return {"road_warning": warning}  # K-BM-2: said now, and the caller walks on in the same turn
         _Run(session, player_input).spend(_ROAD_END_SECONDS)  # no place beyond: the same turn walks the hours
-        text, status, changes = f"{warning} {_ROAD_ON_ALONE}", "walked", ["locations", "campaign_time"]
+        text, status, changes = f"{warning} {_road_on_alone(flags)}", "walked", ["locations", "campaign_time"]
     elif spec.get("road_on"):
         return None  # the walk on to the next real place on the road
     else:  # the end of the short road: the hours are really walked, and nothing is found that is not there
         _Run(session, player_input).spend(_ROAD_END_SECONDS)
-        text, status, changes = _ROAD_ON_ALONE, "walked", ["campaign_time"]
+        text, status, changes = _road_on_alone(flags), "walked", ["campaign_time"]
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     return {"messages": session.messages, "narration": text, "model_calls": 1,
             "action_result": {"action": "travel", "status": status, "success": status == "walked",
