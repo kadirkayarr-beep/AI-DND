@@ -1,4 +1,3 @@
-_filter_unsupported_lore_paragraphs
 _empty_lore_authority_context
 _prepare_lore_authority_context
 _is_registered_lore_name

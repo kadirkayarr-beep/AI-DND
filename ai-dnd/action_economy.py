@@ -341,14 +341,6 @@ def consume_feature_bonus(session):
     r["bonus_action_spent"] = True
 
 
-def use_species_bonus(session, ability):
-    validate_actor(session)
-    r = ensure(session)["player"]
-    if ability not in bonus_rules(session, "player") or r["bonus_action_spent"]:
-        fail("bonus_action_unavailable", "No available Bonus Action grants this ability.")
-    r["bonus_action_spent"] = True
-
-
 @contextmanager
 def executing(session, mode="hold", actor="player"):
     token = _execution.set((id(session), mode, actor))

@@ -213,7 +213,7 @@ class CapabilityTests(unittest.TestCase):
 
     def test_a_registered_resolver_runs_only_for_a_complete_entry(self):
         calls = []
-        capabilities.register_resolver("registered|x", lambda context, choice: calls.append(choice) or {"status": "ok", "changes": ["x"]})
+        capabilities._RESOLVERS["registered|x"] = lambda context, choice: calls.append(choice) or {"status": "ok", "changes": ["x"]}
         try:
             self.assertEqual(capabilities.resolve_capability("registered|x", {}, {"a": 1})["status"], "unsupported")
             self.assertEqual(calls, [], "an unknown/incomplete entry never reaches its resolver")

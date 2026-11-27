@@ -59,6 +59,7 @@
     "_apply_attack_damage_to_player": "function",
     "_apply_player_damage": "function",
     "_bind_world_update_mentions": "function",
+    "_carry_out_thread_turn": "function",
     "_clear_turn_transients": "function",
     "_coin_without_a_reading": "function",
     "_conversation_npcs": "function",

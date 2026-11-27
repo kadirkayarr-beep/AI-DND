@@ -111,10 +111,6 @@ def capability_status(entry_id: str, character: dict[str, Any]) -> dict[str, Any
     return status_of_row(row, character)
 
 
-def register_resolver(entry_id: str, resolver: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]) -> None:
-    _RESOLVERS[entry_id] = resolver
-
-
 def resolve_capability(entry_id: str, context: dict[str, Any], choice: dict[str, Any]) -> dict[str, Any]:
     status = capability_status(entry_id, context)
     resolver = _RESOLVERS.get(entry_id)
