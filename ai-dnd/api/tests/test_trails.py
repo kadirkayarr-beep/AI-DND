@@ -300,7 +300,11 @@ class Letter(TrailCase):
 
     async def test_an_unread_letter_is_no_trail(self):
         await self.accept_sealed_letter()
-        self.assertEqual(quest_log.trails(self.world), [])
+        # D-337: an unanswered offer is a trail; the unread letter adds none
+        offered = [t["owner_line"] for t in self.state()["threads"]
+                   if t["status"] == "offered"]
+        trails = quest_log.trails(self.world)
+        self.assertEqual([trail["what"] for trail in trails], offered)
 
 
 class Following(TrailCase):

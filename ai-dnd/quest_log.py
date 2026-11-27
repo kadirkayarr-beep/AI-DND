@@ -179,7 +179,7 @@ def _trail(world: dict[str, Any], *, key: str, at: int, what: Any, record: Mappi
     place = (world.get("locations") or {}).get(record.get("place_id"))
     if not isinstance(what, str) or not what or not isinstance(place, dict) or not place.get("name"):
         return None
-    owner = _npc(world, record.get("owner_npc_id"))
+    owner = world_threads.owner_of(world, record)  # also before the offer names them
     return {"id": key, "what": what, "where": place["name"],
             "who": living_world.public_npc_name(owner) if owner is not None else None,
             "source": source, "followed": _followed(world, record),
@@ -212,6 +212,35 @@ def _players_job(thread: Any) -> bool:
     return isinstance(thread, dict) and thread.get("offered_at") is not None
 
 
+def _open_work_trails(
+    world: dict[str, Any], state: dict[str, Any], pointed: set[Any],
+) -> list[dict[str, Any] | None]:
+    """(4) Work heard of or offered with terms; it falls once taken."""
+    found = []
+    for thread in state["threads"]:
+        offered = thread.get("status") == "offered"
+        heard = thread.get("status") == "heard"
+        if offered or (heard and type(thread.get("heard_turn")) is int):
+            if thread["thread_id"] in pointed:
+                continue  # a record another trail points at is not twice
+            line = thread.get("owner_line" if offered else "public_line")
+            found.append(_trail(
+                world, key=f"duyulan:{_opaque(world, thread['thread_id'])}",
+                at=thread.get("opened_at") or 0, what=line, record=thread,
+                source="duyulan", from_id=None))
+    return found
+
+
+def _one_each(trails: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep one trail per wording: the one naming who said it, else the newest."""
+    best: dict[str, dict[str, Any]] = {}
+    for trail in trails:
+        kept = best.get(trail["what"])
+        if kept is None or (kept["who"] is None and trail["who"] is not None):
+            best[trail["what"]] = trail
+    return [trail for trail in trails if best[trail["what"]] is trail]
+
+
 def _trail_rows(world: dict[str, Any]) -> list[dict[str, Any]]:
     """Every trail with its inner fields (when, from which record, to which), newest first, at most ``MAX_TRAILS``."""
     state = world_threads.view(world)
@@ -240,17 +269,12 @@ def _trail_rows(world: dict[str, Any]) -> list[dict[str, Any]]:
                                 record=link, source="haber", from_id=about["thread_id"]))
     found = [trail for trail in found if trail is not None]
     pointed = {trail["_to_thread_id"] for trail in found}
-    for thread in state["threads"]:  # (4) work the player heard of that is still going begging; it falls once taken
-        if (thread.get("status") == "heard" and type(thread.get("heard_turn")) is int
-                and thread["thread_id"] not in pointed):  # a record another trail already points at is not twice
-            found.append(_trail(world, key=f"duyulan:{_opaque(world, thread['thread_id'])}",
-                                at=thread.get("opened_at") or 0, what=thread.get("public_line"), record=thread,
-                                source="duyulan", from_id=None))
+    found += _open_work_trails(world, state, pointed)
     for entry in world.get("heard_rumours") or []:  # (5) a place or trail a person said aloud, in their own claim
         found.append(_rumour_trail(world, entry))
     found = [trail for trail in found if trail is not None]
     found.sort(key=lambda trail: trail["_at"], reverse=True)
-    return found[:MAX_TRAILS]
+    return _one_each(found)[:MAX_TRAILS]
 
 
 def trails(world: dict[str, Any]) -> list[dict[str, Any]]:

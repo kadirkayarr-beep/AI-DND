@@ -113,7 +113,7 @@
       },
       "expect": {
         "gunluk": {
-          "iz_sayisi": 0
+          "iz_sayisi": 1
         }
       },
       "sifir_tolerans": [
@@ -124,7 +124,7 @@
             "aktif": 0
           },
           "gunluk": {
-            "iz_sayisi": 0
+            "iz_sayisi": 1
           }
         }
       ],
@@ -166,7 +166,7 @@
             "aktif": 0
           },
           "gunluk": {
-            "iz_sayisi": 0
+            "iz_sayisi": 1
           }
         }
       ],
@@ -182,7 +182,7 @@
             "aktif": 0
           },
           "gunluk": {
-            "iz_sayisi": 0
+            "iz_sayisi": 1
           }
         }
       ],
