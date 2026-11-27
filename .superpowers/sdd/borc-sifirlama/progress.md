@@ -77,3 +77,4 @@ Task G2.22: complete (branch task/borc-g222-20261126, head b2a28c8b, merge 24026
 Task G2.23: complete (branch task/borc-g223-20261126, head 54c3d616, merge 0540908f)
 Task G2.8: complete (branch task/borc-g28-20261126, head 5d32a6f5, merge ec994fbc)
 Task G2.25: complete (branch task/borc-g225-20261126, head cca62a2d, merge 9d0390b7)
+Task G2.14: complete (branch task/borc-g214-20261126, head 0725a217, merge df799b26)
