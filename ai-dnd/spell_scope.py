@@ -144,7 +144,7 @@ def fail(code, message):
 _V1_KEYS = frozenset({"version", "class", "cantrips", "prepared", "slots", "slot_turn"})
 _V2_KEYS = _V1_KEYS | {"spellbook", "prepare_window"}  # 4C.2: state version 2
 PREPARING = frozenset({"Wizard", "Cleric"})  # prepare from a window (4C.2); Druid keeps the version-1 rule (no prepared list)
-WINDOW_REASONS = frozenset({"creation", "long_rest", "migration", "level_up"})  # level_up: a Wizard/Cleric level step (4C.3)
+WINDOW_REASONS = frozenset({"creation", "long_rest", "level_up"})  # level_up: a Wizard/Cleric level step (4C.3)
 
 
 def clock_second(world):
@@ -190,31 +190,6 @@ def initialize(session):
         "prepare_window": ({"opened_second": clock_second(session.world_state), "reason": "creation"}
                            if cls in PREPARING else None),
     }
-
-
-def upgrade(world, character):
-    """Version 1 -> 2 in place for a preparing class (old Wizard/Cleric saves). Idempotent; never chooses a spell.
-
-    Other classes keep a version-1 state byte for byte: for them version 2 adds nothing (no spellbook, no window), and
-    old campaigns must resume to exactly the state they saved. A Wizard's spellbook is built from the creation selections
-    already saved in `character["spells"]`; a Wizard or Cleric gets a migration window at the current second (none during
-    an active fight, which would close it)."""
-    state = world.get("spellcasting_v1")
-    if not isinstance(state, dict) or state.get("version") != 1 or state.get("class") not in PREPARING:
-        return
-    validate(state, character)
-    cls = state["class"]
-    if cls == "Wizard" and not _book_from(character):
-        # Save formats 1-3 carry no creation spells (load_game empties them): there is no book to build and the engine
-        # never chooses one. Stay version 1 (behaves exactly as before); the window reports `spellbook_missing`.
-        return
-    fighting = world.get("combat", {}).get("active")
-    migrated = {**copy.deepcopy(state), "version": 2,
-                "spellbook": _book_from(character) if cls == "Wizard" else None,
-                "prepare_window": ({"opened_second": clock_second(world), "reason": "migration"}
-                                   if cls in PREPARING and not fighting else None)}
-    validate(migrated, character)
-    world["spellcasting_v1"] = migrated
 
 
 def validate(state, character):

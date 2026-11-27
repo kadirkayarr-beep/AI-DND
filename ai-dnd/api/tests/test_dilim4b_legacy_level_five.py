@@ -1,9 +1,12 @@
-"""Dilim 4B carry-over (Task 1 F2 / Task 4 F1): a campaign whose save is older than format 4 (formats 1..3) crossing
-to level 5 — in a won fight or through a finished quest — no longer raises out of the ending and locks every later
-turn. The session boundary moves the campaign to save format 6 in place and admits the result through the real save
-validator; a refused admission still puts everything back, the old format included (nothing half-written).
+"""Dilim 4B carry-over (Task 1 F2 / Task 4 F1): a campaign whose save is still on format 4 crossing to level 5 — in a
+won fight or through a finished quest — no longer raises out of the ending and locks every later turn. The session
+boundary moves the campaign to save format 6 in place and admits the result through the real save validator; a
+refused admission still puts everything back, the old format included (nothing half-written).
 
-The old saves are real ones: written by `save_game` at the old version and read back by `load_game` into a fresh
+G2.6 (D-525, owner rule, onay listesi [GEVŞETME OLABİLİR]): formats 1..3 are no longer loadable, so the old
+``(1, 2, 3)`` loops are ``(4,)`` now; the refusal of formats 1..3 is pinned in test_g26_old_save_branches.
+
+The saves are real ones: written by `save_game` at the version and read back by `load_game` into a fresh
 session (the product's load path), never a format number set on a live session."""
 from __future__ import annotations
 
@@ -37,7 +40,6 @@ def legacy_save(version, directory):
     session._receive_xp_award(xp.apply_xp, session.character, session.world_state,
                               6490 - session.character["xp"], "quest:setup-four")
     session._xp_level_up = None
-    session.character.pop("weapon_proficiencies", None)   # a format 1..3 file never held the list (read-time grant)
     session._persisted_engine_format = version
     path = Path(directory) / f"v{version}.json"
     session.save_game(path)
@@ -65,7 +67,7 @@ class LegacySaveCrossesToFive(unittest.TestCase):
         self.directory = directory.name
 
     def test_a_won_fight_crosses_to_five_and_the_campaign_moves_to_format_six(self):
-        for version in (1, 2, 3):
+        for version in (4,):
             with self.subTest(version=version):
                 session = legacy_save(version, self.directory)
                 guard = person("guard1", "muhafız")
@@ -92,7 +94,7 @@ class LegacySaveCrossesToFive(unittest.TestCase):
                 self.assertFalse(fresh.world_state["combat"]["active"])
 
     def test_a_finished_quest_crosses_to_five_and_is_paid(self):
-        for version in (1, 2, 3):
+        for version in (4,):
             with self.subTest(version=version):
                 session = legacy_save(version, self.directory)
                 session.world_state["npcs"].extend([
@@ -111,16 +113,16 @@ class LegacySaveCrossesToFive(unittest.TestCase):
                 self.assertEqual((saved_version, fresh.character["level"], fresh.character["xp"]), (6, 5, 6530))
 
     def test_a_crossing_below_five_keeps_the_old_format(self):
-        session = legacy_save(3, self.directory)
+        session = legacy_save(4, self.directory)
         session.character["xp"] = 2000                             # numeric level stays 4; 2000 + 25 stays below 6500
         guard = person("guard1", "muhafız")
         session.world_state["npcs"] = [guard]
         drop_purses(session.world_state)
         beat(session, guard)
-        self.assertEqual((session.character["level"], session._persisted_engine_format), (4, 3))
+        self.assertEqual((session.character["level"], session._persisted_engine_format), (4, 4))
 
     def test_a_refused_admission_puts_everything_back_with_the_old_format(self):
-        for version in (1, 2, 3):
+        for version in (4,):
             with self.subTest(version=version):
                 session = legacy_save(version, self.directory)
                 before = session._capture_runtime_snapshot()
@@ -134,7 +136,7 @@ class LegacySaveCrossesToFive(unittest.TestCase):
 
 
 class LegacySaveCrossesToFiveRoute(JourneyCase):
-    """The same through the real routes: the campaign is stored at format 3 and resumed from the store."""
+    """The same through the real routes: the campaign is stored at format 4 and resumed from the store."""
     use_setup = wield_front.WieldFront.use_setup
     session = wield_front.WieldFront.session
     world = wield_front.WieldFront.world
@@ -145,17 +147,16 @@ class LegacySaveCrossesToFiveRoute(JourneyCase):
     start = combat_xp.CombatXpRoutes.start
     win = combat_xp.CombatXpRoutes.win
 
-    async def test_a_stored_format_three_campaign_wins_its_way_to_five(self):
+    async def test_a_stored_format_four_campaign_wins_its_way_to_five(self):
         await self.start(SEED)
         session = self.session
         session._receive_xp_award(xp.apply_xp, session.character, session.world_state, 6490, "quest:setup-four")
         session._xp_level_up = None
-        session.character.pop("weapon_proficiencies", None)
-        session._persisted_engine_format = 3
+        session._persisted_engine_format = 4
         self.manager.save_campaign(self.campaign_id)
-        self.assertEqual(self.store.get_campaign(self.campaign_id).payload["engine_save"]["version"], 3)
+        self.assertEqual(self.store.get_campaign(self.campaign_id).payload["engine_save"]["version"], 4)
         await self.reload()
-        self.assertEqual(self.session._persisted_engine_format, 3)
+        self.assertEqual(self.session._persisted_engine_format, 4)
         self.assertEqual((self.session.character["level"], self.session.character["xp"]), (4, 6490))
         await self.win()                                            # each turn answered 200 (no failures)
         self.assertEqual((self.session.character["level"], self.session.character["xp"]), (5, 6515))

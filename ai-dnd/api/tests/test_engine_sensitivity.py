@@ -96,7 +96,7 @@ class SensitivityTests(unittest.TestCase):
     def test_the_review_round_1_names_are_listed(self):
         lock = json.loads(LOCK.read_text(encoding="utf-8"))["functions"]
         for name in ("_player_state_for_save", "_validate_save_payload", "_validate_combat_v3_payload",
-                     "_validate_saved_multilevel_slots", "_origin_choices_for_save", "_migrate_legacy_combat_state",
+                     "_validate_saved_multilevel_slots", "_origin_choices_for_save",
                      "_capture_combat_death_checkpoint", "_finalize_player_death", "_start_combat_with_initiative",
                      "_restore_in_place", "_restore_combat_death_checkpoint", "_with_only_backed_money",
                      "create_shop_from_proposal", "validate_shop_proposal", "_ensure_local_merchant"):

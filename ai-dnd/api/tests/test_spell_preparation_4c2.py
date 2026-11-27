@@ -1,7 +1,7 @@
 """4C.2: spell preparation window; `spellcasting_v1` state version 1 -> 2 (`spellbook`, `prepare_window`).
 
-Every new saved key: validated on load, inside the Undo snapshot, replay-safe; an old version-1 save loads into
-version 2 and behaves as before (the migration never chooses a spell).
+Every new saved key: validated on load, inside the Undo snapshot, replay-safe. G2.6 (D-576): nothing migrates a
+version-1 state of a Wizard or Cleric any more; it stays as saved and the window says `spellbook_missing`.
 """
 import copy
 import json
@@ -166,8 +166,8 @@ class PrepareWindow(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     spell_preparation.prepare(s, [])
 
-    def test_combat_start_keeps_a_creation_or_migration_window(self):
-        for reason in ("creation", "migration"):
+    def test_combat_start_keeps_a_creation_or_level_up_window(self):
+        for reason in ("creation", "level_up"):
             with self.subTest(reason=reason):
                 w = prepper("Wizard")
                 w.world_state["spellcasting_v1"]["prepare_window"]["reason"] = reason
@@ -297,8 +297,7 @@ class PrepareWindow(unittest.TestCase):
         self.assertEqual(view, {"supported": True, "blocked_reason": None, "class_name": "Wizard", "open": True,
                                 "reason": "creation",
                                 "limit": 4, "candidates": BOOK, "prepared": [], "spellbook": BOOK,
-                                "not_in_engine": [s for s in BOOK if s != "Magic Missile"],  # D-228: only Magic Missile has a resolver
-                                "spellbook_options": [], "suggested_spellbook": []})  # D-039: only a bookless Wizard gets these
+                                "not_in_engine": [s for s in BOOK if s != "Magic Missile"]})  # D-228: only Magic Missile has a resolver
         c = prepper("Cleric")
         self.assertEqual(spell_preparation.view(c)["candidates"], [s["id"] for s in SPELLS_CATALOG["Cleric"]["spells_level_1"]])
 
@@ -364,7 +363,7 @@ class SaveUndoReplay(unittest.TestCase):
         self.assertEqual(w.world_state["spellcasting_v1"], before)
 
 
-class OldSaveMigration(unittest.TestCase):
+class OldSaveSpellState(unittest.TestCase):  # G2.6 (D-576): nothing migrates a version-1 state any more
     def old_save(self, cls, folder):
         """A real version-1 file: today's save with the spell state written in the pre-4C.2 shape."""
         s = prepper(cls)
@@ -374,30 +373,6 @@ class OldSaveMigration(unittest.TestCase):
         payload["world_state"]["spellcasting_v1"] = v1_of(payload["world_state"]["spellcasting_v1"])
         path.write_text(json.dumps(payload), encoding="utf-8")
         return path, payload
-
-    def test_old_saves_load_into_version_two_without_choosing_spells(self):
-        with tempfile.TemporaryDirectory() as folder:
-            for cls, spellbook in (("Wizard", BOOK), ("Cleric", None)):
-                with self.subTest(cls=cls):
-                    path, payload = self.old_save(cls, folder)
-                    old = payload["world_state"]["spellcasting_v1"]
-                    fresh = game.GameSession()
-                    fresh.load_game(path)
-                    state = fresh.world_state["spellcasting_v1"]
-                    self.assertEqual(state, {**old, "version": 2, "spellbook": spellbook,
-                                             "prepare_window": {"opened_second": now(fresh), "reason": "migration"}})
-                    self.assertEqual(state["prepared"], [])
-                    # loading again from the same old file is deterministic
-                    again = game.GameSession()
-                    again.load_game(path)
-                    self.assertEqual(again.world_state["spellcasting_v1"], state)
-                    # the migrated state saves and loads as itself
-                    with tempfile.TemporaryDirectory() as inner:
-                        resaved = Path(inner) / "resaved.json"
-                        fresh.save_game(resaved)
-                        third = game.GameSession()
-                        third.load_game(resaved)
-                        self.assertEqual(third.world_state["spellcasting_v1"], state)
 
     def test_other_classes_resume_their_old_state_byte_for_byte(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -410,57 +385,6 @@ class OldSaveMigration(unittest.TestCase):
                     self.assertEqual(fresh.world_state["spellcasting_v1"]["version"], 1)
                     self.assertFalse(spell_preparation.view(fresh)["supported"])
                     self.assertEqual(fresh.world_state["spellcasting_v1"], payload["world_state"]["spellcasting_v1"])
-
-    def test_old_and_migrated_states_cast_identically(self):
-        for cls, spell in (("Sorcerer", "Magic Missile"), ("Sorcerer", "Fire Bolt"), ("Wizard", "Fire Bolt"),
-                           ("Cleric", "Sacred Flame"), ("Wizard", "Magic Missile"), ("Cleric", "Cure Wounds")):
-            with self.subTest(cls=cls, spell=spell):
-                results = []
-                for shape in ("v1", "migrated"):
-                    s, e = caster(cls=cls)
-                    s.character["current_hp"] = 1
-                    state = s.world_state["spellcasting_v1"]
-                    old = v1_of(state)
-                    if shape == "v1":
-                        s.world_state["spellcasting_v1"] = old
-                    else:
-                        s.world_state["spellcasting_v1"] = old
-                        spell_scope.upgrade(s.world_state, s.character)
-                    s.rng.seed(5)
-                    target = "player" if spell == "Cure Wounds" else e["id"]
-                    with patch("game.roll_d20", return_value=1 if spell == "Sacred Flame" else 12):
-                        try:
-                            outcome = spell_scope.cast(s, spell, target)
-                        except ValueError as error:
-                            outcome = ("refused", getattr(error, "code", str(error)))
-                    after = {k: copy.deepcopy(s.world_state["spellcasting_v1"][k])
-                             for k in ("cantrips", "prepared", "slots", "slot_turn")}
-                    if after["slot_turn"]:  # the fight's own random id; round and turn stay compared
-                        after["slot_turn"][0] = after["slot_turn"][0] == s.world_state["combat"]["combat_id"]
-                    if isinstance(outcome, dict) and isinstance(outcome.get("resolution"), dict):
-                        outcome = {**outcome, "resolution": {k: v for k, v in outcome["resolution"].items() if k != "combat_id"}}
-                    results.append((outcome, after))
-                self.assertEqual(results[0], results[1])
-
-    def test_upgrade_is_idempotent_and_leaves_version_two_alone(self):
-        w = prepper("Wizard")
-        spell_preparation.prepare(w, ["Shield"])
-        state = copy.deepcopy(w.world_state["spellcasting_v1"])
-        spell_scope.upgrade(w.world_state, w.character)
-        self.assertEqual(w.world_state["spellcasting_v1"], state)
-        w.world_state["spellcasting_v1"] = v1_of(state) | {"prepared": []}
-        spell_scope.upgrade(w.world_state, w.character)
-        once = copy.deepcopy(w.world_state["spellcasting_v1"])
-        spell_scope.upgrade(w.world_state, w.character)
-        self.assertEqual(w.world_state["spellcasting_v1"], once)
-
-    def test_migration_keeps_only_wizard_spells_the_book_can_hold(self):
-        w = prepper("Wizard")
-        w.character["spells"] = ["Shield", "Shield", "Cure Wounds", "Sleep"]
-        w.world_state["spellcasting_v1"] = v1_of(w.world_state["spellcasting_v1"])
-        spell_scope.upgrade(w.world_state, w.character)
-        self.assertEqual(w.world_state["spellcasting_v1"]["spellbook"], ["Shield", "Sleep"])
-        spell_scope.validate(w.world_state["spellcasting_v1"], w.character)
 
     def test_old_wizard_save_without_creation_spells_stays_version_one_and_says_so(self):
         """Save formats 1-3 carry no creation spells (load_game empties them): no book to build, none is invented."""
@@ -477,17 +401,6 @@ class OldSaveMigration(unittest.TestCase):
             with self.assertRaises(ValueError):
                 spell_preparation.prepare(fresh, ["Magic Missile"])
             self.assertEqual(fresh.world_state, before)
-        w = prepper("Wizard")
-        spells = list(w.character["spells"])
-        w.world_state["spellcasting_v1"] = v1_of(w.world_state["spellcasting_v1"])
-        spell_scope.upgrade(w.world_state, w.character)
-        self.assertEqual(w.character["spells"], spells)  # the migration never edits the character's own spells
-
-    def test_migration_during_a_fight_opens_no_window(self):
-        s, _ = caster(cls="Cleric")
-        s.world_state["spellcasting_v1"] = v1_of(s.world_state["spellcasting_v1"])
-        spell_scope.upgrade(s.world_state, s.character)
-        self.assertIsNone(s.world_state["spellcasting_v1"]["prepare_window"])
 
 
 class PrepareApi(unittest.IsolatedAsyncioTestCase):
@@ -675,7 +588,7 @@ class PrepareWithTurnsUndoRestAndResume(EconomicHttpFixture):
         app = create_app(session_manager=manager, authenticator=FixedAuthenticator(TEST_PLAYER))
         return sid, record, httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver")
 
-    async def test_store_resume_of_a_version_one_wizard_campaign(self):
+    async def test_store_resume_of_a_version_one_wizard_campaign_is_not_migrated(self):
         w = self.wizard()
         old = v1_of(w.world_state["spellcasting_v1"])
         w.world_state["spellcasting_v1"] = copy.deepcopy(old)
@@ -684,16 +597,15 @@ class PrepareWithTurnsUndoRestAndResume(EconomicHttpFixture):
         self.assertEqual(stored["spellcasting_v1"], old)
         sid, record, http = await self.resume()
         async with http:
-            state = record.game_session.world_state["spellcasting_v1"]
-            self.assertEqual(state, {**old, "version": 2, "spellbook": BOOK, "prepare_window": {
-                "opened_second": now(record.game_session), "reason": "migration"}})
+            # G2.6 (D-576, onay listesi [GEVŞETME OLABİLİR]): was "resume migrates the state to version 2 and opens a window".
+            self.assertEqual(record.game_session.world_state["spellcasting_v1"], old)
             view = await http.get(f"/api/game/sessions/{sid}/spellcasting/prepare")
-            self.assertEqual((view.json()["open"], view.json()["reason"]), (True, "migration"))
-            saved = await http.post(f"/api/game/sessions/{sid}/spellcasting/prepare",
-                                    json={"action_id": str(uuid.uuid4()), "prepared": ["Magic Missile"]})
-            self.assertEqual(saved.status_code, 200, saved.text)
+            self.assertEqual((view.json()["supported"], view.json()["blocked_reason"]), (False, "spellbook_missing"))
+            refused = await http.post(f"/api/game/sessions/{sid}/spellcasting/prepare",
+                                      json={"action_id": str(uuid.uuid4()), "prepared": ["Magic Missile"]})
+            self.assertEqual((refused.status_code, refused.json()["detail"]["code"]), (409, "prepare_spellbook_missing"))
         self.assertEqual(self.store.get_campaign(self.campaign["campaign_id"]).payload["engine_save"]["world_state"]
-                         ["spellcasting_v1"]["prepared"], ["Magic Missile"])
+                         ["spellcasting_v1"], old)
 
     async def test_store_resume_of_a_version_one_wizard_without_creation_spells(self):
         w = self.wizard()

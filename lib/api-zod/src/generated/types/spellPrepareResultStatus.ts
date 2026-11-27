@@ -12,5 +12,4 @@ export type SpellPrepareResultStatus = typeof SpellPrepareResultStatus[keyof typ
 export const SpellPrepareResultStatus = {
   prepared: 'prepared',
   too_many: 'too_many',
-  spellbook_saved: 'spellbook_saved',
 } as const;

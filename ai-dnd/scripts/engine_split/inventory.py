@@ -429,7 +429,7 @@ def verify_claims(root: Path) -> list[dict]:
 
     named("uuid4( called only in", ["_apply_player_damage", "_resolve_player_death_turn",
                                     "_start_combat_with_initiative", "_down_outside_combat_turn",
-                                    "_migrate_legacy_combat_state", "advance_campaign_time"],
+                                    "advance_campaign_time"],
           _functions_where(tree, lambda n: _is_call_to(n, "uuid4")))
     named("sys.modules[__name__] only in", ["_local_place_turn", "_run_player_turn_internal"],
           _functions_where(tree, _is_sys_modules_name))

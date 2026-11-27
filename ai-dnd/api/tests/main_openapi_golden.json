@@ -6726,22 +6726,6 @@
        }
       ],
       "title": "Prepared"
-     },
-     "spellbook": {
-      "anyOf": [
-       {
-        "items": {
-         "maxLength": 64,
-         "type": "string"
-        },
-        "maxItems": 32,
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Spellbook"
      }
     },
     "required": [
@@ -6786,8 +6770,7 @@
      "status": {
       "enum": [
        "prepared",
-       "too_many",
-       "spellbook_saved"
+       "too_many"
       ],
       "title": "Status",
       "type": "string"
@@ -6870,7 +6853,6 @@
         "enum": [
          "creation",
          "long_rest",
-         "migration",
          "level_up"
         ],
         "type": "string"
@@ -6898,22 +6880,6 @@
        }
       ],
       "title": "Spellbook"
-     },
-     "spellbook_options": {
-      "default": [],
-      "items": {
-       "type": "string"
-      },
-      "title": "Spellbook Options",
-      "type": "array"
-     },
-     "suggested_spellbook": {
-      "default": [],
-      "items": {
-       "type": "string"
-      },
-      "title": "Suggested Spellbook",
-      "type": "array"
      },
      "supported": {
       "title": "Supported",

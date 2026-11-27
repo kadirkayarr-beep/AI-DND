@@ -233,7 +233,7 @@ class SpellCastTests(unittest.TestCase):
         self.assertEqual(enemy["current_hp"], before_hp - 4)
         self.assertEqual(result["model_calls"], 0)
 
-    def test_save_load_and_legacy_migration(self):
+    def test_save_load_and_old_formats_are_refused(self):
         _character(self.session, "Wizard", cantrips=["Fire Bolt"], known=["Magic Missile"], slots=2)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "spell.json"
@@ -248,6 +248,7 @@ class SpellCastTests(unittest.TestCase):
             self.assertEqual(self.session.character["cantrips"], ["Fire Bolt"])
             self.assertEqual(spells.remaining_slots(self.session.character), 2)
 
+            # G2.6 (D-525, owner rule, onay listesi [GEVŞETME OLABİLİR]): was "formats 1..3 load with empty spells".
             for version in (1, 2, 3):
                 legacy = copy.deepcopy(payload)
                 legacy["version"] = version
@@ -257,10 +258,10 @@ class SpellCastTests(unittest.TestCase):
                 path.write_text(json.dumps(legacy), encoding="utf-8")
                 self.session.character["cantrips"] = ["Fire Bolt"]
                 self.session.character["spell_slots_remaining"] = {"1": 2}
-                self.session.load_game(path)
-                self.assertEqual(self.session.character["cantrips"], [])
-                self.assertEqual(self.session.character["spells"], [])
-                self.assertEqual(spells.remaining_slots(self.session.character), 0)
+                with self.assertRaisesRegex(ValueError, "desteklenmiyor"):
+                    self.session.load_game(path)
+                self.assertEqual(self.session.character["cantrips"], ["Fire Bolt"])
+                self.assertEqual(spells.remaining_slots(self.session.character), 2)
 
     def test_sessions_do_not_share_slots(self):
         session, enemy = caster(cls="Sorcerer")

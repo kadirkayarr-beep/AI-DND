@@ -103,13 +103,13 @@ class EngineLines(unittest.TestCase):
 
     def test_a_level_five_crossing_the_admission_refuses_has_its_own_line(self):
         with tempfile.TemporaryDirectory() as directory:
-            session = legacy_save(3, directory)                    # 6490 XP, level 4: +10 crosses to 5
+            session = legacy_save(4, directory)                    # 6490 XP, level 4: +10 crosses to 5
             character, world = copy.deepcopy(session.character), copy.deepcopy(session.world_state)
             with patch.object(game, "_validate_save_payload", _refuses_level_five):
                 self.assertIsNone(session._forfeit_unrecordable_xp(
                     xp.apply_xp, session.character, session.world_state, 10, "quest:refused-five"))
             self.assertEqual((session.character, session.world_state), (character, world))
-            self.assertEqual((session._persisted_engine_format, session._xp_level_up), (3, None))
+            self.assertEqual((session._persisted_engine_format, session._xp_level_up), (4, None))
             self.assertEqual(session._take_xp_unrecorded(),
                              ["10 XP kaydedilemedi: eski kayıt dosyan 5. seviyeye geçişi taşıyamıyor."])
 
@@ -117,7 +117,7 @@ class EngineLines(unittest.TestCase):
     def test_a_current_save_refused_at_the_crossing_is_not_called_an_old_save(self):
         """Review finding (DÜŞÜK): the old-save reason is only for a record still on an older save format."""
         with tempfile.TemporaryDirectory() as directory:
-            session = legacy_save(3, directory)
+            session = legacy_save(4, directory)
             session._persisted_engine_format = 6
             with patch.object(game, "_validate_save_payload", _refuses_level_five):
                 self.assertIsNone(session._forfeit_unrecordable_xp(
@@ -184,11 +184,11 @@ class UnrelatedErrorsAreRaised(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        self.session = legacy_save(3, directory.name)
+        self.session = legacy_save(4, directory.name)
 
     def assert_put_back(self, character, world):
         self.assertEqual((self.session.character, self.session.world_state), (character, world))
-        self.assertEqual((self.session._persisted_engine_format, self.session._xp_level_up), (3, None))
+        self.assertEqual((self.session._persisted_engine_format, self.session._xp_level_up), (4, None))
         self.assertEqual(self.session._take_xp_unrecorded(), [])
 
     def test_an_unrelated_value_error_from_the_award_is_raised(self):
