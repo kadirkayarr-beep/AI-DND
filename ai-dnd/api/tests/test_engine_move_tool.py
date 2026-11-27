@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from engine_split.move_block import MoveRefused, move, prefix_names  # noqa: E402
+from engine_split.move_block import main as move_block_main  # noqa: E402
 
 
 class PrefixNamesTests(unittest.TestCase):
@@ -116,7 +117,20 @@ class MoveTests(unittest.TestCase):
         move(self.game, self.part, ["a", "b"], set())
         self.assertEqual(self.game.read_bytes(), b"from game_parts.p import a, b\n\nX = 2\n\n")
         self.assertEqual(self.part.read_bytes(),
-                         b"def a():\n    return 1\n\ndef b():\n    return game.a() + game.X\n")
+                         b"def a():\n    return 1\n\n\ndef b():\n"
+                         b"    return game.a() + game.X\n")  # D-475 (d): E302
+
+    def test_two_blank_lines_only_next_to_a_def_or_class(self) -> None:
+        """D-475 (d): moved blocks get two blank lines when a def is beside."""
+        self.game.write_bytes(b"A = 1\nB = 2\n\ndef f():\n    return 1\n\nC = 3\n")
+        move(self.game, self.part, ["A", "B", "f", "C"], set())
+        self.assertEqual(
+            self.part.read_bytes(),
+            b"A = 1\n\nB = 2\n\n\ndef f():\n    return 1\n\n\nC = 3\n")
+        self.game.write_bytes(b"A = 1\n\nB = 2\n")
+        self.part.unlink()
+        move(self.game, self.part, ["A", "B"], set())
+        self.assertEqual(self.part.read_bytes(), b"A = 1\n\nB = 2\n")
 
     def test_constant_moving_with_its_function_stays_bare_unless_a_surface_target(self):
         src = b"RX = 1\n\ndef f():\n    return RX\n"
@@ -277,6 +291,60 @@ class IdentityAllowlistTests(unittest.TestCase):  # Plan 5 Task 1, spec section 
                 code = exc.code
         self.assertEqual((code, err.getvalue()), (0, ""))
         self.assertEqual(self.part.read_bytes(), b"import sys\nimport game\n\n" + self.LOCALS)
+
+    def test_the_cli_refuses_a_malformed_allowlist(self) -> None:
+        """D-475 (a): a bad allowlist ends in REFUSED and exit 2, no traceback."""
+        good = {"file": "game_parts/p.py", "function": "f", "name": "locals",
+                "reason": "spec section 7"}
+        census = self.tmp / "patch_census.json"
+        census.write_text(json.dumps({"targets": {}, "not_called_tests": []}),
+                          encoding="utf-8")
+        src = b"import sys\n\n" + self.LOCALS
+        no_reason = {k: v for k, v in good.items() if k != "reason"}
+        bad = {"not a list": json.dumps(good),
+               "a row that is not an object": json.dumps(["x"]),
+               "a missing key": json.dumps([no_reason]),
+               "an extra key": json.dumps([dict(good, extra="x")]),
+               "an empty string": json.dumps([dict(good, file=" ")]),
+               "a value that is not a string": json.dumps([dict(good, name=3)]),
+               "not JSON": "[{"}
+        for label, text in bad.items():
+            with self.subTest(label):
+                rows = self.tmp / "identity_allowlist.json"
+                rows.write_text(text, encoding="utf-8")
+                self.game.write_bytes(src)
+                out, err = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = move_block_main(
+                        ["--game", str(self.game), "--part", str(self.part),
+                         "--names", "f", "--census", str(census),
+                         "--identity-allowlist", str(rows)])
+                self.assertEqual((code, out.getvalue()), (2, ""))
+                self.assertTrue(
+                    err.getvalue().startswith("REFUSED identity allowlist"),
+                    err.getvalue())
+                self.assertEqual(self.game.read_bytes(), src)
+
+    def test_an_identity_use_behind_another_name_is_refused(self) -> None:
+        """D-475 (b): sys.modules or locals under another name is refused."""
+        for label, src in {
+            "import as": b"import sys as _sys\n\ndef f():\n    return _sys.modules\n",
+            "from import": b"from sys import modules\n\ndef f():\n    return modules\n",
+            "from import as": (b"from sys import modules as mods\n\n"
+                               b"def f():\n    return mods\n"),
+            "through game": b"def f():\n    return game.sys.modules\n",
+            "a bare locals": b"def f():\n    g = locals\n    return g()\n",
+            "a bare vars": b"def f(o):\n    g = vars\n    return g(o)\n",
+        }.items():
+            with self.subTest(label):
+                self.assert_refused_and_untouched(src, set())
+
+    def test_a_local_named_like_an_identity_function_is_not_refused(self) -> None:
+        """D-475 (b) guard: a parameter or local named `vars` is not an identity use."""
+        body = b"def f(vars):\n    locals = vars\n    return locals\n"
+        self.game.write_bytes(body)
+        move(self.game, self.part, ["f"], set())
+        self.assertEqual(self.part.read_bytes(), b"import sys\nimport game\n\n" + body)
 
 
 class MoveCliTests(unittest.TestCase):  # D-348: the command line of move_block.py

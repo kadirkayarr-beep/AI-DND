@@ -804,3 +804,17 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/scripts/engine_split/outside_probe.py` `_run` | Asili alt surec `PROBE FAIL <adim>` verir (rc 124), traceback degil | duzeltme |
 | yeni testler | `test_engine_split_inventory.py` (4 test: D-437, D-438, D-461, D-452), `test_engine_probe_tools.py` `LineProbe` (D-362 yeniden kurulum, D-365 4 test) | ekleme |
 | `ai-dnd/scripts/engine_split/inventory.py` `_scans_engine_parts` | Liste yalniz buyur (guvenli yon): agaci tarayan (`rglob`/`glob`/`iterdir`/`walk`) ve `game_parts` yolu tutan test her ad icin sayilir (D-461; `test_talk_mode_writers`, `test_layering`) | ekleme |
+
+## G2.19 (borc-sifirlama): tasima, kapsam, defter ve sayim araclari (D-349, D-468, D-431, D-432, D-433, D-436, D-435, D-363, D-427, D-475, D-434, D-359)
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/test_engine_probe_tools.py` `test_collect_refuses_shards_on_different_trees` (N7 collect) | Iki farkli agactan gelen parcalar artik `MIXED TREE` yazar ve cikis kodu 1 olur (once `TREES_DIFFER`, kod 2); N4 defter toplayicisiyla ayni sozler (D-436). Cikti dosyasinin yazilmadigi da sinanir. `--diff` tabanlari uyusmazsa `TREES_DIFFER` ve kod 2 ayni kaldi | gevsetme olabilir (sinir yeniden tanimlandi: kod 2 -> 1; reddetme yine var, dosya yine yazilmiyor) |
+| `ai-dnd/api/tests/test_engine_move_check.py` WRONG ROOT beklentisi | Mesajin sonuna "or add the missing names to --moved" eklendi (D-433); ayni durum, daha yol gosterici metin | yeniden yazim, gevsetme degil |
+| `ai-dnd/api/tests/test_engine_move_tool.py` `test_two_blocks_one_import_line_at_the_first_position` | Tasinan iki blok arasinda, biri def ya da sinifsa, iki bos satir (E302) beklenir; once bir (D-475 d). Yalniz iki sabit duz atama arasinda tek bos satir kalir ve sinanir | yeniden yazim (yeni biçim ruff E302 ile uyumlu), gevsetme degil |
+| `ai-dnd/scripts/engine_split/move_check.py` `--manual` girdileri | Girdi artik kendi satiri kotuyse (D-431, satir basina) ya da baska bir parcada tabana gore degisen bir satiri adlandiriyorsa sayilir (D-432). Eski davranis daha gevsekti (grup ya da dosya duzeyi); yeni davranis daha siki | siklastirma |
+| `ai-dnd/scripts/engine_split/move_block.py` | Bos ya da bozuk `identity_allowlist.json` artik `REFUSED identity allowlist ...` ve cikis 2 verir (traceback degil); `sys` takma adi, `game.sys.modules`, bos `locals`/`globals`/`vars` kullanimi reddedilir; ayni adli yerel degisken reddedilmez (D-475) | siklastirma |
+| `ai-dnd/api/tests/gate_boot.py` `boot` | Bitisik belirteç (`p2g0fon`, `fon_a`, `n7x`) artik ValueError verir; once sessizce bayraksiz kosuya dusuyordu (D-359) | siklastirma |
+| `ai-dnd/api/tests/test_engine_gate_boot.py` `_engine_import` | `import_module("game")` bos ad ve `builtins.__import__("game")` de gorulur (D-434) | siklastirma |
+| `docs/engine-split/patch-census.md` | Yeniden uretildi (test dosyalari degisti); kilit `patch_census.json` icerigi ayni. Yeni test rapor ile taze taramayi karsilastirir (D-427; yuvada docs yok, orada atlanir) | ekleme |
+| yeni testler | `test_engine_routing.py` (D-349 kabul edilen kor noktalar), `test_engine_move_check.py` (D-431, D-432), `test_engine_move_tool.py` (D-475 a, b, c, d), `test_engine_probe_tools.py` (D-363, D-435), `test_engine_patch_census.py` (D-427), `test_engine_gate_boot.py` (D-359, D-434) | ekleme |

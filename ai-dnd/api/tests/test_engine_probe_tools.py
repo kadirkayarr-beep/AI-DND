@@ -239,6 +239,18 @@ class LedgerCli(unittest.TestCase):
         self.assertEqual(printed, ["NOISE 0", "SUBNOISE 3", "  t", "  u", "  w", "DROPS 0", "LOST 0", "SUBLOST 0",
                                    "SUBGONE 0", "SUBCRASH 1", "  t", ""])
 
+    def test_subcrash_sees_a_red_in_one_base_only_and_ignores_a_new_skip(self) -> None:
+        """D-435: both branches of subcrash()."""
+        base = {"hits": {}, "outcomes": {"x": "fail", "y": "fail"},
+                "subtests": {}, "seconds": 1, "tree": "a"}
+        base2 = dict(base, subtests={"x": ["x (k=1)"], "y": ["y (k=1)"]})
+        new = dict(base, outcomes={"x": "error", "y": "skip"}, subtests={})
+        with tempfile.TemporaryDirectory() as tmp:
+            code, printed = _cli(ledger_diff, *_diff_files(tmp, base, base2, new))
+        self.assertEqual(code, 1)
+        self.assertEqual(printed[printed.index("SUBCRASH 1"):],
+                         ["SUBCRASH 1", "  x", ""])
+
     def test_collect_refuses_a_run_with_no_outcome_record(self):  # review finding 2: an n7-only run, a dead shard
         with tempfile.TemporaryDirectory() as tmp:
             for shard, records in ((0, [{"test": "t", "outcome": "ok"}]),
@@ -249,7 +261,8 @@ class LedgerCli(unittest.TestCase):
             (Path(tmp) / "20261118T000000-x-n4-2" / "engine-probe").mkdir(parents=True)
             _write_proof(Path(tmp) / "20261118T000000-x-n4-2")
             out = Path(tmp) / "c.json"
-            code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(out))
+            code, printed = _cli(ledger_diff, "--collect",
+                                 f"{tmp}/*-x-n4-[0-9]*", "--out", str(out))
             self.assertEqual(code, 2)
             self.assertEqual(printed, ["NO_OUTCOMES runs=3", str(Path(tmp) / "20261118T000000-x-n4-1"),
                                        str(Path(tmp) / "20261118T000000-x-n4-2"), ""])
@@ -269,7 +282,9 @@ class LedgerCli(unittest.TestCase):
                 run = Path(tmp) / f"20261118T000000-x-n4-{shard}"
                 _write_lines(run / "engine-probe" / "ledger-7.jsonl", [{"test": f"t{shard}", "outcome": "ok"}])
                 _write_proof(run, digest)
-            code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(Path(tmp) / "c.json"))
+            out = Path(tmp) / "c.json"
+            code, printed = _cli(ledger_diff, "--collect", f"{tmp}/*-x-n4-[0-9]*", "--out", str(out))
+            self.assertFalse(out.exists())
         self.assertEqual(code, 1)
         self.assertEqual(printed, ["MIXED TREE", "abc", "def", ""])
 
@@ -599,11 +614,12 @@ class FunctionCountsCli(unittest.TestCase):
             self.assertEqual(printed.getvalue().split("\n"), ["NOISE 0", "DOWN 0", "UP 0", ""])
             self.assertEqual(code, 0)
 
-    def collect(self, tmp: str, shards: dict[int, tuple[dict | None, str | None]]) -> tuple[int, list[str], Path]:
+    def collect(self, tmp: str, shards: dict[int, tuple[dict | None, str | None]],
+                game: str = "def f():\n    return 1\n") -> tuple[int, list[str], Path]:
         # shard -> (lines file or None, proof digest or None) on a one-function engine root
         root = Path(tmp) / "ai-dnd"
         (root / "game_parts").mkdir(parents=True)
-        (root / "game.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+        (root / "game.py").write_text(game, encoding="utf-8")
         for shard, (lines, digest) in shards.items():
             run = Path(tmp) / f"20261118T000000-x-n7-{shard}"
             (run / "engine-probe").mkdir(parents=True)
@@ -627,10 +643,13 @@ class FunctionCountsCli(unittest.TestCase):
             code, printed, _ = self.collect(tmp, {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, None)})
             self.assertEqual((code, printed), (2, ["NO_PROOF runs=2", str(Path(tmp) / "20261118T000000-x-n7-1"), ""]))
 
-    def test_collect_refuses_shards_on_different_trees(self):  # stage A triage T3
+    def test_collect_refuses_shards_on_different_trees(self):
+        """Stage A triage T3; D-436: the same words as N4 collect."""
         with tempfile.TemporaryDirectory() as tmp:
-            code, printed, _ = self.collect(tmp, {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, "def")})
-        self.assertEqual((code, printed), (2, ["TREES_DIFFER", "abc", "def", ""]))
+            shards = {0: ({"game.py": [2]}, "abc"), 1: ({"game.py": [2]}, "def")}
+            code, printed, out = self.collect(tmp, shards)
+            self.assertFalse(out.exists())
+        self.assertEqual((code, printed), (1, ["MIXED TREE", "abc", "def", ""]))
 
     def test_collect_refuses_a_lines_file_that_names_a_file_outside_the_engine_root(self):  # stage A triage T3
         with tempfile.TemporaryDirectory() as tmp:
@@ -643,6 +662,17 @@ class FunctionCountsCli(unittest.TestCase):
             code, printed, out = self.collect(tmp, {0: ({}, "abc")})
             self.assertEqual((code, printed), (2, ["NO_FUNCTIONS", ""]))
             self.assertFalse(out.exists())
+
+    def test_collect_names_the_blocks_it_cannot_count(self) -> None:
+        """D-363: if/try blocks hold defs by line, not by name."""
+        game = ("def f():\n    return 1\n\ntry:\n    import x\n"
+                "except ImportError:\n    def g():\n        return 2\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            code, printed, _ = self.collect(tmp, {0: ({"game.py": [2]}, "abc")}, game)
+        self.assertEqual(
+            (code, printed),
+            (0, ["COLLECTED runs=1 files=1 functions=1 seconds=1.0",
+                 "UNCOUNTED_BLOCKS 1", "  game.py:<Try@4>", ""]))
 
     def test_the_diff_refuses_two_bases_on_different_trees(self):  # stage A review finding 2
         with tempfile.TemporaryDirectory() as tmp:

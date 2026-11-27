@@ -19,12 +19,16 @@ def tokens(run_root: str) -> set[str]:
     return set(Path(run_root).name.split("-")[1:])
 
 
-def label_tokens(label: str) -> list[str]:
+def _refuse_glued(parts: list[str]) -> None:
     # A token word glued to other text (`p2g0fon-a`, `fon_a`) would run with that token off: refuse it.
-    parts = label.split("-")
     glued = [p for p in parts if p not in TOKENS and any(t in p for t in TOKENS)]
     if glued:
         raise ValueError(f"{', '.join(glued)} holds {'/'.join(TOKENS)} but is not a dash-separated token")
+
+
+def label_tokens(label: str) -> list[str]:
+    parts = label.split("-")
+    _refuse_glued(parts)
     return [t for t in TOKENS if t in parts]
 
 
@@ -44,6 +48,8 @@ def main(argv=None) -> int:
 def boot(run_root: str, environ=os.environ, tool_id: int = sys.monitoring.COVERAGE_ID) -> set[str]:
     applied = set()
     found = tokens(run_root)
+    # D-359: slot.sh checks no label; fail loudly, not as a flag-off run
+    _refuse_glued(sorted(found))
     if "fon" in found:
         environ["AI_DND_FRONT_PROPOSAL"] = "1"
         applied.add("fon")

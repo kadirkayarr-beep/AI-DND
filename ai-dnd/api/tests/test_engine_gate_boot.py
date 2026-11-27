@@ -20,8 +20,9 @@ def _engine_import(node):
         names = [node.module] if node.module else [alias.name for alias in node.names]     # `from . import game`
     elif (isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant)
           and isinstance(node.args[0].value, str)
-          and (getattr(node.func, "attr", None) == "import_module" or getattr(node.func, "id", None) == "__import__")):
-        names = [node.args[0].value]       # importlib.import_module("game"), __import__("game") (D-359)
+          and (getattr(node.func, "attr", None)
+               or getattr(node.func, "id", None)) in ("import_module", "__import__")):
+        names = [node.args[0].value]  # the module-name argument (D-434)
     else:
         return None
     return next((n for n in names if n.split(".")[0] in ("game", "game_parts")), None)
@@ -77,15 +78,29 @@ class GateBoot(unittest.TestCase):
         self.assertLess(check, text.index("git add"))
         self.assertLess(check, text.index("slot_sync.sh\""))
 
+    def test_boot_refuses_a_glued_token_not_a_silent_flag_off_run(self) -> None:
+        """D-359: slot.sh checks no label, so the child itself must fail loudly."""
+        stamp = "/x/20261118T061934"
+        for root in (f"{stamp}-p2g0fon-a-0", f"{stamp}-fon_a-0", f"{stamp}-g-n7x-0"):
+            with self.subTest(root=root):
+                env = {}
+                with self.assertRaises(ValueError):
+                    gate_boot.boot(root, env)
+                self.assertEqual(env, {})
+
     def test_boot_never_imports_the_engine(self):
         tree = ast.parse(GATE_BOOT_FILE.read_text(encoding="utf-8"))
         found = [(node.lineno, name) for node in ast.walk(tree) if (name := _engine_import(node))]
         self.assertEqual(found, [])
 
     def test_relative_and_dynamic_engine_imports_are_seen(self):  # D-359
+        bare = 'from importlib import import_module\nimport_module("game")\n'
         for source, expected in (("from . import game\n", ["game"]),
                                  ('importlib.import_module("game")\n', ["game"]),
                                  ('__import__("game_parts.tables")\n', ["game_parts.tables"]),
+                                 (bare, ["game"]),  # D-434
+                                 ('builtins.__import__("game_parts.tables")\n',
+                                  ["game_parts.tables"]),  # D-434
                                  ('importlib.import_module("json")\nfrom . import town_seed\n', [])):
             with self.subTest(source=source):
                 found = [name for node in ast.walk(ast.parse(source)) if (name := _engine_import(node))]

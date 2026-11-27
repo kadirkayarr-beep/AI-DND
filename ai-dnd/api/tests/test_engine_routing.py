@@ -13,6 +13,7 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
 from api.tests.engine_sources import engine_source_files  # noqa: E402
+from engine_split import routing_audit  # noqa: E402
 from engine_split.routing_audit import audit, character_names, game_imports, part_files  # noqa: E402
 
 LOCKS = Path(__file__).parent / "engine_split_locks"
@@ -208,6 +209,21 @@ class RoutingAuditTests(unittest.TestCase):
         constant_only = GAME_PY + "from game_parts.p import K2\n"
         self.assertEqual(self.run_audit(self.tree("import game\nK2 = 1\n", game=constant_only)), [])
         self.assertEqual(self.run_audit(self.tree(moved, game=GAME_REEXPORT)), [])
+
+    def test_the_accepted_blind_spots_are_documented_and_still_unseen(self) -> None:
+        """D-349, owner S25 (a): the audit does not see these; the docstring says so."""
+        self.assertIn("Known blind spots", routing_audit.__doc__)
+        head = "import game\nimport builtins\n"
+        for spot, src in (
+            ("builtins.eval", head + "def f(s):\n    return builtins.eval(s)\n"),
+            ("getattr on a module",
+             head + "def f():\n    return getattr(builtins, 'open')\n"),
+        ):
+            with self.subTest(spot):
+                self.assertIn(spot, routing_audit.__doc__)
+                self.fresh()
+                tree = self.tree(src, game=reexporting("f"))
+                self.assertEqual(self.run_all(tree), [])
 
     def test_a_patched_name_is_defined_only_in_the_part_game_py_reexports_it_from(self):
         bound = "patched name roll_d20 is bound in the part"
