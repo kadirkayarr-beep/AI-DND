@@ -69,3 +69,4 @@ All 12 tasks merged (wave head 9bf079b2). Weekly 69% -> 77%.
 Task G2.18: complete (branch task/borc-g218-20261126, head 42ff0958, merge 38848704)
 Task REDFIX: complete (branch task/borc-redfix-20261126, head f5afdd7e, merge 15d15998)
 Task G2.19: complete (branch task/borc-g219-20261126, head cccf33e5, merge 1ff0f532)
+Task G2.9: complete (branch task/borc-g29-20261126, head 66418001, merge d2b4bfcc)
