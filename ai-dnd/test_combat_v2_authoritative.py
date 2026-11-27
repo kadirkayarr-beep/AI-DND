@@ -608,10 +608,9 @@ class CombatV2(unittest.TestCase):
         self.assertNotIn('ölür', narration)
 
     def test_X_inventory_parser_no_op(self):
-        # No transfer means no normalization or creation, even for legacy data.
-        for legacy, mapping in [([], {}), (['Kalkan'], {}), ([], None)]:
-            with self.subTest(legacy=legacy, mapping=mapping):
-                self.w['ground_items'] = list(legacy)
+        # No transfer means no normalization or creation.
+        for mapping in ({}, None):
+            with self.subTest(mapping=mapping):
                 if mapping is None:
                     self.w.pop('ground_items_by_location', None)
                 else:
@@ -619,7 +618,6 @@ class CombatV2(unittest.TestCase):
                 before = copy.deepcopy(self.w)
                 self.assertIsNone(self.session.update_inventory_from_player("Gromm'a kılıcımla saldırıyorum"))
                 self.assertEqual(self.w, before)
-        self.w['ground_items'] = []
         self.w['ground_items_by_location'] = {}
         self.session.update_inventory_from_player('kılıcı yerden al')
         self.assertNotIn('tavern', self.w['ground_items_by_location'])

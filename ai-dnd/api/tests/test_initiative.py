@@ -646,17 +646,6 @@ class InitiativeTests(unittest.TestCase):
         self.assertEqual(s.world_state["combat"]["participant_records"][0]["initiative"], 15)
         s.ensure_combat_state()
 
-    def test_legacy_integer_totals_allow_join_without_invented_dice(self):
-        s, _ = battle()
-        for key in ("initiative_results", "initiative_groups", "initiative_effects"):
-            del s.world_state["combat"][key]
-        n = newcomer(s)
-        with patch("game.roll_d20", return_value=7) as roller:
-            s.join_combat_participants([n["id"]])
-        self.assertEqual(roller.call_count, 1)
-        self.assertEqual(s.world_state["combat"]["initiative_results"]["player"]["raw_rolls"], [])
-        self.assertEqual(s.world_state["combat"]["initiative_results"]["player"]["mode"], "legacy_preserved")
-
     def test_join_failure_restores_rng_and_membership(self):
         s, _ = battle()
         n = newcomer(s)

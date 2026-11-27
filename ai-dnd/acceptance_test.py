@@ -43,7 +43,6 @@ def reset_world_state():
     world_state["location"] = "tavern"
     world_state["npcs"] = []
     world_state["inventory"] = ["Macera çantası", "Kılıç"]
-    world_state["ground_items"] = []
     world_state["ground_items_by_location"] = {}
     world_state["doors"] = []
     world_state["containers"] = []

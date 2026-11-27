@@ -99,27 +99,6 @@ def _current_door():
         world_state, world_state.get("location")
     )
 
-def _normalize_ground_items():
-    """Migrate legacy ground_items list to ground_items_by_location dict."""
-    # Ensure ground_items_by_location exists (safe init for legacy state)
-    world_state = game._session().world_state
-    if not isinstance(world_state.get("ground_items_by_location"), dict):
-        world_state["ground_items_by_location"] = {}
-    # If already normalized (dict exists and list is empty), nothing to do
-    if not world_state.get("ground_items"):
-        return
-    # If we have legacy list items but no dict yet, migrate them to current location
-    legacy_items = world_state.get("ground_items", [])
-    if legacy_items:
-        current_loc = world_state.get("location", "tavern")
-        if current_loc not in world_state["ground_items_by_location"]:
-            world_state["ground_items_by_location"][current_loc] = []
-        for item in legacy_items:
-            if item not in world_state["ground_items_by_location"][current_loc]:
-                world_state["ground_items_by_location"][current_loc].append(item)
-        # Clear legacy list
-        world_state["ground_items"] = []
-
 def location_features(location=None):
     world_state = game._session().world_state
     location = location or world_state["location"]
@@ -779,9 +758,10 @@ def update_inventory_from_player(player_input):
         equipment = world_state.get("equipment")
         hand = equipment.get("main_hand") if isinstance(equipment, dict) else None
         if sword is not None and hand == held_weapon._identity(sword):
+            if isinstance(sword, dict):
+                return equipment_economy.carry_named(game._session(), "Kılıç", dropping=True, item_id=hand)
             world_state["inventory"].remove(sword)
             held_weapon.release_hand(world_state, sword)
-            game._normalize_ground_items()
             current_loc = world_state.get("location", "tavern")
             loc_items = world_state["ground_items_by_location"].setdefault(current_loc, [])
             if "Kılıç" not in loc_items:
@@ -789,9 +769,8 @@ def update_inventory_from_player(player_input):
             return "Python durumu: Kılıç envanterden yere taşındı."
 
     if any(isinstance(i, dict) for _, items in equipment_economy.containers(world_state) for i in items):
-        return equipment_economy.legacy_sword_move(game._session(), dropping)
+        return equipment_economy.carry_named(game._session(), "Kılıç", dropping=dropping)
 
-    game._normalize_ground_items()
     current_loc = world_state.get("location", "tavern")
     loc_items = world_state["ground_items_by_location"].get(current_loc, [])
 
