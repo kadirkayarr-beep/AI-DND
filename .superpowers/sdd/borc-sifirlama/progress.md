@@ -80,3 +80,12 @@ Task G2.25: complete (branch task/borc-g225-20261126, head cca62a2d, merge 9d039
 Task G2.14: complete (branch task/borc-g214-20261126, head 0725a217, merge df799b26)
 Task G2.26: complete (branch task/borc-g226-20261126, head 3ddceedd, merge d9c34a9f)
 Task G2.13: complete (branch task/borc-g213-20261126, head bdbb85fe, merge c5c456c1)
+Task G2.15: complete (branch task/borc-g215-20261126, head 8849fedc, merge c2c55642)
+
+## Wave 2 round 2 done (2026-11-27, head e3e59ab7)
+All 14 tasks merged. Weekly 77% -> 82% (measured ~0.4 point per task).
+- Ruling: round 3 = REDFIX2 (D-638 census lock, test_spoken_promises red, thread_errand recheck) then G2.16 alone on slot 9 — wave goes to gate only green; fits under 88% (~84% expected) — cost if wrong: DK2 moves past the reset.
+- Ruling: DK2 starts only if weekly < 86% after round 3; else after 2026-11-29 reset.
+- Open from round 2: D-386 needs a local-only gemma driver outside slot.sh (G2.20); G2.21 browser checks for Kod-1 (roadmap-c06-level4-browser, play-screen-ui-regression).
+Task REDFIX2: complete (branch task/borc-redfix2-20261126, head 02ac7f00, merge 0d406e6d)
+Task G2.16: complete (branch task/borc-g216-20261126, head 4254ebc6, merge d0268270)
