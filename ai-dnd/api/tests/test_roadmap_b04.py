@@ -393,5 +393,11 @@ class PythonDependencyDeclarationTests(unittest.TestCase):
         self.assertIn("pip-audit", self.workflow)
         self.assertIn("deptry", self.workflow)
 
+    def test_deptry_maps_distribution_names_to_import_names(self) -> None:
+        """A clean uvx deptry cannot guess jwt and yaml, so the map names them."""
+        mapping = self.pyproject["tool"]["deptry"]["package_module_name_map"]
+        self.assertEqual("jwt", mapping["pyjwt"])
+        self.assertEqual("yaml", mapping["pyyaml"])
+
 if __name__ == "__main__":
     unittest.main()

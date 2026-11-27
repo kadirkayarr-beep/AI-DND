@@ -28,6 +28,11 @@ constraint-dependencies = ["certifi>=2026.10.18"]
 ignore = ["DEP001"]
 known_first_party = ["scripts"]
 
+[tool.deptry.package_module_name_map]
+# A clean uvx deptry env has no installed metadata, so it cannot map these distribution names itself.
+pyjwt = "jwt"
+pyyaml = "yaml"
+
 [tool.deptry.per_rule_ignores]
 # pypdf is a development-only dependency (one skipped-unless-PDF test and evidence scripts).
 DEP004 = ["pypdf"]
