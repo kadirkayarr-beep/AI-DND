@@ -13,6 +13,7 @@ import local_dialogue
 import money_owner
 import re
 import timed_gameplay
+import turn_close
 from typing import Optional, List, Dict, Any
 import held_weapon
 import monster_sense
@@ -702,8 +703,7 @@ def _run_player_turn_internal(
     lore_context = game._prepare_lore_authority_context(injected_lore_context)
     quest_world_before = copy.deepcopy(world_state)
     flags = world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    turn_index = flags["turn_index"]
+    turn_index = turn_close.advance(world_state)
     npc_target = None
     allow_new_npcs = False
     allow_new_features = False

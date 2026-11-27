@@ -6,6 +6,7 @@ forgets one field fails here. Real FastAPI app, real SessionManager, temporary s
 """
 from __future__ import annotations
 
+import ast
 import copy
 from pathlib import Path
 import tempfile
@@ -17,6 +18,7 @@ import httpx
 
 import api.main as main_module
 import refusals
+import turn_close
 from api.auth import FixedAuthenticator
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
@@ -29,6 +31,27 @@ from api.tests.town_seed import default_town
 
 TOWN_SEED = 8560
 ENGINE_TEXT = refusals.text_for("engine_error")
+
+
+TURN_FILES = (
+    "game_parts/turn.py", "game_parts/turn_front.py", "game_parts/places.py",
+    "game_parts/living_world_turn.py", "api/routes_turn.py", "api/routes_undo.py",
+    "api/routes_economic.py", "api/main.py",
+)
+
+
+def moves_turn_index(node: ast.AST) -> bool:
+    """Say whether the node moves a turn_index entry by arithmetic."""
+    if isinstance(node, ast.AugAssign):
+        targets, arithmetic = [node.target], True
+    elif isinstance(node, ast.Assign):
+        targets = node.targets
+        arithmetic = any(isinstance(inner, ast.BinOp) for inner in ast.walk(node.value))
+    else:
+        return False
+    return arithmetic and any(
+        isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Constant)
+        and target.slice.value == "turn_index" for target in targets)
 
 
 class TurnRollbackSites(unittest.IsolatedAsyncioTestCase):
@@ -112,6 +135,49 @@ class TurnRollbackSites(unittest.IsolatedAsyncioTestCase):
     async def test_journal_site_combat_body(self):
         await self.assert_site("serialize_combat_result", CombatResultSerializationError("x"), 500,
                                "engine_error", "The combat result could not be verified safely.")
+
+    async def test_every_turn_end_increments_once_and_undo_restores_it(self):
+        """D-581, D-502: a close moves the index once and adds one pair; Undo restores both."""
+        def closing_turn(message: str, **_kwargs: object) -> dict[str, object]:
+            turn_close.advance(self.session.world_state)
+            turn_close.record_exchange(self.session.messages, message, "The door creaked.")
+            result = {"action": "world_interaction", "status": "resolved", "success": True,
+                      "state_changes": []}
+            return {"narration": "The door creaked.", "action_result": result}
+
+        index_before = self.session.world_state.get("flags", {}).get("turn_index", 0)
+        messages_before = copy.deepcopy(self.session.messages)
+        action_id = str(uuid.uuid4())
+        base = f"/api/game/sessions/{self.created['session_id']}"
+        with patch.object(self.session, "run_player_turn", closing_turn):
+            answer = await self.http.post(
+                f"{base}/turn", json={"message": "I knock.", "action_id": action_id})
+        self.assertEqual(answer.status_code, 200, answer.text)
+        index_after = self.session.world_state["flags"]["turn_index"]
+        self.assertEqual(index_after, index_before + 1)
+        self.assertEqual(len(self.session.messages), len(messages_before) + 2)
+        undo_body = {"action_id": str(uuid.uuid4()), "target_action_id": action_id}
+        undone = await self.http.post(f"{base}/undo", json=undo_body)
+        self.assertEqual(undone.status_code, 200, undone.text)
+        flags = self.session.world_state.get("flags", {})
+        self.assertEqual(flags.get("turn_index", 0), index_before)
+        self.assertEqual(self.session.messages, messages_before)
+
+    def test_no_hand_written_turn_index_increment(self) -> None:
+        """Check that turn_close.advance alone moves turn_index (D-581, D-502)."""
+        root = Path(__file__).resolve().parents[2]
+        trees = {name: ast.parse((root / name).read_text(encoding="utf-8")) for name in TURN_FILES}
+        found = [f"{name}:{node.lineno}" for name, tree in trees.items()
+                 for node in ast.walk(tree) if moves_turn_index(node)]
+        self.assertEqual(found, [], "turn_index is moved only by turn_close.advance")
+
+    def test_advance_and_record_exchange(self) -> None:
+        self.assertEqual(turn_close.advance({"flags": {"turn_index": 4}}), 5)
+        self.assertEqual(turn_close.advance({}), 1)
+        messages: list[dict[str, str]] = []
+        turn_close.record_exchange(messages, "a", "b")
+        pair = [{"role": "user", "content": "a"}, {"role": "assistant", "content": "b"}]
+        self.assertEqual(messages, pair)
 
     async def test_response_site(self):
         await self.assert_site("_turn_outcome", RuntimeError("response"), 500, "engine_error",

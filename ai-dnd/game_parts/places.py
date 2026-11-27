@@ -11,6 +11,7 @@ import scheduled_events
 import talk_mode
 import copy
 import timed_gameplay
+import turn_close
 
 
 def _tavern_door_notice(tavern_id):
@@ -1600,14 +1601,10 @@ def _adventure_travel_reply(session, destination):
     before = copy.deepcopy(session.world_state)
     # D-123: the same journey owner as any trip - closed roads, venue doors and road time all apply.
     action_result = timed_gameplay.start_travel(session, destination)
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(session.world_state)
     session.evaluate_quest_events(before, action_result)
     narration = action_result["direct_response"]
-    session.messages.extend([
-        {"role": "user", "content": destination},
-        {"role": "assistant", "content": narration},
-    ])
+    turn_close.record_exchange(session.messages, destination, narration)
     return {
         "messages": session.messages,
         "narration": narration,
