@@ -376,6 +376,11 @@ class PythonDependencyDeclarationTests(unittest.TestCase):
         parts = tuple(int(part) for part in version.split("."))
         self.assertGreaterEqual(parts, (2026, 10, 18))
 
+    def test_no_unpinned_constraint_reaches_the_hash_pinned_export(self) -> None:
+        """CI exports with --require-hashes; a uv constraint exports as an unpinned line."""
+        self.assertNotIn("constraint-dependencies", self.pyproject.get("tool", {}).get("uv", {}))
+        self.assertNotIn("manifest", self.lock)
+
     def test_pydantic_and_starlette_are_declared_direct_dependencies(self) -> None:
         """Part of the D-587 / D-593 dependency contract."""
         names = self.declared(self.pyproject["project"]["dependencies"])

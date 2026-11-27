@@ -7,7 +7,7 @@
   ],
   "lockfiles": {
     "pnpm-lock.yaml": "553395a980c88124f04682a073afe89209a476ffff078c29783cae78d5b5f6b0",
-    "uv.lock": "a8e18bf8f13b53d7a7c02ce86912fc4a1ceca6c587375828c84190eb913a0539"
+    "uv.lock": "bceaa47cf83d8e9fd5525e23122fcc66916e682bc61ce6d936a0237f3fe5684c"
   },
   "test_commands": {
     "api": "cd ai-dnd && python -m unittest api.tests.test_roadmap_<id> -v",
