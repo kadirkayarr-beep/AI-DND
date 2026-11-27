@@ -860,24 +860,22 @@ class CombatV2(unittest.TestCase):
             resumed.advance_combat_turn()
         self.assertEqual(resumed.world_state['combat']['round'], 3)
 
-    def test_V3_pre_resource_save_reconstructs_spending_from_markers(self):
+    def test_V3_pre_resource_save_is_refused_not_rebuilt(self):
+        # D-028 (owner rule: old saves do not matter): an active combat without turn_resources is refused on load;
+        # nothing rebuilds it from the action markers or writes turn_resources afterwards.
         self.start()
         self.session._mark_combat_action_used('player')
-        expected = self.session.serialize_game_state()
-        older = copy.deepcopy(expected)
+        older = copy.deepcopy(self.session.serialize_game_state())
         del older['world_state']['combat']['turn_resources']
-        # A pre-resource save cannot retain weapon turn counters; only the
-        # marker-derived base budget and ordinary initial resources are known.
-        for resource in expected['world_state']['combat']['turn_resources'].values():
-            resource.pop('attack_turn_counter', None)
         resumed = game.create_session(seed=999)
+        before = resumed.serialize_game_state()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'pre-resource-v3.json'
             path.write_text(json.dumps(older), encoding='utf-8')
-            resumed.load_game(path)
-        self.assertEqual(resumed.serialize_game_state(), expected)
-        with self.rolls(session=resumed), self.assertRaises(CombatRequestError):
-            resumed._mark_combat_action_used('player')
+            with self.assertRaises(ValueError):
+                resumed.load_game(path)
+        self.assertEqual(resumed.serialize_game_state(), before)
+        self.assertNotIn('turn_resources', resumed.world_state.get('combat', {}))
 
     def test_V3_midround_engine_save_resumes_exact_scheduler_state(self):
         self.start()

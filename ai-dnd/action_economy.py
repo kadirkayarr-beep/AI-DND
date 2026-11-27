@@ -142,26 +142,21 @@ def initialize_actor(session, actor):
     combat.setdefault("turn_resources", {})[actor] = _initial_resources(session, actor, combat["actions_used"])
 
 
+def begin_combat(session):
+    """A new fight's resources, one set per participant; a loaded save must already carry them (`validate_saved`)."""
+    combat = session.world_state["combat"]
+    combat["turn_resources"] = {actor: _initial_resources(session, actor, combat["actions_used"]) for actor in combat["participants"]}
+
+
 def ensure(session):
     combat = session.world_state["combat"]
     if not combat["active"]:
         return {}
-    if "turn_resources" not in combat:
-        # One-time, conservative compatibility with existing v3 saves.
-        combat["turn_resources"] = {
-            actor: _initial_resources(session, actor, combat["actions_used"])
-            for actor in combat["participants"]
-        }
-        old = (session.character.get("species_trait_state") or {}).get("bonus_action_used_round")
-        if old == combat["round"]:
-            combat["turn_resources"]["player"]["bonus_action_spent"] = True
     return combat["turn_resources"]
 
 
 def validate_saved(combat):
     resources = combat.get("turn_resources")
-    if resources is None:
-        return  # Known old combat schema; migrated once by ensure.
     if not isinstance(resources, dict) or set(resources) != set(combat["participants"]):
         raise ValueError("Invalid combat turn resource owners.")
     for actor, r in resources.items():

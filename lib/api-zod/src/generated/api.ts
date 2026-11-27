@@ -4368,23 +4368,18 @@ export const GetGameSessionSpellPreparationParams = zod.object({
   "session_id": zod.uuid()
 })
 
-export const getGameSessionSpellPreparationResponseSpellbookOptionsDefault = [];
-export const getGameSessionSpellPreparationResponseSuggestedSpellbookDefault = [];
-
 export const GetGameSessionSpellPreparationResponse = zod.object({
   "session_id": zod.uuid(),
   "supported": zod.boolean(),
   "blocked_reason": zod.union([zod.literal('not_preparing_class'),zod.literal('spellbook_missing'),zod.literal(null)]).nullish(),
   "class_name": zod.string().nullish(),
   "open": zod.boolean(),
-  "reason": zod.union([zod.literal('creation'),zod.literal('long_rest'),zod.literal('migration'),zod.literal('level_up'),zod.literal(null)]).nullish(),
+  "reason": zod.union([zod.literal('creation'),zod.literal('long_rest'),zod.literal('level_up'),zod.literal(null)]).nullish(),
   "limit": zod.int(),
   "candidates": zod.array(zod.string()),
   "prepared": zod.array(zod.string()),
   "spellbook": zod.array(zod.string()).nullish(),
-  "not_in_engine": zod.array(zod.string()).optional(),
-  "spellbook_options": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSpellbookOptionsDefault).describe('D-039, only while blocked_reason is spellbook_missing; the spells the book may hold.'),
-  "suggested_spellbook": zod.array(zod.string()).default(getGameSessionSpellPreparationResponseSuggestedSpellbookDefault).describe('D-039, only while blocked_reason is spellbook_missing; the engine\'s offer, which the player may change.')
+  "not_in_engine": zod.array(zod.string()).optional()
 })
 
 
@@ -4401,17 +4396,12 @@ export const prepareGameSessionSpellsBodyPreparedItemMax = 64;
 export const prepareGameSessionSpellsBodyPreparedMax = 32;
 
 export const prepareGameSessionSpellsBodyCloseDefault = false;
-export const prepareGameSessionSpellsBodySpellbookItemMax = 64;
-
-export const prepareGameSessionSpellsBodySpellbookMax = 32;
-
 export const prepareGameSessionSpellsBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 
 
 export const PrepareGameSessionSpellsBody = zod.object({
   "prepared": zod.array(zod.string().max(prepareGameSessionSpellsBodyPreparedItemMax)).max(prepareGameSessionSpellsBodyPreparedMax).nullish(),
   "close": zod.boolean().default(prepareGameSessionSpellsBodyCloseDefault),
-  "spellbook": zod.array(zod.string().max(prepareGameSessionSpellsBodySpellbookItemMax)).max(prepareGameSessionSpellsBodySpellbookMax).nullish().describe('D-039 one-time spellbook choice of an old save\'s Wizard (exactly six distinct Wizard level-1 spells, checked by the server); sent alone, never with prepared or close.'),
   "action_id": zod.uuid().regex(prepareGameSessionSpellsBodyActionIdRegExp)
 }).describe('Omitted (or null) prepared keeps today\'s list; an explicit empty list is an explicit empty list.')
 
@@ -5516,7 +5506,7 @@ export const PrepareGameSessionSpellsResponse = zod.object({
 }).optional().describe('The authored courtyard encounter as the player can observe it. Present only while the player is inside a materialized encounter; otherwise the field is left out, never null.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
-  "status": zod.enum(['prepared', 'too_many', 'spellbook_saved']),
+  "status": zod.enum(['prepared', 'too_many']),
   "prepared": zod.array(zod.string()),
   "dropped": zod.array(zod.object({
   "spell_id": zod.string(),

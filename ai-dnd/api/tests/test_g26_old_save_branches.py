@@ -17,6 +17,7 @@ from pathlib import Path
 import dialogue_runtime
 import game
 import spell_preparation
+import spell_scope
 from api.tests import test_roadmap_r04_commit_boundary as r04
 from api.tests.test_economic_action_http import EconomicHttpFixture
 from api.tests.test_spell_preparation_4c2 import prepper, v1_of
@@ -49,8 +50,6 @@ class TestOldSaveVersionsAreRefused(unittest.TestCase):
                 path.write_text(json.dumps(payload), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "desteklenmiyor"):
                     session.load_game(path)
-                with self.assertRaisesRegex(ValueError, "desteklenmiyor"):
-                    game._validate_save_payload(payload)
                 self.assertEqual(session.serialize_game_state(), before)
 
     def test_a_current_save_comes_back_byte_for_byte(self):
@@ -97,7 +96,8 @@ class TestSpellbookWithoutMigration(unittest.TestCase):
         self.assertEqual(fresh.world_state["spellcasting_v1"]["version"], 1)
         view = spell_preparation.view(fresh)
         self.assertEqual((view["supported"], view["blocked_reason"]), (False, "spellbook_missing"))
-        self.assertEqual((view["spellbook_options"], view["suggested_spellbook"]), ([], []))
+        self.assertNotIn("spellbook_options", view)
+        self.assertNotIn("suggested_spellbook", view)
         self.assertEqual(fresh.world_state["spellcasting_v1"]["version"], 1, "a read never migrates")
 
     def test_a_new_wizard_prepares_and_a_migration_window_is_not_a_reason(self):
@@ -106,9 +106,8 @@ class TestSpellbookWithoutMigration(unittest.TestCase):
         self.assertEqual(result["status"], "prepared")
         state = wizard.world_state["spellcasting_v1"]
         state["prepare_window"] = {"opened_second": 0, "reason": "migration"}
-        from spell_scope import validate
         with self.assertRaises(ValueError):
-            validate(state, wizard.character)
+            spell_scope.validate(state, wizard.character)
 
 
 class TestSpellbookRoute(EconomicHttpFixture):
@@ -117,15 +116,28 @@ class TestSpellbookRoute(EconomicHttpFixture):
             await super().asyncSetUp()
         self.url = f"/api/game/sessions/{self.campaign['session_id']}/spellcasting/prepare"
 
-    async def test_a_book_cannot_be_chosen_for_a_wizard_without_one(self):
+    async def test_a_book_cannot_be_sent_at_all(self):
+        """D-538: the request has no `spellbook` field; the schema refuses it before any state is read."""
         wizard = prepper("Wizard", self.record.game_session)
         wizard.world_state["spellcasting_v1"] = v1_of(wizard.world_state["spellcasting_v1"])
         self.save()
         before = copy.deepcopy(wizard.world_state)
         refused = await self.http.post(self.url, json={"action_id": str(uuid.uuid4()), "spellbook": SIX})
-        self.assertEqual(refused.status_code, 409, refused.text)
-        self.assertEqual(refused.json()["detail"]["code"], "prepare_spellbook_missing")
+        self.assertEqual(refused.status_code, 422, refused.text)
         self.assertEqual(wizard.world_state, before)
+
+    async def test_a_wizard_state_without_a_book_is_refused_with_a_class_neutral_text(self):
+        for cls in ("Wizard", "Cleric"):
+            with self.subTest(cls=cls):
+                caster = prepper(cls, self.record.game_session)
+                caster.world_state["spellcasting_v1"] = v1_of(caster.world_state["spellcasting_v1"])
+                self.save()
+                before = copy.deepcopy(caster.world_state)
+                refused = await self.http.post(self.url, json={"action_id": str(uuid.uuid4()), "prepared": ["Shield"]})
+                self.assertEqual(refused.status_code, 409, refused.text)
+                self.assertEqual(refused.json()["detail"]["code"], "prepare_spellbook_missing")
+                self.assertNotIn("kitab", refused.json()["detail"]["message"])
+                self.assertEqual(caster.world_state, before)
 
     async def test_a_new_wizard_still_prepares_over_http(self):
         prepper("Wizard", self.record.game_session)

@@ -43,10 +43,8 @@ def register_spell_prepare_routes(
         import spell_preparation
         record = get_record(session_id)
         action_id = str(request.action_id)
-        # D-039: an absent spellbook stays out of the hash, so receipts saved before the field existed still replay.
         request_hash = hashlib.sha256(json.dumps(
-            {"command": "spell_prepare", **request.model_dump(
-                mode="json", exclude={"action_id", *(("spellbook",) if request.spellbook is None else ())})},
+            {"command": "spell_prepare", **request.model_dump(mode="json", exclude={"action_id"})},
             sort_keys=True, ensure_ascii=False, separators=(",", ":"),
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
@@ -100,11 +98,7 @@ def register_spell_prepare_routes(
                 if window["blocked_reason"] == "spellbook_missing":
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_spellbook_missing",
-                        "message": "Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor."})
-                if request.spellbook is not None:
-                    raise HTTPException(status_code=409, detail={
-                        "code": "prepare_spellbook_not_missing",
-                        "message": "Büyü kitabın zaten kayıtlı ya da bu sınıf büyü kitabı tutmaz; kitap yeniden seçilmez."})
+                        "message": "Büyü durumu kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor."})
                 if not window["supported"]:
                     raise HTTPException(status_code=409, detail={
                         "code": "prepare_not_supported", "message": "Bu sınıf büyü hazırlamaz."})

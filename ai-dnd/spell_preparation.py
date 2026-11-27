@@ -103,13 +103,12 @@ def view(session: Any) -> dict[str, Any]:
     if blocked:
         return {"supported": False, "blocked_reason": blocked, "class_name": session.character.get("class"),
                 "open": False, "reason": None, "limit": 0, "candidates": [], "prepared": [], "spellbook": None,
-                "not_in_engine": [], "spellbook_options": [], "suggested_spellbook": []}
+                "not_in_engine": []}
     window = state["prepare_window"]
     return {"supported": True, "blocked_reason": None, "class_name": state["class"], "open": _open(session.world_state, state),
             "reason": _reason(session.world_state, window) if window else None, "limit": spell_scope.prepare_limit(session.character),
             "candidates": _candidates(state, session.character), "prepared": list(state["prepared"]),
-            "spellbook": copy.deepcopy(state["spellbook"]), "not_in_engine": _not_in_engine(state, session.character),
-            "spellbook_options": [], "suggested_spellbook": []}
+            "spellbook": copy.deepcopy(state["spellbook"]), "not_in_engine": _not_in_engine(state, session.character)}
 
 
 def prepare(session: Any, requested: list[str] | None, close: bool = False) -> dict[str, Any]:
@@ -117,7 +116,7 @@ def prepare(session: Any, requested: list[str] | None, close: bool = False) -> d
     state = _state(session)
     blocked = _blocked(state)
     if blocked == "spellbook_missing":
-        raise ValueError("Büyü kitabın kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor.")
+        raise ValueError("Büyü durumu kayıtta yok; bu eski kayıt büyü seçimlerini taşımıyor.")
     if blocked:
         raise ValueError("Bu sınıf büyü hazırlamaz.")
     if not window_open(session):

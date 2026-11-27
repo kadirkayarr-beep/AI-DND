@@ -1572,7 +1572,7 @@ def _start_combat_with_initiative(player_target_npc):
     initiative_order = combat["initiative_order"]
     combat["current_actor_id"] = initiative_order[0]
     initiatives = {r["id"]: r["initiative"] for r in combat["participant_records"]}
-    action_economy.ensure(game._session())
+    action_economy.begin_combat(game._session())
     action_economy.begin_turn(game._session(), combat["current_actor_id"])
     game._sync_combat_participant_records(combat)
     game._validate_combat_v3_payload(combat)
