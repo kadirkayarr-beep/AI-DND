@@ -720,7 +720,7 @@ class LineProbe(unittest.TestCase):
         self.assertEqual(engine_probe.stop_lines(SELF_TEST_ID), {"mod.py": [2, 3]})
 
     # D-365: a hung or failing outside_probe step prints PROBE FAIL <step>
-    def run_outside_probe(self, side_effect):
+    def run_outside_probe(self, side_effect: object):
         printed = io.StringIO()
         with mock.patch.object(outside_probe.subprocess, "run", side_effect=side_effect), \
                 contextlib.redirect_stdout(printed), contextlib.redirect_stderr(io.StringIO()):
@@ -738,13 +738,13 @@ class LineProbe(unittest.TestCase):
 
     def test_a_hung_closed_stdin_start_prints_probe_fail_closed_stdin(self):
         ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
-        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapatılıyor\n", "")
+        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapat\u0131l\u0131yor\n", "")
         hung = outside_probe.subprocess.TimeoutExpired(["python"], 120)
         self.assertEqual(self.run_outside_probe([ok, ok, started, hung]), (1, "PROBE FAIL closed stdin\n"))
 
     def test_a_clean_run_prints_probe_ok(self):
         ok = outside_probe.subprocess.CompletedProcess(["python"], 0, "['game_parts.a']\n", "")
-        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapatılıyor\n", "")
+        started = outside_probe.subprocess.CompletedProcess(["python"], 0, "D20 sonucu: 7\nOyun kapat\u0131l\u0131yor\n", "")
         eof = outside_probe.subprocess.CompletedProcess(["python"], 1, "", "EOFError")
         self.assertEqual(self.run_outside_probe([ok, ok, started, eof]), (0, "PROBE ok parts=['game_parts.a']\n"))
 

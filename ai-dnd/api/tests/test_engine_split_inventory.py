@@ -234,6 +234,19 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(self._touching(files, {"Q"}),
                          ["api.tests.test_helper", "api.tests.test_joined", "api.tests.test_path"])
 
+    def test_touching_tests_counts_a_test_that_scans_the_engine_tree_for_part_files(self):  # D-461
+        files = {
+            "api/tests/test_scan.py": "from pathlib import Path\nROOT = Path('.')\n"
+                                      "def t():\n    for p in ROOT.rglob('*.py'):\n        pass\n"
+                                      "    return [('game_parts/combat_flow.py', 'combat')]\n",
+            "api/tests/test_layer.py": "PACKAGES = ('api', 'game_parts')\n"
+                                       "def t(root):\n    return sorted((root / PACKAGES[1]).glob('*.py'))\n",
+            "api/tests/test_scan_only.py": "def t(root):\n    return sorted(root.rglob('*.py'))\n",
+            "api/tests/test_names_only.py": "P = 'game_parts/combat_flow.py'\nQ = ('api', 'game_parts')\n",
+            "api/tests/test_dotted.py": "def t(root):\n    return root.rglob('*.py'), 'game_parts.turn'\n",
+        }
+        self.assertEqual(self._touching(files, {"Q"}), ["api.tests.test_layer", "api.tests.test_scan"])
+
     def test_touching_tests_sees_a_session_a_helper_returns(self):  # D-452
         files = {
             "api/tests/test_named.py": "def t():\n    s = session(1)\n    return s.X\n",

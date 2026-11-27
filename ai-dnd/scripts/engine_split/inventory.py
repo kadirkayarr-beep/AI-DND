@@ -14,12 +14,16 @@ import symtable
 import sys
 import tokenize
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # A script run as a file has only its own folder on sys.path: add ai-dnd and ai-dnd/scripts (same as the tests).
 if __name__ == "__main__":
     sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
 
 from engine_split.patch_census import _aliases  # noqa: E402
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -221,6 +225,17 @@ def _names_engine(text: str, names: set[str]) -> bool:
     return text == "game.py" or text.endswith("/game.py") or any(m in names for m in _GAME_STRING.findall(text))
 
 
+_TREE_SCANS = {"rglob", "glob", "iterdir", "walk"}
+
+
+def _scans_engine_parts(tree: ast.Module) -> bool:
+    """A module that scans a directory tree (rglob, glob, iterdir, walk) and holds the engine parts path
+    ("game_parts" or "game_parts/...") reads the engine source by path (D-461)."""
+    scans = any(isinstance(n, ast.Call) and _last_identifier(n) in _TREE_SCANS for n in ast.walk(tree))
+    return scans and any(isinstance(n, ast.Constant) and isinstance(n.value, str)
+                         and (n.value == "game_parts" or "game_parts/" in n.value) for n in ast.walk(tree))
+
+
 def _touches(node: ast.AST, aliases: set[str], names: set[str], sessions: set[str]) -> bool:
     if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in aliases:
         return node.attr in names
@@ -249,7 +264,8 @@ def _attr_reads(tree: ast.Module):
     return lambda alias: None if alias in bare else attrs.get(alias, set())
 
 
-def _from_import_unit(stmt: ast.ImportFrom, alias: ast.alias, names: set[str], attrs_read) -> dict:
+def _from_import_unit(stmt: ast.ImportFrom, alias: ast.alias, names: set[str],
+                      attrs_read: Callable[[str | None], set[str] | None]) -> dict:
     """The unit of one `from m import x`: a top-level `from game import <name>` touches and runs on import (D-438)."""
     star = alias.name == "*"
     direct = stmt.module == "game" and alias.name in names
@@ -290,6 +306,8 @@ def _units(tree: ast.Module, aliases: set[str], names: set[str]) -> list[dict]:
             body = [s for s in stmt.body if not isinstance(s, FUNCTION_NODES)]
             units.append({"binds": set(), "run": True, "refs": [], "reads": set(),
                           "direct": any(_touches(n, aliases, names, sessions) for s in body for n in ast.walk(s))})
+    if _scans_engine_parts(tree):  # binds and runs nothing: the module itself touches, its importers do not
+        units.append({"binds": set(), "run": False, "refs": [], "reads": set(), "direct": True})
     return units
 
 
@@ -299,8 +317,8 @@ def touching_tests(root: Path, names: set[str]) -> list[str]:
     (`session.<name>`, `getattr(session, "<name>")`, see _is_session; D-446) or hold "game.<name>",
     directly or through a name they import (transitively) from a module under api/tests that does
     (e.g. rule_oracles reads game.SKILLS). Name level: importing an untouched helper of a touching module does
-    not count, unless that module touches while it is imported. A test that holds the path "game.py" counts for
-    every name (it reads the engine source). Import chains of any depth are followed (D-437)."""
+    not count, unless that module touches while it is imported. A test that holds the path "game.py", or scans a
+    tree (rglob/glob) while holding a "game_parts" path, counts for every name (it reads the engine source). Import chains of any depth are followed (D-437)."""
     root = Path(root)
     tests = sorted(root.glob("test_*.py")) + sorted((root / "api" / "tests").glob("test_*.py"))
     modules: dict[str, list[dict]] = {}
