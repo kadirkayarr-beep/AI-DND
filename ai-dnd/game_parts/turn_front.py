@@ -15,6 +15,7 @@ import re
 import refusals
 import sys
 import timed_gameplay
+import turn_close
 import weapon_attack
 import equipment_economy
 import talk_mode
@@ -551,22 +552,18 @@ def _adventure_scene_turn(player_input):
 def _adventure_check_reply(session, skill):
     before = copy.deepcopy(session.world_state)
     passed = game._hideout_check(skill, game.DIFFICULTY_DC["medium"])
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_index = turn_close.advance(session.world_state)
     evidence = {
         "action": "skill_check",
         "skill": skill,
         "success": passed,
         "status": "resolved",
-        "action_id": f"adventure-check:{flags['turn_index']}:{skill}",
+        "action_id": f"adventure-check:{turn_index}:{skill}",
         "state_changes": [],
     }
     session.evaluate_quest_events(before, evidence)
     narration = "İncelemen yeni bir izi ortaya çıkardı." if passed else "Bu bakış yeni bir iz çıkarmadı."
-    session.messages.extend([
-        {"role": "user", "content": skill},
-        {"role": "assistant", "content": narration},
-    ])
+    turn_close.record_exchange(session.messages, skill, narration)
     return {
         "messages": session.messages,
         "narration": narration,
@@ -618,7 +615,7 @@ def _everyday_action_turn(player_input):
             plan["cursor"] = 1
             interaction_adventure.validate(state, world)
             pass  # The player remembers their own plan; the game does not read it back.
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(world)
     action_result = {
         "action": "everyday_action",
         "kind": outcome["kind"],
@@ -714,9 +711,7 @@ def _local_place_turn(player_input):
             "source": "player_pursuit",
             "mentioned_by_npc_id": local_places.mentioned_by(world, kind),
         }
-    flags = world.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    if not game.commit_location_change(record["id"], flags["turn_index"]):
+    if not game.commit_location_change(record["id"], turn_close.advance(world)):
         world.clear()
         world.update(before)
         return None
@@ -745,10 +740,7 @@ def _local_place_turn(player_input):
         "direct_response": narration,
     }
     session.evaluate_quest_events(before, action_result)
-    session.messages.extend([
-        {"role": "user", "content": player_input},
-        {"role": "assistant", "content": narration},
-    ])
+    turn_close.record_exchange(session.messages, player_input, narration)
     return {
         "messages": session.messages,
         "narration": narration,
@@ -1785,10 +1777,9 @@ def _front_consume(route, player_input):
     if getattr(session, "_turn_notes", None) is None:
         session._turn_notes = []
     session._turn_notes.append((None, result.note))
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(session.world_state)
     shown = result.note + "."
-    session.messages.extend([{"role": "user", "content": player_input}, {"role": "assistant", "content": shown}])
+    turn_close.record_exchange(session.messages, player_input, shown)
     return {"reply": {"messages": session.messages, "narration": shown, "model_calls": 0,
                       "action_result": {"action": "consume", "status": "consumed", "success": True,
                                         "state_changes": ["inventory"], "direct_response": shown}}}
@@ -2079,14 +2070,12 @@ def _front_route_turn(front, gate, player_input, interaction_mode, action_id, se
     if front is not None and front["kind"] == "wait" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         passed = timed_gameplay.pass_time(game._session(), player_input)
         if passed is not None:
-            flags = game._session().world_state.setdefault("flags", {})
-            flags["turn_index"] = flags.get("turn_index", 0) + 1
+            turn_close.advance(game._session().world_state)
             return {"messages": game._session().messages, "narration": passed["direct_response"], "model_calls": 0,
                     "action_result": passed}
     if front is not None and front["kind"] == "walk_failed" and gate is None and interaction_mode not in {"say", "ask_dm"}:
         text = game._fallback_for_action_result(player_input, {"action": "travel", "status": "failed"})
-        flags = game._session().world_state.setdefault("flags", {})
-        flags["turn_index"] = flags.get("turn_index", 0) + 1
+        turn_close.advance(game._session().world_state)
         return {"messages": game._session().messages, "narration": text, "model_calls": 1,
                 "action_result": {"action": "travel", "status": "failed", "success": False,
                                   "state_changes": [], "direct_response": text}}
@@ -2100,9 +2089,8 @@ def _front_route_turn(front, gate, player_input, interaction_mode, action_id, se
         outcome = everyday_actions.follow_route(world, front, turn=int(flags.get("turn_index", 0)) + 1)
         if outcome["place_id"]:
             grounded_action.note_last(world, outcome["place_id"])  # "oraya" now means the door the figure went in by
-        flags["turn_index"] = flags.get("turn_index", 0) + 1
-        game._session().messages.extend([{"role": "user", "content": player_input},
-                                         {"role": "assistant", "content": outcome["text"]}])
+        turn_close.advance(world)
+        turn_close.record_exchange(game._session().messages, player_input, outcome["text"])
         return {"messages": game._session().messages, "narration": outcome["text"], "model_calls": 1,
                 "action_result": {"action": "everyday_action", "kind": "follow", "status": "resolved",
                                   "success": True, "state_changes": [], "direct_response": outcome["text"],

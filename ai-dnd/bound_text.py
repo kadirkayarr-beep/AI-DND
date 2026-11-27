@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import living_world
+import turn_close
 
 KEY = "bound_text_v1"
 SCHEMA_VERSION = 1
@@ -240,9 +241,8 @@ def take_reading_turn(session: Any, text: Any, looked_at: str = "", *, to_someon
     shown = paper_words(session, text, looked_at, to_someone=to_someone)
     if shown is None:
         return None
-    flags = session.world_state.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
-    session.messages.extend([{"role": "user", "content": text}, {"role": "assistant", "content": shown}])
+    turn_close.advance(session.world_state)
+    turn_close.record_exchange(session.messages, text, shown)
     return {"messages": session.messages, "narration": shown, "model_calls": 0,
             "action_result": {"action": "read_paper", "status": "resolved", "success": True,
                               "state_changes": [], "direct_response": shown}}

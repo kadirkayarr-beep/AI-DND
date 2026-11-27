@@ -12,6 +12,7 @@ from typing import Any
 from fastapi import HTTPException
 
 import game
+import turn_close
 from api import failure_policy
 from api.schemas import PublicEconomicResolution, TurnOutcome, TurnRequest, TurnResponse
 from api.serializers import redact_sensitive_values
@@ -89,8 +90,7 @@ def economic_step(record: Any, session: Any, session_id: str, request: TurnReque
                         and stored.get("operation_id") == operation_id)
             if consumed:
                 stored["consumed_action_id"] = action_id
-                flags = world.setdefault("flags", {})
-                flags["turn_index"] = flags.get("turn_index", 0) + 1  # the same counter every turn moves
+                turn_close.advance(world)  # the same counter every turn moves
                 economic_actions.prune_offer_records(world, protect_action_id=action_id)
             narration = resolution.public_summary
             outcome.update(status=resolution.status, reason=resolution.reason_code)

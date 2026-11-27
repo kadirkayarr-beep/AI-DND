@@ -16,6 +16,7 @@ import living_world
 import tr_case
 import relationships
 import shop_trade
+import turn_close
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -739,8 +740,7 @@ def _hand_to_whom(session, text: str) -> dict[str, Any] | None:
 def _reply(session, narration: str, action: str, status: str, check: dict[str, Any] | None,
            changes: list[str], **extra: Any) -> dict[str, Any]:
     world = session.world_state
-    flags = world.setdefault("flags", {})
-    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    turn_close.advance(world)
     result = {"action": action, "status": status, "state_changes": changes, "direct_response": narration, **extra}
     if check is not None:
         import game

@@ -840,6 +840,9 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `artifacts/ai-dnd-experience/tests/play-screen-ui-regression.test.mjs` (acik beceri karti) | Acik kartta "DC yok" beklentisi D-282 ile yeniden yazildi: Zorluk satiri "Orta, DC 15" okunur, bu satir cikarilinca kartta baska DC aranmaz. Sinir degisti | gevsetme olabilir |
 | `artifacts/ai-dnd-experience/tests/c06-level4-fixture/main.tsx` (`preview()`, `roadmap-c06-level4-browser.test.mjs` tarayici fiksturu) | Seviye 4 onizlemesine `class_name: 'Sorcerer'` eklendi (D-563 sonrasi sinifsiz onizleme "henuz desteklenmiyor" der); yeni `g221-ui-small` testi her seviye atlama fiksturunun sinif adi yazdigini denetler. Tarayici testi kosulmadi, Kod-1 kosusu gerekir | yeniden yazim, siki |
 | yeni test | `tests/g221-ui-small.test.mjs` (D-153 erisilebilir adlar, D-235 eller, D-563, D-282); `package.json` `test:standard` listesine eklendi | ekleme |
+| `ai-dnd/api/tests/engine_split_locks/allowed_imports.json` | G2.8 (D-581, D-502): motorun izinli dis iceri aktarimlari listesine yeni kok modul `turn_close` eklendi (tur sayaci ve gecmis ciftini yazan tek yardimci; game'i iceri aktarmaz). Liste buyudu | gevsetme olabilir |
+| `ai-dnd/api/tests/engine_split_locks/patch_census.json`, `docs/engine-split/patch-census.md` | G2.8: `patch_census.py --write` ile yeniden uretildi; `_carry_out_thread_turn` hedefi G2.21 REDFIX (d0c70ec0, `test_thread_errand.py`) ile eklenmisti ama kilit guncellenmemisti; yalnizca bu satir eklendi | yeniden uretim |
+| yeni test | `api/tests/test_turn_rollback_sites.py`: `test_every_turn_end_increments_once_and_undo_restores_it`, `test_no_hand_written_turn_index_increment`, `test_advance_and_record_exchange` | ekleme |
 
 ## G2.20 (borc-sifirlama): kasaba tohumu ve yolculuk testleri (D-383, D-384, D-554, D-085, D-480, D-292, D-393)
 
