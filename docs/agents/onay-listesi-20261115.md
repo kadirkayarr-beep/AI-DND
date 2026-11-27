@@ -907,3 +907,10 @@ Hepsi "eski kayit kurali (Kadir)": eski kayitlar onemsiz. Yeni kampanyanin kilic
 | `ai-dnd/scripts/quality_gate/size_lock.json` | `living_world.py::ensure_scene_state`, `weapon_attack.py::prepare` ve `weapon_attack.py::_resolve` satirlari silindi (islevler 151 satirin altina indi); hicbir sayi yukselmedi | kucultme |
 | yeni testler | `test_g215_long_function_split`: sahne durumu dogrulayicisi (45 durum) ve silah saldirisi hazirla/coz (50 durum) bolmeden once alinmis sha256 ile ayni; `test_g215_shrink_rows`: `size_budget.json` her kilitli dev islev icin belgede kucultme satiri | ekleme |
 | `docs/agents/kalite-taramasi-20261124.md` | D-552 kucultme plani tablosu eklendi (14 motor kilidi satiri) | ekleme |
+
+## REDFIX2 (borc-sifirlama): kirmizi dalga testleri
+
+| Dosya / test | Ne degisti | Tur |
+|---|---|---|
+| `ai-dnd/api/tests/engine_split_locks/patch_census.json` (D-638) | Degisiklik yok: kilit G2.8 (a6dce579) ile zaten tazelenmisti, `test_the_lock_equals_a_fresh_scan` dalga ucunda yesil (rf2-red) | kilit tazelendi, hala tam |
+| `ai-dnd/api/tests/test_spoken_promises.py` `CheckIsNotSpeech` | `test_a_stock_check_line_swapped_for_their_words_is_not_said_twice` -> `test_a_lost_persuasion_is_told_in_their_own_outcome_line_once`. Kok neden G2.4 (2a66f2ff, D-226): kaybedilen ikna denemesinde reddedilen model cevabinin yerine artik kisinin kendi sonuc cumlesi (`interaction_adventure.social_outcome_line`) gosteriliyor; eski "genel kontrol cumlesi stok kuralla degisir, is yedek cumlesi bir kez" yolu Persuasion/Intimidation/Deception icin artik ulasilamaz. Yeni test zari 1'e sabitleyip anlatimin tam olarak o cumle oldugunu, is yedeginin ve reddedilen sozlerin eklenmedigini iddia eder | gevşetme olabilir (stok-degisim kuralinin (`_speech_after_check` stock_swapped) uctan uca korumasi bu testten ayrildi; baska beceriler icin ulasilabilir mi dogrulanmadi) |
